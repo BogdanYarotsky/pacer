@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<debugInfo>
+    <manifest filename="/Users/byar/dev/monkeyc/pacer/manifest.xml"/>
+    <pcToLineNum>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerView.mc" id="1" lineNum="4" parent="globals/pacerView" pc="268435460" symbol="&lt;init&gt;"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" id="2" lineNum="9" parent="globals/pacerApp" pc="268435472" symbol="&lt;init&gt;"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerDelegate.mc" id="3" lineNum="4" parent="globals/pacerDelegate" pc="268435484" symbol="&lt;init&gt;"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" id="4" lineNum="50" parent="globals" pc="268435496" symbol="getApp"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" id="4" lineNum="51" parent="globals" pc="268435506" symbol="getApp"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/publish/gen/006-B4426-00/source/Rez.mcgen" id="5" lineNum="7" parent="globals/Rez" pc="268435517" symbol="&lt;init&gt;"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" id="6" lineNum="5" parent="globals/pacerMenuDelegate" pc="268435537" symbol="&lt;init&gt;"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerView.mc" id="8" lineNum="11" parent="globals/pacerView" pc="268435549" symbol="onLayout"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerView.mc" id="8" lineNum="12" parent="globals/pacerView" pc="268435551" symbol="onLayout"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerView.mc" id="9" lineNum="6" parent="globals/pacerView" pc="268435585" symbol="initialize"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerView.mc" id="9" lineNum="7" parent="globals/pacerView" pc="268435587" symbol="initialize"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerView.mc" id="11" lineNum="22" parent="globals/pacerView" pc="268435600" symbol="onUpdate"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerView.mc" id="11" lineNum="24" parent="globals/pacerView" pc="268435602" symbol="onUpdate"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" id="12" lineNum="21" parent="globals/pacerApp" pc="268435619" symbol="onStart"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" id="12" lineNum="22" parent="globals/pacerApp" pc="268435621" symbol="onStart"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" id="12" lineNum="23" parent="globals/pacerApp" pc="268435630" symbol="onStart"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" id="12" lineNum="24" parent="globals/pacerApp" pc="268435659" symbol="onStart"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" id="13" lineNum="45" parent="globals/pacerApp" pc="268435694" symbol="getInitialView"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" id="13" lineNum="46" parent="globals/pacerApp" pc="268435696" symbol="getInitialView"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" id="14" lineNum="16" parent="globals/pacerApp" pc="268435751" symbol="initialize"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" id="14" lineNum="17" parent="globals/pacerApp" pc="268435753" symbol="initialize"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" id="15" lineNum="37" parent="globals/pacerApp" pc="268435766" symbol="onStop"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" id="15" lineNum="38" parent="globals/pacerApp" pc="268435768" symbol="onStop"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" id="15" lineNum="39" parent="globals/pacerApp" pc="268435777" symbol="onStop"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" id="15" lineNum="40" parent="globals/pacerApp" pc="268435789" symbol="onStop"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" id="16" lineNum="29" parent="globals/pacerApp" pc="268435801" symbol="timerCallback"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" id="16" lineNum="30" parent="globals/pacerApp" pc="268435804" symbol="timerCallback"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" id="16" lineNum="33" parent="globals/pacerApp" pc="268435840" symbol="timerCallback"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerDelegate.mc" id="17" lineNum="10" parent="globals/pacerDelegate" pc="268435856" symbol="onMenu"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerDelegate.mc" id="17" lineNum="11" parent="globals/pacerDelegate" pc="268435858" symbol="onMenu"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerDelegate.mc" id="17" lineNum="12" parent="globals/pacerDelegate" pc="268435927" symbol="onMenu"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerDelegate.mc" id="18" lineNum="6" parent="globals/pacerDelegate" pc="268435929" symbol="initialize"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerDelegate.mc" id="18" lineNum="7" parent="globals/pacerDelegate" pc="268435931" symbol="initialize"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" id="19" lineNum="11" parent="globals/pacerMenuDelegate" pc="268435944" symbol="onMenuItem"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" id="19" lineNum="12" parent="globals/pacerMenuDelegate" pc="268435946" symbol="onMenuItem"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" id="19" lineNum="13" parent="globals/pacerMenuDelegate" pc="268435957" symbol="onMenuItem"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" id="19" lineNum="14" parent="globals/pacerMenuDelegate" pc="268435978" symbol="onMenuItem"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" id="19" lineNum="15" parent="globals/pacerMenuDelegate" pc="268435989" symbol="onMenuItem"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" id="20" lineNum="7" parent="globals/pacerMenuDelegate" pc="268436011" symbol="initialize"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" id="20" lineNum="8" parent="globals/pacerMenuDelegate" pc="268436013" symbol="initialize"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/publish/gen/006-B4426-00/source/Rez.mcgen" id="21" lineNum="14" parent="globals/Rez/Layouts" pc="268436026" symbol="MainLayout"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/publish/gen/006-B4426-00/source/Rez.mcgen" id="21" lineNum="15" parent="globals/Rez/Layouts" pc="268436037" symbol="MainLayout"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/publish/gen/006-B4426-00/source/Rez.mcgen" id="21" lineNum="16" parent="globals/Rez/Layouts" pc="268436124" symbol="MainLayout"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/publish/gen/006-B4426-00/source/Rez.mcgen" id="21" lineNum="18" parent="globals/Rez/Layouts" pc="268436166" symbol="MainLayout"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/publish/gen/006-B4426-00/source/Rez.mcgen" id="22" lineNum="23" parent="globals/Rez/Menus/MainMenu" pc="268436176" symbol="&lt;init&gt;"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/publish/gen/006-B4426-00/source/Rez.mcgen" id="23" lineNum="24" parent="globals/Rez/Menus/MainMenu" pc="268436188" symbol="initialize"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/publish/gen/006-B4426-00/source/Rez.mcgen" id="23" lineNum="25" parent="globals/Rez/Menus/MainMenu" pc="268436190" symbol="initialize"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/publish/gen/006-B4426-00/source/Rez.mcgen" id="23" lineNum="26" parent="globals/Rez/Menus/MainMenu" pc="268436202" symbol="initialize"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/publish/gen/006-B4426-00/source/Rez.mcgen" id="23" lineNum="27" parent="globals/Rez/Menus/MainMenu" pc="268436247" symbol="initialize"/>
+    </pcToLineNum>
+    <symbolTable>
+        <entry id="8388639" module="true" symbol="Graphics"/>
+        <entry id="7" object="true" symbol="pacerApp"/>
+        <entry id="8388632" method="true" symbol="&lt;init&gt;"/>
+        <entry id="5" module="true" symbol="globals/Rez/Menus"/>
+        <entry id="17" method="true" symbol="MainLayout"/>
+        <entry field="true" id="8388611" module="true" symbol="Toybox"/>
+        <entry field="true" id="19" symbol="AppName"/>
+        <entry id="6" module="true" symbol="globals/Rez/Strings"/>
+        <entry id="8389080" method="true" symbol="onMenu"/>
+        <entry id="8389345" symbol="rezId"/>
+        <entry id="9" object="true" symbol="pacerMenuDelegate"/>
+        <entry id="8388648" module="true" symbol="WatchUi"/>
+        <entry id="2" module="true" symbol="globals/Rez"/>
+        <entry field="true" id="22" symbol="prompt"/>
+        <entry field="true" id="16" symbol="id_monkey"/>
+        <entry id="8389124" method="true" symbol="onUpdate"/>
+        <entry field="true" id="8389065" symbol="locY"/>
+        <entry field="true" id="8389064" symbol="locX"/>
+        <entry id="8388771" module="true" object="true" symbol="Drawables"/>
+        <entry id="24" symbol="item_2"/>
+        <entry id="23" symbol="item_1"/>
+        <entry id="14" module="true" symbol="Menus"/>
+        <entry id="8389275" method="true" symbol="getApp"/>
+        <entry id="4" module="true" symbol="globals/Rez/Layouts"/>
+        <entry id="8389122" method="true" symbol="onLayout"/>
+        <entry field="true" id="8389063" symbol="identifier"/>
+        <entry field="true" id="11" symbol="_timer"/>
+        <entry id="3" module="true" symbol="globals/Rez/Drawables"/>
+        <entry id="18" object="true" symbol="MainMenu"/>
+        <entry id="8388644" module="true" symbol="System"/>
+        <entry id="8388769" module="true" object="true" symbol="Rez"/>
+        <entry id="12" method="true" symbol="timerCallback"/>
+        <entry id="8388640" module="true" symbol="Lang"/>
+        <entry field="true" id="15" symbol="LauncherIcon"/>
+        <entry id="8388610" symbol="statics"/>
+        <entry id="8389123" method="true" symbol="onShow"/>
+        <entry id="8388643" module="true" symbol="Sensor"/>
+        <entry id="10" object="true" symbol="pacerView"/>
+        <entry id="8389350" module="true" symbol="globals"/>
+        <entry id="8388770" module="true" object="true" symbol="Strings"/>
+        <entry id="8388702" method="true" symbol="initialize"/>
+        <entry id="8389279" method="true" symbol="onStart"/>
+        <entry id="8389280" method="true" symbol="getInitialView"/>
+        <entry id="8389281" method="true" symbol="onStop"/>
+        <entry id="8389109" method="true" symbol="onMenuItem"/>
+        <entry id="8" object="true" symbol="pacerDelegate"/>
+        <entry id="8388646" module="true" object="true" symbol="Timer"/>
+        <entry id="13" module="true" symbol="Layouts"/>
+        <entry id="8388636" module="true" symbol="Attention"/>
+        <entry id="8389125" method="true" symbol="onHide"/>
+        <entry id="8388635" module="true" symbol="Application"/>
+        <entry field="true" id="21" symbol="menu_label_2"/>
+        <entry field="true" id="20" symbol="menu_label_1"/>
+    </symbolTable>
+    <localVars>
+        <entry arg="true" endPc="268435584" name="dc" stackId="1" startPc="268435549"/>
+        <entry arg="true" endPc="268435618" name="dc" stackId="1" startPc="268435600"/>
+        <entry arg="true" endPc="268435693" name="state" stackId="1" startPc="268435619"/>
+        <entry arg="true" endPc="268435800" name="state" stackId="1" startPc="268435766"/>
+        <entry endPc="268435854" name="vibe" stackId="1" startPc="268435804"/>
+        <entry arg="true" endPc="268436010" name="item" stackId="1" startPc="268435944"/>
+        <entry arg="true" endPc="268436175" name="dc" stackId="1" startPc="268436026"/>
+        <entry endPc="268436175" name="rez_cmp_local_bitmap_id_monkey" stackId="2" startPc="268436037"/>
+    </localVars>
+    <deviceInfo deviceVersion="675f3c23153730fcf881d53cd2fb4c4483da1c04" partNumber="006-B4426-00"/>
+    <annotations>
+        <annotationEntry annotation="initialized" class="Drawables" module="globals/Rez" symbol="LauncherIcon"/>
+        <annotationEntry annotation="initialized" class="Strings" module="globals/Rez" symbol="menu_label_2"/>
+        <annotationEntry annotation="initialized" class="Strings" module="globals/Rez" symbol="menu_label_1"/>
+        <annotationEntry annotation="initialized" class="Strings" module="globals/Rez" symbol="prompt"/>
+        <annotationEntry annotation="initialized" class="Strings" module="globals/Rez" symbol="AppName"/>
+        <annotationEntry annotation="initialized" class="Drawables" module="globals/Rez" symbol="id_monkey"/>
+    </annotations>
+    <dataEntryOffsetMappings>
+        <dataEntry label="globals" offset="67" parentId="" symbolId="globals" type="module"/>
+        <dataEntry label="globals/pacerView" offset="152" parentId="globals" symbolId="pacerView" type="class"/>
+        <dataEntry label="globals/pacerApp" offset="232" parentId="globals" symbolId="pacerApp" type="class"/>
+        <dataEntry label="globals/pacerDelegate" offset="321" parentId="globals" symbolId="pacerDelegate" type="class"/>
+        <dataEntry label="globals/Rez" offset="374" parentId="globals" symbolId="Rez" type="module"/>
+        <dataEntry label="globals/pacerMenuDelegate" offset="436" parentId="globals" symbolId="pacerMenuDelegate" type="class"/>
+        <dataEntry label="globals/Rez/Drawables" offset="489" parentId="Rez" symbolId="Drawables" type="module"/>
+        <dataEntry label="globals/Rez/Layouts" offset="533" parentId="Rez" symbolId="Layouts" type="module"/>
+        <dataEntry label="globals/Rez/Menus" offset="568" parentId="Rez" symbolId="Menus" type="module"/>
+        <dataEntry label="globals/Rez/Strings" offset="603" parentId="Rez" symbolId="Strings" type="module"/>
+        <dataEntry label="globals/Rez/Menus/MainMenu" offset="665" parentId="Menus" symbolId="MainMenu" type="class"/>
+    </dataEntryOffsetMappings>
+    <functions>
+        <functionEntry accessMode="public" endPc="268435471" name="&lt;init&gt;" parent="pacerView" startPc="268435460">
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" endPc="268435483" name="&lt;init&gt;" parent="pacerApp" startPc="268435472">
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" endPc="268435495" name="&lt;init&gt;" parent="pacerDelegate" startPc="268435484">
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" endPc="268435516" name="getApp" startPc="268435496">
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" endPc="268435536" name="&lt;init&gt;" parent="Rez" startPc="268435517">
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" endPc="268435548" name="&lt;init&gt;" parent="pacerMenuDelegate" startPc="268435537">
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" name="onShow" parent="pacerView">
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" endPc="268435584" name="onLayout" parent="pacerView" startPc="268435549">
+            <param id="dc"/>
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" endPc="268435599" name="initialize" parent="pacerView" startPc="268435585">
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" name="onHide" parent="pacerView">
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" endPc="268435618" name="onUpdate" parent="pacerView" startPc="268435600">
+            <param id="dc"/>
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" endPc="268435693" name="onStart" parent="pacerApp" startPc="268435619">
+            <param id="state"/>
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" endPc="268435750" name="getInitialView" parent="pacerApp" startPc="268435694">
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" endPc="268435765" name="initialize" parent="pacerApp" startPc="268435751">
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" endPc="268435800" name="onStop" parent="pacerApp" startPc="268435766">
+            <param id="state"/>
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" endPc="268435855" name="timerCallback" parent="pacerApp" startPc="268435801">
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" endPc="268435928" name="onMenu" parent="pacerDelegate" startPc="268435856">
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" endPc="268435943" name="initialize" parent="pacerDelegate" startPc="268435929">
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" name="&lt;init&gt;" parent="Drawables">
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" name="&lt;init&gt;" parent="Layouts">
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" name="&lt;init&gt;" parent="Menus">
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" name="&lt;init&gt;" parent="Strings">
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" endPc="268436010" name="onMenuItem" parent="pacerMenuDelegate" startPc="268435944">
+            <param id="item"/>
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" endPc="268436025" name="initialize" parent="pacerMenuDelegate" startPc="268436011">
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" endPc="268436175" name="MainLayout" parent="Layouts" startPc="268436026">
+            <param id="dc"/>
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" endPc="268436187" name="&lt;init&gt;" parent="MainMenu" startPc="268436176">
+            <documentation/>
+        </functionEntry>
+        <functionEntry accessMode="public" endPc="268436292" name="initialize" parent="MainMenu" startPc="268436188">
+            <documentation/>
+        </functionEntry>
+    </functions>
+</debugInfo>
