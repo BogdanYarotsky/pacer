@@ -20,8 +20,40 @@ class pacerView extends WatchUi.View {
 
     // Update the view
     function onUpdate(dc as Dc) as Void {
-        // Call the parent onUpdate function to redraw the layout
         View.onUpdate(dc);
+
+        var center = (dc.getWidth() / 2).toNumber();
+        var app = getApp();
+
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(
+            center,
+            18,
+            Graphics.FONT_MEDIUM,
+            "Pacer",
+            Graphics.TEXT_JUSTIFY_CENTER
+        );
+        dc.drawText(
+            center,
+            dc.getHeight() - 74,
+            Graphics.FONT_SMALL,
+            app.getPaceText(),
+            Graphics.TEXT_JUSTIFY_CENTER
+        );
+        dc.drawText(
+            center,
+            dc.getHeight() - 46,
+            Graphics.FONT_XTINY,
+            app.getIntervalText(),
+            Graphics.TEXT_JUSTIFY_CENTER
+        );
+        dc.drawText(
+            center,
+            dc.getHeight() - 24,
+            Graphics.FONT_XTINY,
+            "Top button: settings / exit",
+            Graphics.TEXT_JUSTIFY_CENTER
+        );
     }
 
     // Called when this View is removed from the screen. Save the
