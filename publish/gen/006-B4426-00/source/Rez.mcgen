@@ -6,8 +6,8 @@ using Toybox.Graphics as Gfx;
 
 module Rez {
     module Drawables {
-        (:initialized) var LauncherIcon as ResourceId;
         (:initialized) var id_monkey as ResourceId;
+        (:initialized) var LauncherIcon as ResourceId;
     } // Drawables
 
     module Layouts {

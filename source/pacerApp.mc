@@ -10,8 +10,9 @@ class pacerApp extends Application.AppBase {
     const DEFAULT_VIBE_STRENGTH = 15;
     const DEFAULT_VIBE_DURATION = 170;
 
-    const MIN_PACE_HUNDREDTHS = 200;
-    const MAX_PACE_HUNDREDTHS = 1200;
+    // Adult resonance frequency falls within 4.5-6.5 breaths/min.
+    const MIN_PACE_HUNDREDTHS = 450;
+    const MAX_PACE_HUNDREDTHS = 650;
     const MIN_VIBE_STRENGTH = 0;
     const MAX_VIBE_STRENGTH = 100;
     const MIN_VIBE_DURATION = 50;
@@ -36,7 +37,7 @@ class pacerApp extends Application.AppBase {
     }
 
     function timerCallback() as Void {
-        if (_vibeStrength == 0) {
+        if (_vibeStrength == 0 || !(Attention has :vibrate)) {
             return;
         }
 

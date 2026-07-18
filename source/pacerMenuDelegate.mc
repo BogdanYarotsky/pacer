@@ -3,6 +3,12 @@ import Toybox.Lang;
 import Toybox.System;
 import Toybox.WatchUi;
 
+enum {
+    FORMAT_PACE = 0,
+    FORMAT_PERCENT = 1,
+    FORMAT_MILLISECONDS = 2
+}
+
 function showPacerSettings() as Void {
     var app = getApp();
     var menu = new WatchUi.Menu2({ :title => "Pacer settings" });
@@ -54,7 +60,7 @@ class pacerMenuDelegate extends WatchUi.Menu2InputDelegate {
                 app.MAX_PACE_HUNDREDTHS,
                 1,
                 app.getPaceHundredths(),
-                pacerValuePickerFactory::FORMAT_PACE
+                FORMAT_PACE
             );
         } else if ("strength".equals(identifier)) {
             openPicker(
@@ -65,7 +71,7 @@ class pacerMenuDelegate extends WatchUi.Menu2InputDelegate {
                 app.MAX_VIBE_STRENGTH,
                 5,
                 app.getVibrationStrength(),
-                pacerValuePickerFactory::FORMAT_PERCENT
+                FORMAT_PERCENT
             );
         } else if ("duration".equals(identifier)) {
             openPicker(
@@ -76,7 +82,7 @@ class pacerMenuDelegate extends WatchUi.Menu2InputDelegate {
                 app.MAX_VIBE_DURATION,
                 10,
                 app.getVibrationDuration(),
-                pacerValuePickerFactory::FORMAT_MILLISECONDS
+                FORMAT_MILLISECONDS
             );
         } else if ("exit".equals(identifier)) {
             System.exit();
@@ -108,10 +114,6 @@ class pacerMenuDelegate extends WatchUi.Menu2InputDelegate {
 }
 
 class pacerValuePickerFactory extends WatchUi.PickerFactory {
-    const FORMAT_PACE = 0;
-    const FORMAT_PERCENT = 1;
-    const FORMAT_MILLISECONDS = 2;
-
     var _minimum;
     var _maximum;
     var _step;
@@ -142,7 +144,8 @@ class pacerValuePickerFactory extends WatchUi.PickerFactory {
             :text => formatValue(getValue(item)),
             :color => Graphics.COLOR_WHITE,
             :font => Graphics.FONT_LARGE,
-            :justification => Graphics.TEXT_JUSTIFY_CENTER
+            :locX => WatchUi.LAYOUT_HALIGN_CENTER,
+            :locY => WatchUi.LAYOUT_VALIGN_CENTER
         });
     }
 

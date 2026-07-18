@@ -1,64 +1,695 @@
 [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 1; ]
-import Toybox.Lang;
+import Toybox.Graphics;
 [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 2; ]
-import Toybox.System;
+import Toybox.Lang;
 [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 3; ]
+import Toybox.System;
+[ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 4; ]
 import Toybox.WatchUi;
-[ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 5; ]
-class pacerMenuDelegate extends WatchUi.MenuInputDelegate{
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 5; ]
+[ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 6; ]
+enum {
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 7; @position = 4; ]
+    FORMAT_PACE = 0,
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 8; @position = 4; ]
+    FORMAT_PERCENT = 1,
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 9; @position = 4; ]
+    FORMAT_MILLISECONDS = 2
+}
+[ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 12; ]
+function showPacerSettings() as Void {
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_12_37_42_0_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 13 4 ]
+    [ "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_12_37_42_0_start" "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_12_37_42_0_stop" ]
+    %app.1 = local;
+    %tmp.1 = self;
+    %tmp.2 = getv function %tmp.1 :getApp;
+    %tmp.3 = invoke %tmp.1 %tmp.2();
+    lputv %app.1 %tmp.3;
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 14 4 ]
+    [ "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_12_37_42_0_start" "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_12_37_42_0_stop" ]
+    %menu.2 = local;
+    %tmp.6 = getm $.Toybox.WatchUi;
+    %tmp.7 = getv function ? %tmp.6 :Menu2;
+    %tmp.8 = newd 1;
+    %tmp.10 = const :title;
+    %tmp.11 = "Pacer settings";
+    %tmp.12 = dup %tmp.8;
+    %tmp.13 = aputv %tmp.12 %tmp.10 %tmp.11;
+    %tmp.4 = newc %tmp.7 (%tmp.13);
+    lputv %menu.2 %tmp.4;
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 16 4 ]
+    %tmp.14 = lgetv %menu.2;
+    %tmp.15 = getv function %tmp.14 :addItem;
+    %tmp.18 = getm $.Toybox.WatchUi;
+    %tmp.19 = getv function ? %tmp.18 :MenuItem;
+    %tmp.20 = "Breathing pace";
+    %tmp.21 = lgetv %app.1;
+    %tmp.22 = getv function %tmp.21 :getPaceText;
+    %tmp.23 = invoke %tmp.21 %tmp.22();
+    %tmp.24 = "pace";
+    %tmp.25 = newd 0;
+    %tmp.16 = newc %tmp.19 (%tmp.20, %tmp.23, %tmp.24, %tmp.25);
+    invoke %tmp.14 %tmp.15(%tmp.16);
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 22 4 ]
+    %tmp.26 = lgetv %menu.2;
+    %tmp.27 = getv function %tmp.26 :addItem;
+    %tmp.30 = getm $.Toybox.WatchUi;
+    %tmp.31 = getv function ? %tmp.30 :MenuItem;
+    %tmp.32 = "Vibration strength";
+    %tmp.33 = lgetv %app.1;
+    %tmp.34 = getv function %tmp.33 :getStrengthText;
+    %tmp.35 = invoke %tmp.33 %tmp.34();
+    %tmp.36 = "strength";
+    %tmp.37 = newd 0;
+    %tmp.28 = newc %tmp.31 (%tmp.32, %tmp.35, %tmp.36, %tmp.37);
+    invoke %tmp.26 %tmp.27(%tmp.28);
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 28 4 ]
+    %tmp.38 = lgetv %menu.2;
+    %tmp.39 = getv function %tmp.38 :addItem;
+    %tmp.42 = getm $.Toybox.WatchUi;
+    %tmp.43 = getv function ? %tmp.42 :MenuItem;
+    %tmp.44 = "Vibration length";
+    %tmp.45 = lgetv %app.1;
+    %tmp.46 = getv function %tmp.45 :getDurationText;
+    %tmp.47 = invoke %tmp.45 %tmp.46();
+    %tmp.48 = "duration";
+    %tmp.49 = newd 0;
+    %tmp.40 = newc %tmp.43 (%tmp.44, %tmp.47, %tmp.48, %tmp.49);
+    invoke %tmp.38 %tmp.39(%tmp.40);
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 34 4 ]
+    %tmp.50 = lgetv %menu.2;
+    %tmp.51 = getv function %tmp.50 :addItem;
+    %tmp.54 = getm $.Toybox.WatchUi;
+    %tmp.55 = getv function ? %tmp.54 :MenuItem;
+    %tmp.56 = "Exit Pacer";
+    %tmp.57 = "Stop all pacing cues";
+    %tmp.58 = "exit";
+    %tmp.59 = newd 0;
+    %tmp.52 = newc %tmp.55 (%tmp.56, %tmp.57, %tmp.58, %tmp.59);
+    invoke %tmp.50 %tmp.51(%tmp.52);
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 41 4 ]
+    %tmp.60 = getm $.Toybox.WatchUi;
+    %tmp.61 = getv function %tmp.60 :pushView;
+    %tmp.63 = lgetv %menu.2;
+    %tmp.67 = getv ? :pacerMenuDelegate;
+    %tmp.64 = newc %tmp.67 ();
+    %tmp.68 = getm $.Toybox.WatchUi;
+    %tmp.69 = getv %tmp.68 :SLIDE_UP;
+    invoke %tmp.60 %tmp.61(%tmp.63, %tmp.64, %tmp.69);
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_12_37_42_0_stop:
+}
+[ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 44; ]
+class pacerMenuDelegate extends WatchUi.Menu2InputDelegate{
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 44; ]
     <init> {
     }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 5; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 44; ]
     static
     <init> {
     }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 7; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 46; ]
     function initialize() as Void {
-_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_7_26_9_4_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 8 8 ]
-        %tmp.2 = getv ? :MenuInputDelegate;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_46_26_48_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 47 8 ]
+        %tmp.2 = getv ? :Menu2InputDelegate;
         %tmp.3 = getv function %tmp.2 :initialize;
         invoke %tmp.2 %tmp.3();
-_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_7_26_9_4_stop:
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_46_26_48_4_stop:
     }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 11; ]
-    function onMenuItem(item as Symbol) as Void {
-_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_11_48_17_4_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 12 8 ]
-_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_12_8_16_8_if_stmt:
-        %tmp.2 = lgetv %item;
-        %tmp.4 = const :item_1;
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 50; ]
+    function onSelect(item as WatchUi.MenuItem) as Void {
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_50_56_90_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 51 8 ]
+        [ "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_50_56_90_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_50_56_90_4_stop" ]
+        %identifier.1 = local;
+        %tmp.1 = lgetv %item;
+        %tmp.2 = getv function %tmp.1 :getId;
+        %tmp.3 = invoke %tmp.1 %tmp.2();
+        lputv %identifier.1 %tmp.3;
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 52 8 ]
+        [ "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_50_56_90_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_50_56_90_4_stop" ]
+        %app.2 = local;
+        %tmp.4 = self;
+        %tmp.5 = getv function %tmp.4 :getApp;
+        %tmp.6 = invoke %tmp.4 %tmp.5();
+        lputv %app.2 %tmp.6;
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 54 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_54_8_89_8_if_stmt:
+        %tmp.7 = "pace";
+        %tmp.8 = getv function %tmp.7 :equals;
+        %tmp.10 = lgetv %identifier.1;
+        %tmp.11 = invoke %tmp.7 %tmp.8(%tmp.10);
+        bf %tmp.11 @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_54_8_89_8_if_false;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_54_8_89_8_if_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_54_39_65_8_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 55 12 ]
+        %tmp.12 = self;
+        %tmp.13 = getv function %tmp.12 :openPicker;
+        %tmp.15 = lgetv %item;
+        %tmp.17 = lgetv %identifier.1;
+        %tmp.18 = "Breaths per minute";
+        %tmp.19 = lgetv %app.2;
+        %tmp.20 = getv %tmp.19 :MIN_PACE_HUNDREDTHS;
+        %tmp.21 = lgetv %app.2;
+        %tmp.22 = getv %tmp.21 :MAX_PACE_HUNDREDTHS;
+        %tmp.23 = 1;
+        %tmp.24 = lgetv %app.2;
+        %tmp.25 = getv function %tmp.24 :getPaceHundredths;
+        %tmp.26 = invoke %tmp.24 %tmp.25();
+        %tmp.28 = getv ? :FORMAT_PACE;
+        invoke %tmp.12 %tmp.13(%tmp.15, %tmp.17, %tmp.18, %tmp.20, %tmp.22, %tmp.23, %tmp.26, %tmp.28);
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_54_39_65_8_stop:
+        goto @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_54_8_89_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_54_8_89_8_if_false:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 65 15 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_65_15_89_8_if_stmt:
+        %tmp.29 = "strength";
+        %tmp.30 = getv function %tmp.29 :equals;
+        %tmp.32 = lgetv %identifier.1;
+        %tmp.33 = invoke %tmp.29 %tmp.30(%tmp.32);
+        bf %tmp.33 @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_65_15_89_8_if_false;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_65_15_89_8_if_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_65_50_76_8_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 66 12 ]
+        %tmp.34 = self;
+        %tmp.35 = getv function %tmp.34 :openPicker;
+        %tmp.37 = lgetv %item;
+        %tmp.39 = lgetv %identifier.1;
+        %tmp.40 = "Vibration strength";
+        %tmp.41 = lgetv %app.2;
+        %tmp.42 = getv %tmp.41 :MIN_VIBE_STRENGTH;
+        %tmp.43 = lgetv %app.2;
+        %tmp.44 = getv %tmp.43 :MAX_VIBE_STRENGTH;
+        %tmp.45 = 5;
+        %tmp.46 = lgetv %app.2;
+        %tmp.47 = getv function %tmp.46 :getVibrationStrength;
+        %tmp.48 = invoke %tmp.46 %tmp.47();
+        %tmp.50 = getv ? :FORMAT_PERCENT;
+        invoke %tmp.34 %tmp.35(%tmp.37, %tmp.39, %tmp.40, %tmp.42, %tmp.44, %tmp.45, %tmp.48, %tmp.50);
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_65_50_76_8_stop:
+        goto @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_65_15_89_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_65_15_89_8_if_false:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 76 15 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_76_15_89_8_if_stmt:
+        %tmp.51 = "duration";
+        %tmp.52 = getv function %tmp.51 :equals;
+        %tmp.54 = lgetv %identifier.1;
+        %tmp.55 = invoke %tmp.51 %tmp.52(%tmp.54);
+        bf %tmp.55 @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_76_15_89_8_if_false;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_76_15_89_8_if_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_76_50_87_8_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 77 12 ]
+        %tmp.56 = self;
+        %tmp.57 = getv function %tmp.56 :openPicker;
+        %tmp.59 = lgetv %item;
+        %tmp.61 = lgetv %identifier.1;
+        %tmp.62 = "Vibration length";
+        %tmp.63 = lgetv %app.2;
+        %tmp.64 = getv %tmp.63 :MIN_VIBE_DURATION;
+        %tmp.65 = lgetv %app.2;
+        %tmp.66 = getv %tmp.65 :MAX_VIBE_DURATION;
+        %tmp.67 = 10;
+        %tmp.68 = lgetv %app.2;
+        %tmp.69 = getv function %tmp.68 :getVibrationDuration;
+        %tmp.70 = invoke %tmp.68 %tmp.69();
+        %tmp.72 = getv ? :FORMAT_MILLISECONDS;
+        invoke %tmp.56 %tmp.57(%tmp.59, %tmp.61, %tmp.62, %tmp.64, %tmp.66, %tmp.67, %tmp.70, %tmp.72);
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_76_50_87_8_stop:
+        goto @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_76_15_89_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_76_15_89_8_if_false:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 87 15 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_87_15_89_8_if_stmt:
+        %tmp.73 = "exit";
+        %tmp.74 = getv function %tmp.73 :equals;
+        %tmp.76 = lgetv %identifier.1;
+        %tmp.77 = invoke %tmp.73 %tmp.74(%tmp.76);
+        bf %tmp.77 @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_87_15_89_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_87_15_89_8_if_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_87_46_89_8_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 88 12 ]
+        %tmp.78 = getm $.Toybox.System;
+        %tmp.79 = getv function %tmp.78 :exit;
+        invoke %tmp.78 %tmp.79();
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_87_46_89_8_stop:
+        goto @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_87_15_89_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_87_15_89_8_if_end:
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_76_15_89_8_if_end:
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_65_15_89_8_if_end:
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_54_8_89_8_if_end:
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_50_56_90_4_stop:
+    }
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 92; ]
+    private
+    function openPicker(item, identifier, titleText, minimum, maximum, step, current, format) as Void {
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_92_110_113_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 93 8 ]
+        [ "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_92_110_113_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_92_110_113_4_stop" ]
+        %title.1 = local;
+        %tmp.3 = getm $.Toybox.WatchUi;
+        %tmp.4 = getv function ? %tmp.3 :Text;
+        %tmp.5 = newd 6;
+        %tmp.7 = const :text;
+        %tmp.9 = lgetv %titleText;
+        %tmp.10 = dup %tmp.5;
+        %tmp.11 = aputv %tmp.10 %tmp.7 %tmp.9;
+        %tmp.13 = const :locX;
+        %tmp.14 = getm $.Toybox.WatchUi;
+        %tmp.15 = getv %tmp.14 :LAYOUT_HALIGN_CENTER;
+        %tmp.16 = dup %tmp.11;
+        %tmp.17 = aputv %tmp.16 %tmp.13 %tmp.15;
+        %tmp.19 = const :locY;
+        %tmp.20 = getm $.Toybox.WatchUi;
+        %tmp.21 = getv %tmp.20 :LAYOUT_VALIGN_BOTTOM;
+        %tmp.22 = dup %tmp.17;
+        %tmp.23 = aputv %tmp.22 %tmp.19 %tmp.21;
+        %tmp.25 = const :color;
+        %tmp.26 = getm $.Toybox.Graphics;
+        %tmp.27 = getv %tmp.26 :COLOR_WHITE;
+        %tmp.28 = dup %tmp.23;
+        %tmp.29 = aputv %tmp.28 %tmp.25 %tmp.27;
+        %tmp.31 = const :font;
+        %tmp.32 = getm $.Toybox.Graphics;
+        %tmp.33 = getv %tmp.32 :FONT_SMALL;
+        %tmp.34 = dup %tmp.29;
+        %tmp.35 = aputv %tmp.34 %tmp.31 %tmp.33;
+        %tmp.37 = const :justification;
+        %tmp.38 = getm $.Toybox.Graphics;
+        %tmp.39 = getv %tmp.38 :TEXT_JUSTIFY_CENTER;
+        %tmp.40 = dup %tmp.35;
+        %tmp.41 = aputv %tmp.40 %tmp.37 %tmp.39;
+        %tmp.1 = newc %tmp.4 (%tmp.41);
+        lputv %title.1 %tmp.1;
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 101 8 ]
+        [ "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_92_110_113_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_92_110_113_4_stop" ]
+        %factory.2 = local;
+        %tmp.45 = getv ? :pacerValuePickerFactory;
+        %tmp.47 = lgetv %minimum;
+        %tmp.49 = lgetv %maximum;
+        %tmp.51 = lgetv %step;
+        %tmp.53 = lgetv %format;
+        %tmp.42 = newc %tmp.45 (%tmp.47, %tmp.49, %tmp.51, %tmp.53);
+        lputv %factory.2 %tmp.42;
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 102 8 ]
+        [ "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_92_110_113_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_92_110_113_4_stop" ]
+        %picker.3 = local;
+        %tmp.56 = getm $.Toybox.WatchUi;
+        %tmp.57 = getv function ? %tmp.56 :Picker;
+        %tmp.58 = newd 3;
+        %tmp.60 = const :title;
+        %tmp.62 = lgetv %title.1;
+        %tmp.63 = dup %tmp.58;
+        %tmp.64 = aputv %tmp.63 %tmp.60 %tmp.62;
+        %tmp.66 = const :pattern;
+        %tmp.67 = newa 1;
+        %tmp.69 = lgetv %factory.2;
+        %tmp.70 = dup %tmp.67;
+        %tmp.71 = aputv %tmp.70 0 %tmp.69;
+        %tmp.72 = dup %tmp.64;
+        %tmp.73 = aputv %tmp.72 %tmp.66 %tmp.71;
+        %tmp.75 = const :defaults;
+        %tmp.76 = newa 1;
+        %tmp.77 = lgetv %factory.2;
+        %tmp.78 = getv function %tmp.77 :getIndex;
+        %tmp.80 = lgetv %current;
+        %tmp.81 = invoke %tmp.77 %tmp.78(%tmp.80);
+        %tmp.82 = dup %tmp.76;
+        %tmp.83 = aputv %tmp.82 0 %tmp.81;
+        %tmp.84 = dup %tmp.73;
+        %tmp.85 = aputv %tmp.84 %tmp.75 %tmp.83;
+        %tmp.54 = newc %tmp.57 (%tmp.85);
+        lputv %picker.3 %tmp.54;
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 108 8 ]
+        %tmp.86 = getm $.Toybox.WatchUi;
+        %tmp.87 = getv function %tmp.86 :pushView;
+        %tmp.89 = lgetv %picker.3;
+        %tmp.93 = getv ? :pacerPickerDelegate;
+        %tmp.95 = lgetv %identifier;
+        %tmp.97 = lgetv %item;
+        %tmp.90 = newc %tmp.93 (%tmp.95, %tmp.97);
+        %tmp.98 = getm $.Toybox.WatchUi;
+        %tmp.99 = getv %tmp.98 :SLIDE_UP;
+        invoke %tmp.86 %tmp.87(%tmp.89, %tmp.90, %tmp.99);
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_92_110_113_4_stop:
+    }
+}
+[ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 116; ]
+class pacerValuePickerFactory extends WatchUi.PickerFactory{
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 116; ]
+    <init> {
+    }
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 116; ]
+    static
+    <init> {
+    }
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 117; @position = 8; ]
+    var _minimum;
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 118; @position = 8; ]
+    var _maximum;
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 119; @position = 8; ]
+    var _step;
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 120; @position = 8; ]
+    var _format;
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 122; ]
+    function initialize(minimum, maximum, step, format) as Void {
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_122_56_128_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 123 8 ]
+        %tmp.2 = getv ? :PickerFactory;
+        %tmp.3 = getv function %tmp.2 :initialize;
+        invoke %tmp.2 %tmp.3();
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 124 8 ]
+        %tmp.5 = lgetv %minimum;
+        putv self :_minimum %tmp.5;
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 125 8 ]
+        %tmp.7 = lgetv %maximum;
+        putv self :_maximum %tmp.7;
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 126 8 ]
+        %tmp.9 = lgetv %step;
+        putv self :_step %tmp.9;
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 127 8 ]
+        %tmp.11 = lgetv %format;
+        putv self :_format %tmp.11;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_122_56_128_4_stop:
+    }
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 130; ]
+    function getSize() {
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_130_23_132_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 131 8 ]
+        %tmp.2 = getv ? :_maximum;
+        %tmp.4 = getv ? :_minimum;
+        %tmp.5 = sub %tmp.2 %tmp.4;
+        %tmp.7 = getv ? :_step;
+        %tmp.8 = div %tmp.5 %tmp.7;
+        %tmp.9 = getv function %tmp.8 :toNumber;
+        %tmp.10 = invoke %tmp.8 %tmp.9();
+        %tmp.11 = 1;
+        %tmp.12 = add %tmp.10 %tmp.11;
+        ret %tmp.12;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_130_23_132_4_stop:
+    }
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 134; ]
+    function getValue(item) {
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_134_28_136_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 135 8 ]
+        %tmp.2 = getv ? :_minimum;
+        %tmp.4 = lgetv %item;
+        %tmp.6 = getv ? :_step;
+        %tmp.7 = mul %tmp.4 %tmp.6;
+        %tmp.8 = add %tmp.2 %tmp.7;
+        ret %tmp.8;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_134_28_136_4_stop:
+    }
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 138; ]
+    function getIndex(value) {
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_138_29_140_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 139 8 ]
+        %tmp.2 = lgetv %value;
+        %tmp.4 = getv ? :_minimum;
+        %tmp.5 = sub %tmp.2 %tmp.4;
+        %tmp.7 = getv ? :_step;
+        %tmp.8 = div %tmp.5 %tmp.7;
+        %tmp.9 = getv function %tmp.8 :toNumber;
+        %tmp.10 = invoke %tmp.8 %tmp.9();
+        ret %tmp.10;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_138_29_140_4_stop:
+    }
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 142; ]
+    function getDrawable(item, isSelected) {
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_142_43_150_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 143 8 ]
+        %tmp.3 = getm $.Toybox.WatchUi;
+        %tmp.4 = getv function ? %tmp.3 :Text;
+        %tmp.5 = newd 5;
+        %tmp.7 = const :text;
+        %tmp.8 = self;
+        %tmp.9 = getv function %tmp.8 :formatValue;
+        %tmp.10 = self;
+        %tmp.11 = getv function %tmp.10 :getValue;
+        %tmp.13 = lgetv %item;
+        %tmp.14 = invoke %tmp.10 %tmp.11(%tmp.13);
+        %tmp.15 = invoke %tmp.8 %tmp.9(%tmp.14);
+        %tmp.16 = dup %tmp.5;
+        %tmp.17 = aputv %tmp.16 %tmp.7 %tmp.15;
+        %tmp.19 = const :color;
+        %tmp.20 = getm $.Toybox.Graphics;
+        %tmp.21 = getv %tmp.20 :COLOR_WHITE;
+        %tmp.22 = dup %tmp.17;
+        %tmp.23 = aputv %tmp.22 %tmp.19 %tmp.21;
+        %tmp.25 = const :font;
+        %tmp.26 = getm $.Toybox.Graphics;
+        %tmp.27 = getv %tmp.26 :FONT_LARGE;
+        %tmp.28 = dup %tmp.23;
+        %tmp.29 = aputv %tmp.28 %tmp.25 %tmp.27;
+        %tmp.31 = const :locX;
+        %tmp.32 = getm $.Toybox.WatchUi;
+        %tmp.33 = getv %tmp.32 :LAYOUT_HALIGN_CENTER;
+        %tmp.34 = dup %tmp.29;
+        %tmp.35 = aputv %tmp.34 %tmp.31 %tmp.33;
+        %tmp.37 = const :locY;
+        %tmp.38 = getm $.Toybox.WatchUi;
+        %tmp.39 = getv %tmp.38 :LAYOUT_VALIGN_CENTER;
+        %tmp.40 = dup %tmp.35;
+        %tmp.41 = aputv %tmp.40 %tmp.37 %tmp.39;
+        %tmp.1 = newc %tmp.4 (%tmp.41);
+        ret %tmp.1;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_142_43_150_4_stop:
+    }
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 152; ]
+    private
+    function formatValue(value) {
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_152_40_166_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 153 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_153_8_163_8_if_stmt:
+        %tmp.2 = getv ? :_format;
+        %tmp.4 = getv ? :FORMAT_PACE;
         %tmp.5 = eq %tmp.2 %tmp.4;
-        bf %tmp.5 @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_12_8_16_8_if_false;
-_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_12_8_16_8_if_true:
-_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_12_29_14_8_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 13 12 ]
-        %tmp.6 = getm $.Toybox.System;
-        %tmp.7 = getv function %tmp.6 :println;
-        %tmp.8 = "item 1";
-        invoke %tmp.6 %tmp.7(%tmp.8);
-_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_12_29_14_8_stop:
-        goto @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_12_8_16_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_12_8_16_8_if_false:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 14 15 ]
-_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_14_15_16_8_if_stmt:
-        %tmp.10 = lgetv %item;
-        %tmp.12 = const :item_2;
-        %tmp.13 = eq %tmp.10 %tmp.12;
-        bf %tmp.13 @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_14_15_16_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_14_15_16_8_if_true:
-_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_14_36_16_8_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 15 12 ]
-        %tmp.14 = getm $.Toybox.System;
-        %tmp.15 = getv function %tmp.14 :println;
-        %tmp.16 = "item 2";
-        invoke %tmp.14 %tmp.15(%tmp.16);
-_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_14_36_16_8_stop:
-        goto @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_14_15_16_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_14_15_16_8_if_end:
-_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_12_8_16_8_if_end:
-_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_11_48_17_4_stop:
+        bf %tmp.5 @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_153_8_163_8_if_false;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_153_8_163_8_if_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_153_36_161_8_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 154 12 ]
+        [ "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_153_36_161_8_start" "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_153_36_161_8_stop" ]
+        %whole.1 = local;
+        %tmp.7 = lgetv %value;
+        %tmp.8 = 100;
+        %tmp.9 = div %tmp.7 %tmp.8;
+        %tmp.10 = getv function %tmp.9 :toNumber;
+        %tmp.11 = invoke %tmp.9 %tmp.10();
+        lputv %whole.1 %tmp.11;
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 155 12 ]
+        [ "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_153_36_161_8_start" "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_153_36_161_8_stop" ]
+        %fraction.2 = local;
+        %tmp.13 = lgetv %value;
+        %tmp.14 = 100;
+        %tmp.15 = mod %tmp.13 %tmp.14;
+        lputv %fraction.2 %tmp.15;
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 156 12 ]
+        [ "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_153_36_161_8_start" "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_153_36_161_8_stop" ]
+        %fractionText.3 = local;
+        %tmp.16 = lgetv %fraction.2;
+        %tmp.17 = getv function %tmp.16 :toString;
+        %tmp.18 = invoke %tmp.16 %tmp.17();
+        lputv %fractionText.3 %tmp.18;
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 157 12 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_157_12_159_12_if_stmt:
+        %tmp.20 = lgetv %fraction.2;
+        %tmp.21 = 10;
+        %tmp.22 = lt %tmp.20 %tmp.21;
+        bf %tmp.22 @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_157_12_159_12_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_157_12_159_12_if_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_157_31_159_12_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 158 16 ]
+        %tmp.23 = "0";
+        %tmp.25 = lgetv %fractionText.3;
+        %tmp.26 = add %tmp.23 %tmp.25;
+        lputv %fractionText.3 %tmp.26;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_157_31_159_12_stop:
+        goto @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_157_12_159_12_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_157_12_159_12_if_end:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 160 12 ]
+        %tmp.27 = lgetv %whole.1;
+        %tmp.28 = getv function %tmp.27 :toString;
+        %tmp.29 = invoke %tmp.27 %tmp.28();
+        %tmp.30 = ".";
+        %tmp.31 = add %tmp.29 %tmp.30;
+        %tmp.33 = lgetv %fractionText.3;
+        %tmp.34 = add %tmp.31 %tmp.33;
+        %tmp.35 = "/min";
+        %tmp.36 = add %tmp.34 %tmp.35;
+        ret %tmp.36;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_153_36_161_8_stop:
+        goto @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_153_8_163_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_153_8_163_8_if_false:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 161 15 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_161_15_163_8_if_stmt:
+        %tmp.38 = getv ? :_format;
+        %tmp.40 = getv ? :FORMAT_PERCENT;
+        %tmp.41 = eq %tmp.38 %tmp.40;
+        bf %tmp.41 @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_161_15_163_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_161_15_163_8_if_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_161_46_163_8_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 162 12 ]
+        %tmp.42 = lgetv %value;
+        %tmp.43 = getv function %tmp.42 :toString;
+        %tmp.44 = invoke %tmp.42 %tmp.43();
+        %tmp.45 = "%";
+        %tmp.46 = add %tmp.44 %tmp.45;
+        ret %tmp.46;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_161_46_163_8_stop:
+        goto @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_161_15_163_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_161_15_163_8_if_end:
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_153_8_163_8_if_end:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 165 8 ]
+        %tmp.47 = lgetv %value;
+        %tmp.48 = getv function %tmp.47 :toString;
+        %tmp.49 = invoke %tmp.47 %tmp.48();
+        %tmp.50 = " ms";
+        %tmp.51 = add %tmp.49 %tmp.50;
+        ret %tmp.51;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_152_40_166_4_stop:
+    }
+}
+[ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 169; ]
+class pacerPickerDelegate extends WatchUi.PickerDelegate{
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 169; ]
+    <init> {
+    }
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 169; ]
+    static
+    <init> {
+    }
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 170; @position = 8; ]
+    var _identifier;
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 171; @position = 8; ]
+    var _menuItem;
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 173; ]
+    function initialize(identifier, menuItem) as Void {
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_173_46_177_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 174 8 ]
+        %tmp.2 = getv ? :PickerDelegate;
+        %tmp.3 = getv function %tmp.2 :initialize;
+        invoke %tmp.2 %tmp.3();
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 175 8 ]
+        %tmp.5 = lgetv %identifier;
+        putv self :_identifier %tmp.5;
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 176 8 ]
+        %tmp.7 = lgetv %menuItem;
+        putv self :_menuItem %tmp.7;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_173_46_177_4_stop:
+    }
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 179; ]
+    function onAccept(values as Array) as Boolean {
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_179_50_196_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 180 8 ]
+        [ "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_179_50_196_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_179_50_196_4_stop" ]
+        %app.1 = local;
+        %tmp.1 = self;
+        %tmp.2 = getv function %tmp.1 :getApp;
+        %tmp.3 = invoke %tmp.1 %tmp.2();
+        lputv %app.1 %tmp.3;
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 181 8 ]
+        [ "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_179_50_196_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_179_50_196_4_stop" ]
+        %value.2 = local;
+        %tmp.5 = lgetv %values;
+        %tmp.6 = 0;
+        %tmp.7 = agetv %tmp.5 %tmp.6;
+        lputv %value.2 %tmp.7;
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 183 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_183_8_192_8_if_stmt:
+        %tmp.8 = "pace";
+        %tmp.9 = getv function %tmp.8 :equals;
+        %tmp.11 = getv ? :_identifier;
+        %tmp.12 = invoke %tmp.8 %tmp.9(%tmp.11);
+        bf %tmp.12 @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_183_8_192_8_if_false;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_183_8_192_8_if_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_183_40_186_8_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 184 12 ]
+        %tmp.13 = lgetv %app.1;
+        %tmp.14 = getv function %tmp.13 :setPaceHundredths;
+        %tmp.16 = lgetv %value.2;
+        invoke %tmp.13 %tmp.14(%tmp.16);
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 185 12 ]
+        %tmp.18 = getv ? :_menuItem;
+        %tmp.19 = getv function %tmp.18 :setSubLabel;
+        %tmp.20 = lgetv %app.1;
+        %tmp.21 = getv function %tmp.20 :getPaceText;
+        %tmp.22 = invoke %tmp.20 %tmp.21();
+        invoke %tmp.18 %tmp.19(%tmp.22);
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_183_40_186_8_stop:
+        goto @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_183_8_192_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_183_8_192_8_if_false:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 186 15 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_186_15_192_8_if_stmt:
+        %tmp.23 = "strength";
+        %tmp.24 = getv function %tmp.23 :equals;
+        %tmp.26 = getv ? :_identifier;
+        %tmp.27 = invoke %tmp.23 %tmp.24(%tmp.26);
+        bf %tmp.27 @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_186_15_192_8_if_false;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_186_15_192_8_if_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_186_51_189_8_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 187 12 ]
+        %tmp.28 = lgetv %app.1;
+        %tmp.29 = getv function %tmp.28 :setVibrationStrength;
+        %tmp.31 = lgetv %value.2;
+        invoke %tmp.28 %tmp.29(%tmp.31);
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 188 12 ]
+        %tmp.33 = getv ? :_menuItem;
+        %tmp.34 = getv function %tmp.33 :setSubLabel;
+        %tmp.35 = lgetv %app.1;
+        %tmp.36 = getv function %tmp.35 :getStrengthText;
+        %tmp.37 = invoke %tmp.35 %tmp.36();
+        invoke %tmp.33 %tmp.34(%tmp.37);
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_186_51_189_8_stop:
+        goto @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_186_15_192_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_186_15_192_8_if_false:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 189 15 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_189_15_192_8_if_stmt:
+        %tmp.38 = "duration";
+        %tmp.39 = getv function %tmp.38 :equals;
+        %tmp.41 = getv ? :_identifier;
+        %tmp.42 = invoke %tmp.38 %tmp.39(%tmp.41);
+        bf %tmp.42 @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_189_15_192_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_189_15_192_8_if_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_189_51_192_8_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 190 12 ]
+        %tmp.43 = lgetv %app.1;
+        %tmp.44 = getv function %tmp.43 :setVibrationDuration;
+        %tmp.46 = lgetv %value.2;
+        invoke %tmp.43 %tmp.44(%tmp.46);
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 191 12 ]
+        %tmp.48 = getv ? :_menuItem;
+        %tmp.49 = getv function %tmp.48 :setSubLabel;
+        %tmp.50 = lgetv %app.1;
+        %tmp.51 = getv function %tmp.50 :getDurationText;
+        %tmp.52 = invoke %tmp.50 %tmp.51();
+        invoke %tmp.48 %tmp.49(%tmp.52);
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_189_51_192_8_stop:
+        goto @_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_189_15_192_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_189_15_192_8_if_end:
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_186_15_192_8_if_end:
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_183_8_192_8_if_end:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 194 8 ]
+        %tmp.53 = getm $.Toybox.WatchUi;
+        %tmp.54 = getv function %tmp.53 :popView;
+        %tmp.55 = getm $.Toybox.WatchUi;
+        %tmp.56 = getv %tmp.55 :SLIDE_DOWN;
+        invoke %tmp.53 %tmp.54(%tmp.56);
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 195 8 ]
+        %tmp.57 = true;
+        ret %tmp.57;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_179_50_196_4_stop:
+    }
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 198; ]
+    function onCancel() as Boolean {
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_198_35_201_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 199 8 ]
+        %tmp.1 = getm $.Toybox.WatchUi;
+        %tmp.2 = getv function %tmp.1 :popView;
+        %tmp.3 = getm $.Toybox.WatchUi;
+        %tmp.4 = getv %tmp.3 :SLIDE_DOWN;
+        invoke %tmp.1 %tmp.2(%tmp.4);
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" 200 8 ]
+        %tmp.5 = true;
+        ret %tmp.5;
+_Users_byar_dev_monkeyc_pacer_source_pacerMenuDelegate_mc_198_35_201_4_stop:
     }
 }
 [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc"; @line = 1; ]
