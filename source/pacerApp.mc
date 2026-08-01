@@ -6,6 +6,10 @@ import Toybox.Attention;
 import Toybox.Timer;
 
 class pacerApp extends Application.AppBase {
+    // Shown on the main screen so the build running on the watch is
+    // identifiable at a glance. Bump on every sideload.
+    const APP_VERSION = "0.13";
+
     const DEFAULT_PACE_HUNDREDTHS = 571;
     const DEFAULT_VIBE_STRENGTH = 15;
     const DEFAULT_VIBE_DURATION = 170;

@@ -12,15 +12,14 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
         return false;
     }
 
-    // Garmin maps both a right swipe and the lower Back button to this behavior
-    // on the vivoactive 5. Consume both so a swipe can never close the app. The
-    // settings menu provides an explicit, unambiguous Exit Pacer action.
+    // Both the lower Back button and a right swipe raise this behavior. Decline
+    // it so the event splits into its raw form: a physical press arrives at
+    // onKey as KEY_ESC, while a swipe arrives at onSwipe. That split is the only
+    // place the two can be told apart.
     function onBack() as Boolean {
-        return true;
+        return false;
     }
 
-    // Some firmware reports the same right swipe as a raw KEY_ESC as well as
-    // the Back behavior, so consume the raw forms too.
     function onKey(keyEvent as WatchUi.KeyEvent) as Boolean {
         var key = keyEvent.getKey();
 
@@ -29,17 +28,11 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
             return true;
         }
 
-        return key == WatchUi.KEY_ESC;
+        // Decline KEY_ESC so the physical Back button exits the app.
+        return false;
     }
 
-    function onKeyPressed(keyEvent as WatchUi.KeyEvent) as Boolean {
-        return keyEvent.getKey() == WatchUi.KEY_ESC;
-    }
-
-    function onKeyReleased(keyEvent as WatchUi.KeyEvent) as Boolean {
-        return keyEvent.getKey() == WatchUi.KEY_ESC;
-    }
-
+    // Swallow the right swipe so a stray touch cannot end a session.
     function onSwipe(swipeEvent as WatchUi.SwipeEvent) as Boolean {
         return swipeEvent.getDirection() == WatchUi.SWIPE_RIGHT;
     }

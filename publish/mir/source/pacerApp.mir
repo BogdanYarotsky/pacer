@@ -14,13 +14,13 @@ import Toybox.Timer;
 class pacerApp extends Application.AppBase{
     [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 8; ]
     <init> {
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 26 8 ]
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 30 8 ]
         %tmp.2 = getv ? :DEFAULT_PACE_HUNDREDTHS;
         putv self :_paceHundredths %tmp.2;
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 27 8 ]
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 31 8 ]
         %tmp.4 = getv ? :DEFAULT_VIBE_STRENGTH;
         putv self :_vibeStrength %tmp.4;
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 28 8 ]
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 32 8 ]
         %tmp.6 = getv ? :DEFAULT_VIBE_DURATION;
         putv self :_vibeDuration %tmp.6;
     }
@@ -28,88 +28,90 @@ class pacerApp extends Application.AppBase{
     static
     <init> {
     }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 9; @position = 10; ]
-    const DEFAULT_PACE_HUNDREDTHS = 571;
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 10; @position = 10; ]
-    const DEFAULT_VIBE_STRENGTH = 15;
     [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 11; @position = 10; ]
-    const DEFAULT_VIBE_DURATION = 170;
+    const APP_VERSION = "0.13";
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 13; @position = 10; ]
+    const DEFAULT_PACE_HUNDREDTHS = 571;
     [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 14; @position = 10; ]
-    const MIN_PACE_HUNDREDTHS = 450;
+    const DEFAULT_VIBE_STRENGTH = 15;
     [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 15; @position = 10; ]
-    const MAX_PACE_HUNDREDTHS = 650;
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 16; @position = 10; ]
-    const MIN_VIBE_STRENGTH = 0;
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 17; @position = 10; ]
-    const MAX_VIBE_STRENGTH = 100;
+    const DEFAULT_VIBE_DURATION = 170;
     [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 18; @position = 10; ]
-    const MIN_VIBE_DURATION = 50;
+    const MIN_PACE_HUNDREDTHS = 450;
     [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 19; @position = 10; ]
-    const MAX_VIBE_DURATION = 1000;
+    const MAX_PACE_HUNDREDTHS = 650;
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 20; @position = 10; ]
+    const MIN_VIBE_STRENGTH = 0;
     [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 21; @position = 10; ]
-    const PACE_STORAGE_KEY = "paceHundredths";
+    const MAX_VIBE_STRENGTH = 100;
     [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 22; @position = 10; ]
-    const STRENGTH_STORAGE_KEY = "vibrationStrength";
+    const MIN_VIBE_DURATION = 50;
     [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 23; @position = 10; ]
+    const MAX_VIBE_DURATION = 1000;
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 25; @position = 10; ]
+    const PACE_STORAGE_KEY = "paceHundredths";
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 26; @position = 10; ]
+    const STRENGTH_STORAGE_KEY = "vibrationStrength";
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 27; @position = 10; ]
     const DURATION_STORAGE_KEY = "vibrationDuration";
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 25; @position = 8; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 29; @position = 8; ]
     var _timer = null;
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 26; @position = 8; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 30; @position = 8; ]
     var _paceHundredths;
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 27; @position = 8; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 31; @position = 8; ]
     var _vibeStrength;
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 28; @position = 8; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 32; @position = 8; ]
     var _vibeDuration;
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 30; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 34; ]
     function initialize() as Void {
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_30_26_33_4_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 31 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_34_26_37_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 35 8 ]
         %tmp.2 = getv ? :AppBase;
         %tmp.3 = getv function %tmp.2 :initialize;
         invoke %tmp.2 %tmp.3();
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 32 8 ]
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 36 8 ]
         %tmp.4 = self;
         %tmp.5 = getv function %tmp.4 :loadSettings;
         invoke %tmp.4 %tmp.5();
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_30_26_33_4_stop:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_34_26_37_4_stop:
     }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 35; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 39; ]
     function onStart(state as Dictionary or Null) as Void {
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_35_51_37_4_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 36 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_39_51_41_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 40 8 ]
         %tmp.1 = self;
         %tmp.2 = getv function %tmp.1 :startTimer;
         invoke %tmp.1 %tmp.2();
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_35_51_37_4_stop:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_39_51_41_4_stop:
     }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 39; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 43; ]
     function timerCallback() as Void {
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_39_37_48_4_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 40 8 ]
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_40_8_42_8_if_stmt:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_40_12_40_58_begin:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_43_37_52_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 44 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_44_8_46_8_if_stmt:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_44_12_44_58_begin:
         %tmp.2 = getv ? :_vibeStrength;
         %tmp.3 = 0;
         %tmp.4 = eq %tmp.2 %tmp.3;
-        bt %tmp.4 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_40_8_42_8_if_true;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_40_34_40_58_false:
+        bt %tmp.4 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_44_8_46_8_if_true;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_44_34_44_58_false:
         %tmp.6 = getm $.Toybox.Attention;
         %tmp.8 = const :vibrate;
         %tmp.9 = canhazplz %tmp.6 %tmp.8;
         %tmp.10 = not %tmp.9;
         push %tmp.10;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_40_34_40_58_end:
-        %tmp.11 = phi [%tmp.4 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_40_12_40_58_begin] [%tmp.10 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_40_34_40_58_false] [%tmp.11 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_40_34_40_58_end];
-        bf %tmp.11 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_40_8_42_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_40_8_42_8_if_true:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_40_61_42_8_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 41 12 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_44_34_44_58_end:
+        %tmp.11 = phi [%tmp.4 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_44_12_44_58_begin] [%tmp.10 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_44_34_44_58_false] [%tmp.11 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_44_34_44_58_end];
+        bf %tmp.11 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_44_8_46_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_44_8_46_8_if_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_44_61_46_8_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 45 12 ]
         ret ?;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_40_61_42_8_stop:
-        goto @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_40_8_42_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_40_8_42_8_if_end:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 44 8 ]
-        [ "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_39_37_48_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_39_37_48_4_stop" ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_44_61_46_8_stop:
+        goto @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_44_8_46_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_44_8_46_8_if_end:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 48 8 ]
+        [ "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_43_37_52_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_43_37_52_4_stop" ]
         %vibe.1 = local;
         %tmp.12 = newa 1;
         %tmp.15 = getm $.Toybox.Attention;
@@ -120,35 +122,35 @@ _Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_40_8_42_8_if_end:
         %tmp.21 = dup %tmp.12;
         %tmp.22 = aputv %tmp.21 0 %tmp.13;
         lputv %vibe.1 %tmp.22;
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 47 8 ]
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 51 8 ]
         %tmp.23 = getm $.Toybox.Attention;
         %tmp.24 = getv function %tmp.23 :vibrate;
         %tmp.26 = lgetv %vibe.1;
         invoke %tmp.23 %tmp.24(%tmp.26);
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_39_37_48_4_stop:
-    }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 50; ]
-    function onStop(state as Dictionary or Null) as Void {
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_50_50_52_4_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 51 8 ]
-        %tmp.1 = self;
-        %tmp.2 = getv function %tmp.1 :stopTimer;
-        invoke %tmp.1 %tmp.2();
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_50_50_52_4_stop:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_43_37_52_4_stop:
     }
     [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 54; ]
-    function startTimer() as Void {
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_54_34_58_4_start:
+    function onStop(state as Dictionary or Null) as Void {
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_54_50_56_4_start:
 [ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 55 8 ]
         %tmp.1 = self;
         %tmp.2 = getv function %tmp.1 :stopTimer;
         invoke %tmp.1 %tmp.2();
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 56 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_54_50_56_4_stop:
+    }
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 58; ]
+    function startTimer() as Void {
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_58_34_62_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 59 8 ]
+        %tmp.1 = self;
+        %tmp.2 = getv function %tmp.1 :stopTimer;
+        invoke %tmp.1 %tmp.2();
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 60 8 ]
         %tmp.5 = getm $.Toybox.Timer;
         %tmp.6 = getv function ? %tmp.5 :Timer;
         %tmp.3 = newc %tmp.6 ();
         putv self :_timer %tmp.3;
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 57 8 ]
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 61 8 ]
         %tmp.8 = getv ? :_timer;
         %tmp.9 = getv function %tmp.8 :start;
         %tmp.10 = self;
@@ -160,36 +162,36 @@ _Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_54_34_58_4_start:
         %tmp.17 = invoke %tmp.15 %tmp.16();
         %tmp.18 = true;
         invoke %tmp.8 %tmp.9(%tmp.14, %tmp.17, %tmp.18);
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_54_34_58_4_stop:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_58_34_62_4_stop:
     }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 60; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 64; ]
     function stopTimer() as Void {
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_60_33_65_4_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 61 8 ]
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_61_8_64_8_if_stmt:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_64_33_69_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 65 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_65_8_68_8_if_stmt:
         %tmp.2 = getv ? :_timer;
         %tmp.3 = null;
         %tmp.4 = ne %tmp.2 %tmp.3;
-        bf %tmp.4 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_61_8_64_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_61_8_64_8_if_true:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_61_28_64_8_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 62 12 ]
+        bf %tmp.4 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_65_8_68_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_65_8_68_8_if_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_65_28_68_8_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 66 12 ]
         %tmp.6 = getv ? :_timer;
         %tmp.7 = as %tmp.6 { (!Null) };
         %tmp.8 = getv function %tmp.7 :stop;
         invoke %tmp.7 %tmp.8();
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 63 12 ]
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 67 12 ]
         %tmp.9 = null;
         putv self :_timer %tmp.9;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_61_28_64_8_stop:
-        goto @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_61_8_64_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_61_8_64_8_if_end:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_60_33_65_4_stop:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_65_28_68_8_stop:
+        goto @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_65_8_68_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_65_8_68_8_if_end:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_64_33_69_4_stop:
     }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 67; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 71; ]
     function getInitialView() as [Views] or [Views, InputDelegates] {
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_67_68_69_4_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 68 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_71_68_73_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 72 8 ]
         %tmp.1 = newa 2;
         %tmp.5 = getv ? :pacerView;
         %tmp.2 = newc %tmp.5 ();
@@ -200,36 +202,36 @@ _Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_67_68_69_4_start:
         %tmp.12 = dup %tmp.7;
         %tmp.13 = aputv %tmp.12 1 %tmp.8;
         ret %tmp.13;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_67_68_69_4_stop:
-    }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 71; ]
-    function getPaceHundredths() {
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_71_33_73_4_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 72 8 ]
-        %tmp.2 = getv ? :_paceHundredths;
-        ret %tmp.2;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_71_33_73_4_stop:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_71_68_73_4_stop:
     }
     [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 75; ]
-    function getVibrationStrength() {
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_75_36_77_4_start:
+    function getPaceHundredths() {
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_75_33_77_4_start:
 [ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 76 8 ]
-        %tmp.2 = getv ? :_vibeStrength;
+        %tmp.2 = getv ? :_paceHundredths;
         ret %tmp.2;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_75_36_77_4_stop:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_75_33_77_4_stop:
     }
     [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 79; ]
-    function getVibrationDuration() {
+    function getVibrationStrength() {
 _Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_79_36_81_4_start:
 [ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 80 8 ]
-        %tmp.2 = getv ? :_vibeDuration;
+        %tmp.2 = getv ? :_vibeStrength;
         ret %tmp.2;
 _Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_79_36_81_4_stop:
     }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 84; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 83; ]
+    function getVibrationDuration() {
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_83_36_85_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 84 8 ]
+        %tmp.2 = getv ? :_vibeDuration;
+        ret %tmp.2;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_83_36_85_4_stop:
+    }
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 88; ]
     function getIntervalMilliseconds() {
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_84_39_86_4_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 85 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_88_39_90_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 89 8 ]
         %tmp.1 = 3000000.0;
         %tmp.3 = getv ? :_paceHundredths;
         %tmp.4 = div %tmp.1 %tmp.3;
@@ -238,12 +240,12 @@ _Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_84_39_86_4_start:
         %tmp.7 = getv function %tmp.6 :toNumber;
         %tmp.8 = invoke %tmp.6 %tmp.7();
         ret %tmp.8;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_84_39_86_4_stop:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_88_39_90_4_stop:
     }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 88; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 92; ]
     function getPaceText() {
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_88_27_90_4_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 89 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_92_27_94_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 93 8 ]
         %tmp.1 = self;
         %tmp.2 = getv function %tmp.1 :formatHundredths;
         %tmp.4 = getv ? :_paceHundredths;
@@ -251,13 +253,13 @@ _Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_88_27_90_4_start:
         %tmp.6 = " breaths/min";
         %tmp.7 = add %tmp.5 %tmp.6;
         ret %tmp.7;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_88_27_90_4_stop:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_92_27_94_4_stop:
     }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 92; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 96; ]
     function getIntervalText() {
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_92_31_95_4_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 93 8 ]
-        [ "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_92_31_95_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_92_31_95_4_stop" ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_96_31_99_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 97 8 ]
+        [ "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_96_31_99_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_96_31_99_4_stop" ]
         %secondsHundredths.1 = local;
         %tmp.1 = self;
         %tmp.2 = getv function %tmp.1 :getIntervalMilliseconds;
@@ -269,7 +271,7 @@ _Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_92_31_95_4_start:
         %tmp.8 = getv function %tmp.7 :toNumber;
         %tmp.9 = invoke %tmp.7 %tmp.8();
         lputv %secondsHundredths.1 %tmp.9;
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 94 8 ]
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 98 8 ]
         %tmp.10 = "Pulse every ";
         %tmp.11 = self;
         %tmp.12 = getv function %tmp.11 :formatHundredths;
@@ -279,308 +281,308 @@ _Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_92_31_95_4_start:
         %tmp.17 = " s";
         %tmp.18 = add %tmp.16 %tmp.17;
         ret %tmp.18;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_92_31_95_4_stop:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_96_31_99_4_stop:
     }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 97; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 101; ]
     function getStrengthText() {
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_97_31_99_4_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 98 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_101_31_103_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 102 8 ]
         %tmp.2 = getv ? :_vibeStrength;
         %tmp.3 = getv function %tmp.2 :toString;
         %tmp.4 = invoke %tmp.2 %tmp.3();
         %tmp.5 = "%";
         %tmp.6 = add %tmp.4 %tmp.5;
         ret %tmp.6;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_97_31_99_4_stop:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_101_31_103_4_stop:
     }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 101; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 105; ]
     function getDurationText() {
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_101_31_103_4_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 102 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_105_31_107_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 106 8 ]
         %tmp.2 = getv ? :_vibeDuration;
         %tmp.3 = getv function %tmp.2 :toString;
         %tmp.4 = invoke %tmp.2 %tmp.3();
         %tmp.5 = " ms";
         %tmp.6 = add %tmp.4 %tmp.5;
         ret %tmp.6;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_101_31_103_4_stop:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_105_31_107_4_stop:
     }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 105; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 109; ]
     function setPaceHundredths(value) as Void {
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_105_46_117_4_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 106 8 ]
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_106_8_108_8_if_stmt:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_106_12_106_51_begin:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_109_46_121_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 110 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_110_8_112_8_if_stmt:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_110_12_110_51_begin:
         %tmp.2 = lgetv %value;
         %tmp.4 = getv ? :MIN_PACE_HUNDREDTHS;
         %tmp.5 = lt %tmp.2 %tmp.4;
-        bt %tmp.5 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_106_8_108_8_if_true;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_106_43_106_51_false:
+        bt %tmp.5 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_110_8_112_8_if_true;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_110_43_110_51_false:
         %tmp.7 = lgetv %value;
         %tmp.9 = getv ? :MAX_PACE_HUNDREDTHS;
         %tmp.10 = gt %tmp.7 %tmp.9;
         push %tmp.10;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_106_43_106_51_end:
-        %tmp.11 = phi [%tmp.5 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_106_12_106_51_begin] [%tmp.10 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_106_43_106_51_false] [%tmp.11 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_106_43_106_51_end];
-        bf %tmp.11 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_106_8_108_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_106_8_108_8_if_true:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_106_72_108_8_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 107 12 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_110_43_110_51_end:
+        %tmp.11 = phi [%tmp.5 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_110_12_110_51_begin] [%tmp.10 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_110_43_110_51_false] [%tmp.11 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_110_43_110_51_end];
+        bf %tmp.11 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_110_8_112_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_110_8_112_8_if_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_110_72_112_8_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 111 12 ]
         ret ?;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_106_72_108_8_stop:
-        goto @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_106_8_108_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_106_8_108_8_if_end:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 110 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_110_72_112_8_stop:
+        goto @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_110_8_112_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_110_8_112_8_if_end:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 114 8 ]
         %tmp.13 = lgetv %value;
         putv self :_paceHundredths %tmp.13;
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 111 8 ]
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 115 8 ]
         %tmp.14 = getm $.Toybox.Application.Storage;
         %tmp.15 = getv function %tmp.14 :setValue;
         %tmp.17 = getv ? :PACE_STORAGE_KEY;
         %tmp.19 = lgetv %value;
         invoke %tmp.14 %tmp.15(%tmp.17, %tmp.19);
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 113 8 ]
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_113_8_115_8_if_stmt:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 117 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_117_8_119_8_if_stmt:
         %tmp.21 = getv ? :_timer;
         %tmp.22 = null;
         %tmp.23 = ne %tmp.21 %tmp.22;
-        bf %tmp.23 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_113_8_115_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_113_8_115_8_if_true:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_113_28_115_8_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 114 12 ]
+        bf %tmp.23 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_117_8_119_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_117_8_119_8_if_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_117_28_119_8_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 118 12 ]
         %tmp.24 = self;
         %tmp.25 = getv function %tmp.24 :startTimer;
         invoke %tmp.24 %tmp.25();
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_113_28_115_8_stop:
-        goto @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_113_8_115_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_113_8_115_8_if_end:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 116 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_117_28_119_8_stop:
+        goto @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_117_8_119_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_117_8_119_8_if_end:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 120 8 ]
         %tmp.26 = getm $.Toybox.WatchUi;
         %tmp.27 = getv function %tmp.26 :requestUpdate;
         invoke %tmp.26 %tmp.27();
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_105_46_117_4_stop:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_109_46_121_4_stop:
     }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 119; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 123; ]
     function setVibrationStrength(value) as Void {
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_119_49_127_4_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 120 8 ]
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_120_8_122_8_if_stmt:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_120_12_120_49_begin:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_123_49_131_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 124 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_124_8_126_8_if_stmt:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_124_12_124_49_begin:
         %tmp.2 = lgetv %value;
         %tmp.4 = getv ? :MIN_VIBE_STRENGTH;
         %tmp.5 = lt %tmp.2 %tmp.4;
-        bt %tmp.5 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_120_8_122_8_if_true;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_120_41_120_49_false:
+        bt %tmp.5 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_124_8_126_8_if_true;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_124_41_124_49_false:
         %tmp.7 = lgetv %value;
         %tmp.9 = getv ? :MAX_VIBE_STRENGTH;
         %tmp.10 = gt %tmp.7 %tmp.9;
         push %tmp.10;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_120_41_120_49_end:
-        %tmp.11 = phi [%tmp.5 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_120_12_120_49_begin] [%tmp.10 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_120_41_120_49_false] [%tmp.11 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_120_41_120_49_end];
-        bf %tmp.11 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_120_8_122_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_120_8_122_8_if_true:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_120_68_122_8_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 121 12 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_124_41_124_49_end:
+        %tmp.11 = phi [%tmp.5 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_124_12_124_49_begin] [%tmp.10 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_124_41_124_49_false] [%tmp.11 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_124_41_124_49_end];
+        bf %tmp.11 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_124_8_126_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_124_8_126_8_if_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_124_68_126_8_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 125 12 ]
         ret ?;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_120_68_122_8_stop:
-        goto @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_120_8_122_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_120_8_122_8_if_end:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 124 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_124_68_126_8_stop:
+        goto @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_124_8_126_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_124_8_126_8_if_end:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 128 8 ]
         %tmp.13 = lgetv %value;
         putv self :_vibeStrength %tmp.13;
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 125 8 ]
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 129 8 ]
         %tmp.14 = getm $.Toybox.Application.Storage;
         %tmp.15 = getv function %tmp.14 :setValue;
         %tmp.17 = getv ? :STRENGTH_STORAGE_KEY;
         %tmp.19 = lgetv %value;
         invoke %tmp.14 %tmp.15(%tmp.17, %tmp.19);
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 126 8 ]
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 130 8 ]
         %tmp.20 = getm $.Toybox.WatchUi;
         %tmp.21 = getv function %tmp.20 :requestUpdate;
         invoke %tmp.20 %tmp.21();
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_119_49_127_4_stop:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_123_49_131_4_stop:
     }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 129; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 133; ]
     function setVibrationDuration(value) as Void {
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_129_49_137_4_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 130 8 ]
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_130_8_132_8_if_stmt:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_130_12_130_49_begin:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_133_49_141_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 134 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_134_8_136_8_if_stmt:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_134_12_134_49_begin:
         %tmp.2 = lgetv %value;
         %tmp.4 = getv ? :MIN_VIBE_DURATION;
         %tmp.5 = lt %tmp.2 %tmp.4;
-        bt %tmp.5 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_130_8_132_8_if_true;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_130_41_130_49_false:
+        bt %tmp.5 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_134_8_136_8_if_true;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_134_41_134_49_false:
         %tmp.7 = lgetv %value;
         %tmp.9 = getv ? :MAX_VIBE_DURATION;
         %tmp.10 = gt %tmp.7 %tmp.9;
         push %tmp.10;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_130_41_130_49_end:
-        %tmp.11 = phi [%tmp.5 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_130_12_130_49_begin] [%tmp.10 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_130_41_130_49_false] [%tmp.11 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_130_41_130_49_end];
-        bf %tmp.11 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_130_8_132_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_130_8_132_8_if_true:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_130_68_132_8_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 131 12 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_134_41_134_49_end:
+        %tmp.11 = phi [%tmp.5 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_134_12_134_49_begin] [%tmp.10 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_134_41_134_49_false] [%tmp.11 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_134_41_134_49_end];
+        bf %tmp.11 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_134_8_136_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_134_8_136_8_if_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_134_68_136_8_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 135 12 ]
         ret ?;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_130_68_132_8_stop:
-        goto @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_130_8_132_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_130_8_132_8_if_end:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 134 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_134_68_136_8_stop:
+        goto @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_134_8_136_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_134_8_136_8_if_end:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 138 8 ]
         %tmp.13 = lgetv %value;
         putv self :_vibeDuration %tmp.13;
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 135 8 ]
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 139 8 ]
         %tmp.14 = getm $.Toybox.Application.Storage;
         %tmp.15 = getv function %tmp.14 :setValue;
         %tmp.17 = getv ? :DURATION_STORAGE_KEY;
         %tmp.19 = lgetv %value;
         invoke %tmp.14 %tmp.15(%tmp.17, %tmp.19);
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 136 8 ]
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 140 8 ]
         %tmp.20 = getm $.Toybox.WatchUi;
         %tmp.21 = getv function %tmp.20 :requestUpdate;
         invoke %tmp.20 %tmp.21();
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_129_49_137_4_stop:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_133_49_141_4_stop:
     }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 139; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 143; ]
     private
     function loadSettings() as Void {
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_139_44_160_4_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 140 8 ]
-        [ "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_139_44_160_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_139_44_160_4_stop" ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_143_44_164_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 144 8 ]
+        [ "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_143_44_164_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_143_44_164_4_stop" ]
         %storedPace.1 = local;
         %tmp.1 = getm $.Toybox.Application.Storage;
         %tmp.2 = getv function %tmp.1 :getValue;
         %tmp.4 = getv ? :PACE_STORAGE_KEY;
         %tmp.5 = invoke %tmp.1 %tmp.2(%tmp.4);
         lputv %storedPace.1 %tmp.5;
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 141 8 ]
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_141_8_145_8_if_stmt:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_141_12_143_30_begin:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_141_12_142_30_begin:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 145 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_145_8_149_8_if_stmt:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_145_12_147_30_begin:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_145_12_146_30_begin:
         %tmp.7 = lgetv %storedPace.1;
         %tmp.9 = getv ? :Number;
         %tmp.10 = isa %tmp.7 %tmp.9;
-        bf %tmp.10 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_141_8_145_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_142_16_142_30_true:
+        bf %tmp.10 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_145_8_149_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_146_16_146_30_true:
         %tmp.12 = lgetv %storedPace.1;
         %tmp.13 = as %tmp.12 { (Number) };
         %tmp.15 = getv ? :MIN_PACE_HUNDREDTHS;
         %tmp.16 = gte %tmp.13 %tmp.15;
         push %tmp.16;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_142_16_142_30_end:
-        %tmp.17 = phi [%tmp.10 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_141_12_142_30_begin] [%tmp.16 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_142_16_142_30_true] [%tmp.17 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_142_16_142_30_end];
-        bf %tmp.17 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_141_8_145_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_143_16_143_30_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_146_16_146_30_end:
+        %tmp.17 = phi [%tmp.10 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_145_12_146_30_begin] [%tmp.16 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_146_16_146_30_true] [%tmp.17 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_146_16_146_30_end];
+        bf %tmp.17 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_145_8_149_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_147_16_147_30_true:
         %tmp.19 = lgetv %storedPace.1;
         %tmp.20 = as %tmp.19 { (Number) };
         %tmp.22 = getv ? :MAX_PACE_HUNDREDTHS;
         %tmp.23 = lte %tmp.20 %tmp.22;
         push %tmp.23;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_143_16_143_30_end:
-        %tmp.24 = phi [%tmp.17 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_141_12_143_30_begin] [%tmp.23 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_143_16_143_30_true] [%tmp.24 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_143_16_143_30_end];
-        bf %tmp.24 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_141_8_145_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_141_8_145_8_if_true:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_143_51_145_8_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 144 12 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_147_16_147_30_end:
+        %tmp.24 = phi [%tmp.17 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_145_12_147_30_begin] [%tmp.23 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_147_16_147_30_true] [%tmp.24 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_147_16_147_30_end];
+        bf %tmp.24 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_145_8_149_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_145_8_149_8_if_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_147_51_149_8_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 148 12 ]
         %tmp.26 = lgetv %storedPace.1;
         %tmp.27 = as %tmp.26 { (Number) };
         putv self :_paceHundredths %tmp.27;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_143_51_145_8_stop:
-        goto @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_141_8_145_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_141_8_145_8_if_end:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 147 8 ]
-        [ "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_139_44_160_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_139_44_160_4_stop" ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_147_51_149_8_stop:
+        goto @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_145_8_149_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_145_8_149_8_if_end:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 151 8 ]
+        [ "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_143_44_164_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_143_44_164_4_stop" ]
         %storedStrength.2 = local;
         %tmp.28 = getm $.Toybox.Application.Storage;
         %tmp.29 = getv function %tmp.28 :getValue;
         %tmp.31 = getv ? :STRENGTH_STORAGE_KEY;
         %tmp.32 = invoke %tmp.28 %tmp.29(%tmp.31);
         lputv %storedStrength.2 %tmp.32;
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 148 8 ]
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_148_8_152_8_if_stmt:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_148_12_150_34_begin:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_148_12_149_34_begin:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 152 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_152_8_156_8_if_stmt:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_152_12_154_34_begin:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_152_12_153_34_begin:
         %tmp.34 = lgetv %storedStrength.2;
         %tmp.36 = getv ? :Number;
         %tmp.37 = isa %tmp.34 %tmp.36;
-        bf %tmp.37 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_148_8_152_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_149_16_149_34_true:
+        bf %tmp.37 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_152_8_156_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_153_16_153_34_true:
         %tmp.39 = lgetv %storedStrength.2;
         %tmp.40 = as %tmp.39 { (Number) };
         %tmp.42 = getv ? :MIN_VIBE_STRENGTH;
         %tmp.43 = gte %tmp.40 %tmp.42;
         push %tmp.43;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_149_16_149_34_end:
-        %tmp.44 = phi [%tmp.37 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_148_12_149_34_begin] [%tmp.43 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_149_16_149_34_true] [%tmp.44 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_149_16_149_34_end];
-        bf %tmp.44 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_148_8_152_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_150_16_150_34_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_153_16_153_34_end:
+        %tmp.44 = phi [%tmp.37 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_152_12_153_34_begin] [%tmp.43 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_153_16_153_34_true] [%tmp.44 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_153_16_153_34_end];
+        bf %tmp.44 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_152_8_156_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_154_16_154_34_true:
         %tmp.46 = lgetv %storedStrength.2;
         %tmp.47 = as %tmp.46 { (Number) };
         %tmp.49 = getv ? :MAX_VIBE_STRENGTH;
         %tmp.50 = lte %tmp.47 %tmp.49;
         push %tmp.50;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_150_16_150_34_end:
-        %tmp.51 = phi [%tmp.44 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_148_12_150_34_begin] [%tmp.50 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_150_16_150_34_true] [%tmp.51 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_150_16_150_34_end];
-        bf %tmp.51 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_148_8_152_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_148_8_152_8_if_true:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_150_53_152_8_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 151 12 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_154_16_154_34_end:
+        %tmp.51 = phi [%tmp.44 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_152_12_154_34_begin] [%tmp.50 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_154_16_154_34_true] [%tmp.51 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_154_16_154_34_end];
+        bf %tmp.51 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_152_8_156_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_152_8_156_8_if_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_154_53_156_8_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 155 12 ]
         %tmp.53 = lgetv %storedStrength.2;
         %tmp.54 = as %tmp.53 { (Number) };
         putv self :_vibeStrength %tmp.54;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_150_53_152_8_stop:
-        goto @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_148_8_152_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_148_8_152_8_if_end:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 154 8 ]
-        [ "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_139_44_160_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_139_44_160_4_stop" ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_154_53_156_8_stop:
+        goto @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_152_8_156_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_152_8_156_8_if_end:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 158 8 ]
+        [ "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_143_44_164_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_143_44_164_4_stop" ]
         %storedDuration.3 = local;
         %tmp.55 = getm $.Toybox.Application.Storage;
         %tmp.56 = getv function %tmp.55 :getValue;
         %tmp.58 = getv ? :DURATION_STORAGE_KEY;
         %tmp.59 = invoke %tmp.55 %tmp.56(%tmp.58);
         lputv %storedDuration.3 %tmp.59;
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 155 8 ]
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_155_8_159_8_if_stmt:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_155_12_157_34_begin:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_155_12_156_34_begin:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 159 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_159_8_163_8_if_stmt:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_159_12_161_34_begin:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_159_12_160_34_begin:
         %tmp.61 = lgetv %storedDuration.3;
         %tmp.63 = getv ? :Number;
         %tmp.64 = isa %tmp.61 %tmp.63;
-        bf %tmp.64 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_155_8_159_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_156_16_156_34_true:
+        bf %tmp.64 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_159_8_163_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_160_16_160_34_true:
         %tmp.66 = lgetv %storedDuration.3;
         %tmp.67 = as %tmp.66 { (Number) };
         %tmp.69 = getv ? :MIN_VIBE_DURATION;
         %tmp.70 = gte %tmp.67 %tmp.69;
         push %tmp.70;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_156_16_156_34_end:
-        %tmp.71 = phi [%tmp.64 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_155_12_156_34_begin] [%tmp.70 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_156_16_156_34_true] [%tmp.71 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_156_16_156_34_end];
-        bf %tmp.71 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_155_8_159_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_157_16_157_34_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_160_16_160_34_end:
+        %tmp.71 = phi [%tmp.64 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_159_12_160_34_begin] [%tmp.70 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_160_16_160_34_true] [%tmp.71 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_160_16_160_34_end];
+        bf %tmp.71 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_159_8_163_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_161_16_161_34_true:
         %tmp.73 = lgetv %storedDuration.3;
         %tmp.74 = as %tmp.73 { (Number) };
         %tmp.76 = getv ? :MAX_VIBE_DURATION;
         %tmp.77 = lte %tmp.74 %tmp.76;
         push %tmp.77;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_157_16_157_34_end:
-        %tmp.78 = phi [%tmp.71 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_155_12_157_34_begin] [%tmp.77 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_157_16_157_34_true] [%tmp.78 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_157_16_157_34_end];
-        bf %tmp.78 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_155_8_159_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_155_8_159_8_if_true:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_157_53_159_8_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 158 12 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_161_16_161_34_end:
+        %tmp.78 = phi [%tmp.71 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_159_12_161_34_begin] [%tmp.77 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_161_16_161_34_true] [%tmp.78 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_161_16_161_34_end];
+        bf %tmp.78 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_159_8_163_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_159_8_163_8_if_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_161_53_163_8_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 162 12 ]
         %tmp.80 = lgetv %storedDuration.3;
         %tmp.81 = as %tmp.80 { (Number) };
         putv self :_vibeDuration %tmp.81;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_157_53_159_8_stop:
-        goto @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_155_8_159_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_155_8_159_8_if_end:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_139_44_160_4_stop:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_161_53_163_8_stop:
+        goto @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_159_8_163_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_159_8_163_8_if_end:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_143_44_164_4_stop:
     }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 162; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 166; ]
     private
     function formatHundredths(value) {
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_162_45_172_4_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 163 8 ]
-        [ "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_162_45_172_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_162_45_172_4_stop" ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_166_45_176_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 167 8 ]
+        [ "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_166_45_176_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_166_45_176_4_stop" ]
         %whole.1 = local;
         %tmp.2 = lgetv %value;
         %tmp.3 = 100;
@@ -588,37 +590,37 @@ _Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_162_45_172_4_start:
         %tmp.5 = getv function %tmp.4 :toNumber;
         %tmp.6 = invoke %tmp.4 %tmp.5();
         lputv %whole.1 %tmp.6;
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 164 8 ]
-        [ "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_162_45_172_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_162_45_172_4_stop" ]
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 168 8 ]
+        [ "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_166_45_176_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_166_45_176_4_stop" ]
         %fraction.2 = local;
         %tmp.8 = lgetv %value;
         %tmp.9 = 100;
         %tmp.10 = mod %tmp.8 %tmp.9;
         lputv %fraction.2 %tmp.10;
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 165 8 ]
-        [ "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_162_45_172_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_162_45_172_4_stop" ]
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 169 8 ]
+        [ "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_166_45_176_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_166_45_176_4_stop" ]
         %fractionText.3 = local;
         %tmp.11 = lgetv %fraction.2;
         %tmp.12 = getv function %tmp.11 :toString;
         %tmp.13 = invoke %tmp.11 %tmp.12();
         lputv %fractionText.3 %tmp.13;
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 167 8 ]
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_167_8_169_8_if_stmt:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 171 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_171_8_173_8_if_stmt:
         %tmp.15 = lgetv %fraction.2;
         %tmp.16 = 10;
         %tmp.17 = lt %tmp.15 %tmp.16;
-        bf %tmp.17 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_167_8_169_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_167_8_169_8_if_true:
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_167_27_169_8_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 168 12 ]
+        bf %tmp.17 @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_171_8_173_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_171_8_173_8_if_true:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_171_27_173_8_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 172 12 ]
         %tmp.18 = "0";
         %tmp.20 = lgetv %fractionText.3;
         %tmp.21 = add %tmp.18 %tmp.20;
         lputv %fractionText.3 %tmp.21;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_167_27_169_8_stop:
-        goto @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_167_8_169_8_if_end;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_167_8_169_8_if_end:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 171 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_171_27_173_8_stop:
+        goto @_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_171_8_173_8_if_end;
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_171_8_173_8_if_end:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 175 8 ]
         %tmp.22 = lgetv %whole.1;
         %tmp.23 = getv function %tmp.22 :toString;
         %tmp.24 = invoke %tmp.22 %tmp.23();
@@ -627,19 +629,19 @@ _Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_167_8_169_8_if_end:
         %tmp.28 = lgetv %fractionText.3;
         %tmp.29 = add %tmp.26 %tmp.28;
         ret %tmp.29;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_162_45_172_4_stop:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_166_45_176_4_stop:
     }
 }
-[ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 175; ]
+[ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 179; ]
 function getApp() as pacerApp {
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_175_30_177_0_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 176 4 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_179_30_181_0_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" 180 4 ]
     %tmp.1 = getm $.Toybox.Application;
     %tmp.2 = getv function %tmp.1 :getApp;
     %tmp.3 = invoke %tmp.1 %tmp.2();
     %tmp.4 = as %tmp.3 pacerApp;
     ret %tmp.4;
-_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_175_30_177_0_stop:
+_Users_byar_dev_monkeyc_pacer_source_pacerApp_mc_179_30_181_0_stop:
 }
 [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc"; @line = 1; ]
 <init> {

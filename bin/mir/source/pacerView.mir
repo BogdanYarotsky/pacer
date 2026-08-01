@@ -39,15 +39,104 @@ _Users_byar_dev_monkeyc_pacer_source_pacerView_mc_11_40_13_4_stop:
     }
     [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerView.mc"; @line = 22; ]
     function onUpdate(dc as Dc) as Void {
-_Users_byar_dev_monkeyc_pacer_source_pacerView_mc_22_40_25_4_start:
-[ "/Users/byar/dev/monkeyc/pacer/source/pacerView.mc" 24 8 ]
+_Users_byar_dev_monkeyc_pacer_source_pacerView_mc_22_40_57_4_start:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerView.mc" 23 8 ]
         %tmp.2 = getv ? :View;
         %tmp.3 = getv function %tmp.2 :onUpdate;
         %tmp.5 = lgetv %dc;
         invoke %tmp.2 %tmp.3(%tmp.5);
-_Users_byar_dev_monkeyc_pacer_source_pacerView_mc_22_40_25_4_stop:
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerView.mc" 25 8 ]
+        [ "_Users_byar_dev_monkeyc_pacer_source_pacerView_mc_22_40_57_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerView_mc_22_40_57_4_stop" ]
+        %center.1 = local;
+        %tmp.6 = lgetv %dc;
+        %tmp.7 = getv function %tmp.6 :getWidth;
+        %tmp.8 = invoke %tmp.6 %tmp.7();
+        %tmp.9 = 2;
+        %tmp.10 = div %tmp.8 %tmp.9;
+        %tmp.11 = getv function %tmp.10 :toNumber;
+        %tmp.12 = invoke %tmp.10 %tmp.11();
+        lputv %center.1 %tmp.12;
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerView.mc" 26 8 ]
+        [ "_Users_byar_dev_monkeyc_pacer_source_pacerView_mc_22_40_57_4_start" "_Users_byar_dev_monkeyc_pacer_source_pacerView_mc_22_40_57_4_stop" ]
+        %app.2 = local;
+        %tmp.13 = self;
+        %tmp.14 = getv function %tmp.13 :getApp;
+        %tmp.15 = invoke %tmp.13 %tmp.14();
+        lputv %app.2 %tmp.15;
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerView.mc" 28 8 ]
+        %tmp.16 = lgetv %dc;
+        %tmp.17 = getv function %tmp.16 :setColor;
+        %tmp.18 = getm $.Toybox.Graphics;
+        %tmp.19 = getv %tmp.18 :COLOR_WHITE;
+        %tmp.20 = getm $.Toybox.Graphics;
+        %tmp.21 = getv %tmp.20 :COLOR_TRANSPARENT;
+        invoke %tmp.16 %tmp.17(%tmp.19, %tmp.21);
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerView.mc" 29 8 ]
+        %tmp.22 = lgetv %dc;
+        %tmp.23 = getv function %tmp.22 :drawText;
+        %tmp.25 = lgetv %center.1;
+        %tmp.26 = 18;
+        %tmp.27 = getm $.Toybox.Graphics;
+        %tmp.28 = getv %tmp.27 :FONT_MEDIUM;
+        %tmp.29 = "v";
+        %tmp.30 = lgetv %app.2;
+        %tmp.31 = getv %tmp.30 :APP_VERSION;
+        %tmp.32 = add %tmp.29 %tmp.31;
+        %tmp.33 = getm $.Toybox.Graphics;
+        %tmp.34 = getv %tmp.33 :TEXT_JUSTIFY_CENTER;
+        invoke %tmp.22 %tmp.23(%tmp.25, %tmp.26, %tmp.28, %tmp.32, %tmp.34);
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerView.mc" 36 8 ]
+        %tmp.35 = lgetv %dc;
+        %tmp.36 = getv function %tmp.35 :drawText;
+        %tmp.38 = lgetv %center.1;
+        %tmp.39 = lgetv %dc;
+        %tmp.40 = getv function %tmp.39 :getHeight;
+        %tmp.41 = invoke %tmp.39 %tmp.40();
+        %tmp.42 = 74;
+        %tmp.43 = sub %tmp.41 %tmp.42;
+        %tmp.44 = getm $.Toybox.Graphics;
+        %tmp.45 = getv %tmp.44 :FONT_SMALL;
+        %tmp.46 = lgetv %app.2;
+        %tmp.47 = getv function %tmp.46 :getPaceText;
+        %tmp.48 = invoke %tmp.46 %tmp.47();
+        %tmp.49 = getm $.Toybox.Graphics;
+        %tmp.50 = getv %tmp.49 :TEXT_JUSTIFY_CENTER;
+        invoke %tmp.35 %tmp.36(%tmp.38, %tmp.43, %tmp.45, %tmp.48, %tmp.50);
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerView.mc" 43 8 ]
+        %tmp.51 = lgetv %dc;
+        %tmp.52 = getv function %tmp.51 :drawText;
+        %tmp.54 = lgetv %center.1;
+        %tmp.55 = lgetv %dc;
+        %tmp.56 = getv function %tmp.55 :getHeight;
+        %tmp.57 = invoke %tmp.55 %tmp.56();
+        %tmp.58 = 46;
+        %tmp.59 = sub %tmp.57 %tmp.58;
+        %tmp.60 = getm $.Toybox.Graphics;
+        %tmp.61 = getv %tmp.60 :FONT_XTINY;
+        %tmp.62 = lgetv %app.2;
+        %tmp.63 = getv function %tmp.62 :getIntervalText;
+        %tmp.64 = invoke %tmp.62 %tmp.63();
+        %tmp.65 = getm $.Toybox.Graphics;
+        %tmp.66 = getv %tmp.65 :TEXT_JUSTIFY_CENTER;
+        invoke %tmp.51 %tmp.52(%tmp.54, %tmp.59, %tmp.61, %tmp.64, %tmp.66);
+[ "/Users/byar/dev/monkeyc/pacer/source/pacerView.mc" 50 8 ]
+        %tmp.67 = lgetv %dc;
+        %tmp.68 = getv function %tmp.67 :drawText;
+        %tmp.70 = lgetv %center.1;
+        %tmp.71 = lgetv %dc;
+        %tmp.72 = getv function %tmp.71 :getHeight;
+        %tmp.73 = invoke %tmp.71 %tmp.72();
+        %tmp.74 = 24;
+        %tmp.75 = sub %tmp.73 %tmp.74;
+        %tmp.76 = getm $.Toybox.Graphics;
+        %tmp.77 = getv %tmp.76 :FONT_XTINY;
+        %tmp.78 = "Top button: settings / exit";
+        %tmp.79 = getm $.Toybox.Graphics;
+        %tmp.80 = getv %tmp.79 :TEXT_JUSTIFY_CENTER;
+        invoke %tmp.67 %tmp.68(%tmp.70, %tmp.75, %tmp.77, %tmp.78, %tmp.80);
+_Users_byar_dev_monkeyc_pacer_source_pacerView_mc_22_40_57_4_stop:
     }
-    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerView.mc"; @line = 30; ]
+    [ @file = "/Users/byar/dev/monkeyc/pacer/source/pacerView.mc"; @line = 62; ]
     function onHide() as Void {
     }
 }

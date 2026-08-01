@@ -30,7 +30,7 @@ class pacerView extends WatchUi.View {
             center,
             18,
             Graphics.FONT_MEDIUM,
-            "Pacer",
+            "v" + app.APP_VERSION,
             Graphics.TEXT_JUSTIFY_CENTER
         );
         dc.drawText(

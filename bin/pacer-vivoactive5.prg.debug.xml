@@ -5,7 +5,7 @@
         <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" id="1" lineNum="116" parent="globals/pacerValuePickerFactory" pc="268435460" symbol="&lt;init&gt;"/>
         <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" id="2" lineNum="179" parent="globals" pc="268435472" symbol="getApp"/>
         <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerApp.mc" id="2" lineNum="180" parent="globals" pc="268435482" symbol="getApp"/>
-        <entry filename="/Users/byar/dev/monkeyc/pacer/publish/gen/006-B4426-00/source/Rez.mcgen" id="3" lineNum="7" parent="globals/Rez" pc="268435493" symbol="&lt;init&gt;"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/bin/gen/006-B4426-00/source/Rez.mcgen" id="3" lineNum="7" parent="globals/Rez" pc="268435493" symbol="&lt;init&gt;"/>
         <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" id="4" lineNum="12" parent="globals" pc="268435513" symbol="showPacerSettings"/>
         <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" id="4" lineNum="13" parent="globals" pc="268435524" symbol="showPacerSettings"/>
         <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" id="4" lineNum="14" parent="globals" pc="268435532" symbol="showPacerSettings"/>
@@ -186,15 +186,15 @@
         <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" id="51" lineNum="77" parent="globals/pacerMenuDelegate" pc="268438132" symbol="onSelect"/>
         <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" id="51" lineNum="87" parent="globals/pacerMenuDelegate" pc="268438176" symbol="onSelect"/>
         <entry filename="/Users/byar/dev/monkeyc/pacer/source/pacerMenuDelegate.mc" id="51" lineNum="88" parent="globals/pacerMenuDelegate" pc="268438194" symbol="onSelect"/>
-        <entry filename="/Users/byar/dev/monkeyc/pacer/publish/gen/006-B4426-00/source/Rez.mcgen" id="52" lineNum="14" parent="globals/Rez/Layouts" pc="268438209" symbol="MainLayout"/>
-        <entry filename="/Users/byar/dev/monkeyc/pacer/publish/gen/006-B4426-00/source/Rez.mcgen" id="52" lineNum="15" parent="globals/Rez/Layouts" pc="268438220" symbol="MainLayout"/>
-        <entry filename="/Users/byar/dev/monkeyc/pacer/publish/gen/006-B4426-00/source/Rez.mcgen" id="52" lineNum="16" parent="globals/Rez/Layouts" pc="268438307" symbol="MainLayout"/>
-        <entry filename="/Users/byar/dev/monkeyc/pacer/publish/gen/006-B4426-00/source/Rez.mcgen" id="52" lineNum="18" parent="globals/Rez/Layouts" pc="268438349" symbol="MainLayout"/>
-        <entry filename="/Users/byar/dev/monkeyc/pacer/publish/gen/006-B4426-00/source/Rez.mcgen" id="53" lineNum="23" parent="globals/Rez/Menus/MainMenu" pc="268438359" symbol="&lt;init&gt;"/>
-        <entry filename="/Users/byar/dev/monkeyc/pacer/publish/gen/006-B4426-00/source/Rez.mcgen" id="54" lineNum="24" parent="globals/Rez/Menus/MainMenu" pc="268438371" symbol="initialize"/>
-        <entry filename="/Users/byar/dev/monkeyc/pacer/publish/gen/006-B4426-00/source/Rez.mcgen" id="54" lineNum="25" parent="globals/Rez/Menus/MainMenu" pc="268438373" symbol="initialize"/>
-        <entry filename="/Users/byar/dev/monkeyc/pacer/publish/gen/006-B4426-00/source/Rez.mcgen" id="54" lineNum="26" parent="globals/Rez/Menus/MainMenu" pc="268438385" symbol="initialize"/>
-        <entry filename="/Users/byar/dev/monkeyc/pacer/publish/gen/006-B4426-00/source/Rez.mcgen" id="54" lineNum="27" parent="globals/Rez/Menus/MainMenu" pc="268438430" symbol="initialize"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/bin/gen/006-B4426-00/source/Rez.mcgen" id="52" lineNum="14" parent="globals/Rez/Layouts" pc="268438209" symbol="MainLayout"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/bin/gen/006-B4426-00/source/Rez.mcgen" id="52" lineNum="15" parent="globals/Rez/Layouts" pc="268438220" symbol="MainLayout"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/bin/gen/006-B4426-00/source/Rez.mcgen" id="52" lineNum="16" parent="globals/Rez/Layouts" pc="268438307" symbol="MainLayout"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/bin/gen/006-B4426-00/source/Rez.mcgen" id="52" lineNum="18" parent="globals/Rez/Layouts" pc="268438349" symbol="MainLayout"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/bin/gen/006-B4426-00/source/Rez.mcgen" id="53" lineNum="23" parent="globals/Rez/Menus/MainMenu" pc="268438359" symbol="&lt;init&gt;"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/bin/gen/006-B4426-00/source/Rez.mcgen" id="54" lineNum="24" parent="globals/Rez/Menus/MainMenu" pc="268438371" symbol="initialize"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/bin/gen/006-B4426-00/source/Rez.mcgen" id="54" lineNum="25" parent="globals/Rez/Menus/MainMenu" pc="268438373" symbol="initialize"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/bin/gen/006-B4426-00/source/Rez.mcgen" id="54" lineNum="26" parent="globals/Rez/Menus/MainMenu" pc="268438385" symbol="initialize"/>
+        <entry filename="/Users/byar/dev/monkeyc/pacer/bin/gen/006-B4426-00/source/Rez.mcgen" id="54" lineNum="27" parent="globals/Rez/Menus/MainMenu" pc="268438430" symbol="initialize"/>
     </pcToLineNum>
     <symbolTable>
         <entry id="8388639" module="true" symbol="Graphics"/>

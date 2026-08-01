@@ -6,9 +6,16 @@ The selected values are stored on the watch and survive app restarts:
 
 | Setting | Default | Range |
 | --- | ---: | ---: |
-| Breathing pace | 5.71 breaths/min | 2.00–12.00 |
+| Breathing pace | 5.71 breaths/min | 4.50–6.50 in 0.01 steps |
 | Vibration strength | 15% | 0–100% in 5% steps |
 | Vibration length | 170 ms | 50–1000 ms in 10 ms steps |
+
+The pace range covers the adult resonance frequency band. The default of 5.71
+breaths/min is a personally measured resonance frequency, not a generic value;
+re-measure and adjust it in the on-watch settings rather than in code.
+
+The main screen shows the app version. That is the way to confirm which build
+is actually running on the watch after a side-load — see `publish.sh` below.
 
 Setting vibration strength to 0% mutes the cues without changing the saved pace.
 
@@ -98,6 +105,22 @@ Then load the binary from another Terminal window:
 ```bash
 monkeydo bin/pacer-vivoactive5.prg vivoactive5
 ```
+
+On macOS, the included `publish.sh` is the everyday path. It bumps the version
+shown on the main screen, rebuilds, and copies the PRG to the watch when the
+volume is mounted:
+
+```bash
+./publish.sh              # bump the patch version and build
+./publish.sh --no-bump    # rebuild the current version unchanged
+./publish.sh --set 0.20   # build as an explicit version
+```
+
+It resolves the active SDK from `current-sdk.cfg` on its own. The signing key
+comes from `$PACER_DEVELOPER_KEY`, falling back to `~/Music/developer_key`.
+Bumping every build is the point: after launching, check that the main screen
+shows the version the script just printed. If it does not, the watch is still
+running the old build.
 
 On Windows, compile from PowerShell with the included script:
 
