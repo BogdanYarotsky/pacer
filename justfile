@@ -1,0 +1,54 @@
+# Pacer build/verify loop.
+#
+# Every recipe delegates to tools/*.ps1 so the logic is readable and debuggable
+# outside just. All monkeyc/monkeydo flags were verified against `--help` on
+# SDK 9.2.0 -- see AGENTS.md before changing any of them.
+
+set windows-shell := ["pwsh.exe", "-NoProfile", "-Command"]
+
+device := "vivoactive5"
+typecheck := "3"
+
+_default:
+    @just --list
+
+# Compile one device (strict typecheck by default)
+build device=device typecheck=typecheck:
+    pwsh -NoProfile -File tools/build.ps1 -Device {{device}} -Typecheck {{typecheck}}
+
+# Compile every product declared in manifest.xml
+all-devices typecheck=typecheck:
+    pwsh -NoProfile -File tools/build.ps1 -Device all -Typecheck {{typecheck}}
+
+# Launch the Connect IQ simulator and load the app
+sim device=device typecheck=typecheck:
+    pwsh -NoProfile -File tools/sim.ps1 -Device {{device}} -Typecheck {{typecheck}}
+
+# Build with unit tests, run them in the simulator, fail on any failure
+test device=device typecheck=typecheck test_name="":
+    pwsh -NoProfile -File tools/test.ps1 -Device {{device}} -Typecheck {{typecheck}} -TestName "{{test_name}}"
+
+# Bump the on-screen version, build, and push to the watch over MTP
+deploy device=device:
+    pwsh -NoProfile -File tools/deploy.ps1 -Device {{device}}
+
+# Build without bumping the version, then push over MTP
+deploy-nobump device=device:
+    pwsh -NoProfile -File tools/deploy.ps1 -Device {{device}} -NoBump
+
+# Run in the simulator and capture the window to shots/<device>.png
+shot device=device typecheck=typecheck:
+    pwsh -NoProfile -File tools/shot.ps1 -Device {{device}} -Typecheck {{typecheck}}
+
+# Same as `shot` but leaves the simulator open. NOTE: will not return until you
+# close the simulator -- a live simulator blocks the calling shell.
+shot-keep device=device typecheck=typecheck:
+    pwsh -NoProfile -File tools/shot.ps1 -Device {{device}} -Typecheck {{typecheck}} -KeepSim
+
+# Re-point ./sdk-docs and ./sdk-samples at the currently active SDK
+link-docs:
+    pwsh -NoProfile -File tools/link-docs.ps1
+
+# Remove build output
+clean:
+    pwsh -NoProfile -Command "Remove-Item -Recurse -Force bin, shots -ErrorAction SilentlyContinue; Write-Host 'cleaned'"

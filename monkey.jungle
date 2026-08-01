@@ -1,1 +1,12 @@
 project.manifest = manifest.xml
+
+# tests/ holds (:test)-annotated functions only. Per the SDK's Unit Testing
+# guide, test code is not included in debug or release executables -- it is
+# compiled in only when monkeyc is passed -t/--unit-test -- so adding it to the
+# source path costs nothing in a normal build.
+#
+# Both paths are listed explicitly rather than appending to $(base.sourcePath).
+# The self-referencing form expands to the project root, which drags the
+# gitignored sdk-samples junction into the build and fails with hundreds of
+# undefined-symbol errors from Garmin's sample apps.
+base.sourcePath = source;tests

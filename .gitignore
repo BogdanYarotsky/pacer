@@ -1,0 +1,20 @@
+# Build output
+bin/
+publish/
+
+# Version-matched SDK reference, linked in by `just link-docs`.
+# These are junctions into the installed SDK, not real content.
+sdk-docs
+sdk-samples
+
+# Simulator captures
+shots/
+
+# Signing keys must never enter the repo. The real key lives at
+# %USERPROFILE%\.garmin-keys\ and is referenced via $GARMIN_DEVELOPER_KEY.
+*.der
+*.pem
+
+# OS noise
+.DS_Store
+Thumbs.db

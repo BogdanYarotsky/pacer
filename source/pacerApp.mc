@@ -8,7 +8,7 @@ import Toybox.Timer;
 class pacerApp extends Application.AppBase {
     // Shown on the main screen so the build running on the watch is
     // identifiable at a glance. Bump on every sideload.
-    const APP_VERSION = "0.13";
+    const APP_VERSION = "0.14";
 
     const DEFAULT_PACE_HUNDREDTHS = 571;
     const DEFAULT_VIBE_STRENGTH = 15;
@@ -26,10 +26,10 @@ class pacerApp extends Application.AppBase {
     const STRENGTH_STORAGE_KEY = "vibrationStrength";
     const DURATION_STORAGE_KEY = "vibrationDuration";
 
-    var _timer = null;
-    var _paceHundredths = DEFAULT_PACE_HUNDREDTHS;
-    var _vibeStrength = DEFAULT_VIBE_STRENGTH;
-    var _vibeDuration = DEFAULT_VIBE_DURATION;
+    private var _timer as Timer.Timer? = null;
+    private var _paceHundredths as Number = DEFAULT_PACE_HUNDREDTHS;
+    private var _vibeStrength as Number = DEFAULT_VIBE_STRENGTH;
+    private var _vibeDuration as Number = DEFAULT_VIBE_DURATION;
 
     function initialize() {
         AppBase.initialize();
@@ -47,7 +47,7 @@ class pacerApp extends Application.AppBase {
 
         var vibe = [
             new Attention.VibeProfile(_vibeStrength, _vibeDuration)
-        ];
+        ] as Array<Attention.VibeProfile>;
         Attention.vibrate(vibe);
     }
 
@@ -57,13 +57,15 @@ class pacerApp extends Application.AppBase {
 
     function startTimer() as Void {
         stopTimer();
-        _timer = new Timer.Timer();
-        _timer.start(method(:timerCallback), getIntervalMilliseconds(), true);
+        var timer = new Timer.Timer();
+        timer.start(method(:timerCallback), getIntervalMilliseconds(), true);
+        _timer = timer;
     }
 
     function stopTimer() as Void {
-        if (_timer != null) {
-            _timer.stop();
+        var timer = _timer;
+        if (timer != null) {
+            timer.stop();
             _timer = null;
         }
     }
@@ -72,41 +74,43 @@ class pacerApp extends Application.AppBase {
         return [ new pacerView(), new pacerDelegate() ];
     }
 
-    function getPaceHundredths() {
+    function getPaceHundredths() as Number {
         return _paceHundredths;
     }
 
-    function getVibrationStrength() {
+    function getVibrationStrength() as Number {
         return _vibeStrength;
     }
 
-    function getVibrationDuration() {
+    function getVibrationDuration() as Number {
         return _vibeDuration;
     }
 
     // Each breath has two cues: one at each inhale/exhale boundary.
-    function getIntervalMilliseconds() {
-        return ((3000000.0 / _paceHundredths) + 0.5).toNumber();
+    // The arithmetic itself lives in PacerMath so it can be unit tested without
+    // an application instance -- see tests/PacerMathTest.mc.
+    function getIntervalMilliseconds() as Number {
+        return PacerMath.intervalMillis(_paceHundredths);
     }
 
-    function getPaceText() {
-        return formatHundredths(_paceHundredths) + " breaths/min";
+    function getPaceText() as String {
+        return PacerMath.formatHundredths(_paceHundredths) + " breaths/min";
     }
 
-    function getIntervalText() {
+    function getIntervalText() as String {
         var secondsHundredths = ((getIntervalMilliseconds() / 10.0) + 0.5).toNumber();
-        return "Pulse every " + formatHundredths(secondsHundredths) + " s";
+        return "Pulse every " + PacerMath.formatHundredths(secondsHundredths) + " s";
     }
 
-    function getStrengthText() {
+    function getStrengthText() as String {
         return _vibeStrength.toString() + "%";
     }
 
-    function getDurationText() {
+    function getDurationText() as String {
         return _vibeDuration.toString() + " ms";
     }
 
-    function setPaceHundredths(value) as Void {
+    function setPaceHundredths(value as Number) as Void {
         if (value < MIN_PACE_HUNDREDTHS || value > MAX_PACE_HUNDREDTHS) {
             return;
         }
@@ -120,7 +124,7 @@ class pacerApp extends Application.AppBase {
         WatchUi.requestUpdate();
     }
 
-    function setVibrationStrength(value) as Void {
+    function setVibrationStrength(value as Number) as Void {
         if (value < MIN_VIBE_STRENGTH || value > MAX_VIBE_STRENGTH) {
             return;
         }
@@ -130,7 +134,7 @@ class pacerApp extends Application.AppBase {
         WatchUi.requestUpdate();
     }
 
-    function setVibrationDuration(value) as Void {
+    function setVibrationDuration(value as Number) as Void {
         if (value < MIN_VIBE_DURATION || value > MAX_VIBE_DURATION) {
             return;
         }
@@ -141,39 +145,31 @@ class pacerApp extends Application.AppBase {
     }
 
     private function loadSettings() as Void {
-        var storedPace = Storage.getValue(PACE_STORAGE_KEY);
-        if (storedPace instanceof Number &&
-                storedPace >= MIN_PACE_HUNDREDTHS &&
-                storedPace <= MAX_PACE_HUNDREDTHS) {
-            _paceHundredths = storedPace;
-        }
-
-        var storedStrength = Storage.getValue(STRENGTH_STORAGE_KEY);
-        if (storedStrength instanceof Number &&
-                storedStrength >= MIN_VIBE_STRENGTH &&
-                storedStrength <= MAX_VIBE_STRENGTH) {
-            _vibeStrength = storedStrength;
-        }
-
-        var storedDuration = Storage.getValue(DURATION_STORAGE_KEY);
-        if (storedDuration instanceof Number &&
-                storedDuration >= MIN_VIBE_DURATION &&
-                storedDuration <= MAX_VIBE_DURATION) {
-            _vibeDuration = storedDuration;
-        }
+        _paceHundredths = readStoredNumber(
+            PACE_STORAGE_KEY, MIN_PACE_HUNDREDTHS, MAX_PACE_HUNDREDTHS, DEFAULT_PACE_HUNDREDTHS);
+        _vibeStrength = readStoredNumber(
+            STRENGTH_STORAGE_KEY, MIN_VIBE_STRENGTH, MAX_VIBE_STRENGTH, DEFAULT_VIBE_STRENGTH);
+        _vibeDuration = readStoredNumber(
+            DURATION_STORAGE_KEY, MIN_VIBE_DURATION, MAX_VIBE_DURATION, DEFAULT_VIBE_DURATION);
     }
 
-    private function formatHundredths(value) {
-        var whole = (value / 100).toNumber();
-        var fraction = value % 100;
-        var fractionText = fraction.toString();
-
-        if (fraction < 10) {
-            fractionText = "0" + fractionText;
+    // Storage.getValue returns a wide poly type, so the stored value is checked
+    // for being a Number AND for being inside the supported range before it is
+    // trusted. Anything else falls back to the default rather than propagating
+    // a bad value into the timer.
+    private function readStoredNumber(
+        key as String,
+        minimum as Number,
+        maximum as Number,
+        fallback as Number
+    ) as Number {
+        var stored = Storage.getValue(key);
+        if (stored instanceof Number && stored >= minimum && stored <= maximum) {
+            return stored;
         }
-
-        return whole.toString() + "." + fractionText;
+        return fallback;
     }
+
 }
 
 function getApp() as pacerApp {

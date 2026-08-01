@@ -89,7 +89,16 @@ class pacerMenuDelegate extends WatchUi.Menu2InputDelegate {
         }
     }
 
-    private function openPicker(item, identifier, titleText, minimum, maximum, step, current, format) as Void {
+    private function openPicker(
+        item as WatchUi.MenuItem,
+        identifier as Object?,
+        titleText as String,
+        minimum as Number,
+        maximum as Number,
+        step as Number,
+        current as Number,
+        format as Number
+    ) as Void {
         var title = new WatchUi.Text({
             :text => titleText,
             :locX => WatchUi.LAYOUT_HALIGN_CENTER,
@@ -114,12 +123,12 @@ class pacerMenuDelegate extends WatchUi.Menu2InputDelegate {
 }
 
 class pacerValuePickerFactory extends WatchUi.PickerFactory {
-    var _minimum;
-    var _maximum;
-    var _step;
-    var _format;
+    private var _minimum as Number;
+    private var _maximum as Number;
+    private var _step as Number;
+    private var _format as Number;
 
-    function initialize(minimum, maximum, step, format) {
+    function initialize(minimum as Number, maximum as Number, step as Number, format as Number) {
         PickerFactory.initialize();
         _minimum = minimum;
         _maximum = maximum;
@@ -127,21 +136,21 @@ class pacerValuePickerFactory extends WatchUi.PickerFactory {
         _format = format;
     }
 
-    function getSize() {
+    function getSize() as Number {
         return ((_maximum - _minimum) / _step).toNumber() + 1;
     }
 
-    function getValue(item) {
+    function getValue(item as Number) as Object? {
         return _minimum + (item * _step);
     }
 
-    function getIndex(value) {
+    function getIndex(value as Number) as Number {
         return ((value - _minimum) / _step).toNumber();
     }
 
-    function getDrawable(item, isSelected) {
+    function getDrawable(item as Number, isSelected as Boolean) as WatchUi.Drawable? {
         return new WatchUi.Text({
-            :text => formatValue(getValue(item)),
+            :text => formatValue(_minimum + (item * _step)),
             :color => Graphics.COLOR_WHITE,
             :font => Graphics.FONT_LARGE,
             :locX => WatchUi.LAYOUT_HALIGN_CENTER,
@@ -149,7 +158,7 @@ class pacerValuePickerFactory extends WatchUi.PickerFactory {
         });
     }
 
-    private function formatValue(value) {
+    private function formatValue(value as Number) as String {
         if (_format == FORMAT_PACE) {
             var whole = (value / 100).toNumber();
             var fraction = value % 100;
@@ -167,10 +176,10 @@ class pacerValuePickerFactory extends WatchUi.PickerFactory {
 }
 
 class pacerPickerDelegate extends WatchUi.PickerDelegate {
-    var _identifier;
-    var _menuItem;
+    private var _identifier as Object?;
+    private var _menuItem as WatchUi.MenuItem;
 
-    function initialize(identifier, menuItem) {
+    function initialize(identifier as Object?, menuItem as WatchUi.MenuItem) {
         PickerDelegate.initialize();
         _identifier = identifier;
         _menuItem = menuItem;
@@ -178,7 +187,7 @@ class pacerPickerDelegate extends WatchUi.PickerDelegate {
 
     function onAccept(values as Array) as Boolean {
         var app = getApp();
-        var value = values[0];
+        var value = values[0] as Number;
 
         if ("pace".equals(_identifier)) {
             app.setPaceHundredths(value);
