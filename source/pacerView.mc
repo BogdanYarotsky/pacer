@@ -1,6 +1,5 @@
 import Toybox.Graphics;
 import Toybox.Lang;
-import Toybox.System;
 import Toybox.WatchUi;
 
 class pacerView extends WatchUi.View {
@@ -14,11 +13,11 @@ class pacerView extends WatchUi.View {
         setLayout(Rez.Layouts.MainLayout(dc));
     }
 
-    // Called when this View is brought to the foreground. Restore
-    // the state of this View and prepare it to be shown. This includes
-    // loading resources into memory.
+    // Disable the platform's raw touch handling while the pacing screen is
+    // visible. This is required to suppress the non-programmable palm-cover
+    // exit gesture on the vivoactive 5.
     function onShow() as Void {
-        setTouchEnabled(false);
+        TouchControl.setEnabled(false);
     }
 
     // Update the view
@@ -59,37 +58,14 @@ class pacerView extends WatchUi.View {
         // Shortened from "Top button: settings / exit" (310px): the bottom of a
         // round 390px screen only offers ~220px, so the original was clipped at
         // both ends. The menu itself still says "Exit Pacer".
-        dc.drawText(center, ys[2], subFont, "Top button: menu", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(center, ys[2], subFont, app.getMainHintText(), Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    // Called when this View is removed from the screen. Save the
-    // state of this View here. This includes freeing resources from
-    // memory.
+    // Best-effort lifecycle restoration. Controlled navigation and exit paths
+    // restore earlier because this callback can be too late for the
+    // foreground-only API.
     function onHide() as Void {
-        // Touch is disabled only while the main pacing screen is visible.
-        // Restore it before a menu/picker is pushed or the app exits.
-        setTouchEnabled(true);
-    }
-
-    // configureTouchEvents is API 5.2.0 and supported by the vivoactive 5.
-    // Keep the has-check because manifest.xml retains its 3.0.0 store floor.
-    private function setTouchEnabled(enabled as Boolean) as Void {
-        var success = false;
-        if (WatchUi has :configureTouchEvents) {
-            success = WatchUi.configureTouchEvents({
-                :enabled => enabled
-            });
-        }
-        traceTouchConfiguration(enabled, success);
-    }
-
-    (:debug)
-    private function traceTouchConfiguration(enabled as Boolean, success as Boolean) as Void {
-        System.println("[input] touch enabled=" + enabled + " success=" + success);
-    }
-
-    (:release)
-    private function traceTouchConfiguration(enabled as Boolean, success as Boolean) as Void {
+        TouchControl.setEnabled(true);
     }
 
 }

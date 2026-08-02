@@ -10,6 +10,10 @@ enum {
 }
 
 function showPacerSettings() as Void {
+    // Restore while the pacing View is still unquestionably foreground. Its
+    // onHide callback retries after the transition starts.
+    TouchControl.setEnabled(true);
+
     var app = getApp();
     var menu = new WatchUi.Menu2({ :title => "Pacer settings" });
 
@@ -85,7 +89,11 @@ class pacerMenuDelegate extends WatchUi.Menu2InputDelegate {
                 FORMAT_MILLISECONDS
             );
         } else if ("exit".equals(identifier)) {
-            System.exit();
+            if (TouchControl.setEnabled(true)) {
+                System.exit();
+            } else {
+                item.setSubLabel("Touch reset failed; retry");
+            }
         }
     }
 

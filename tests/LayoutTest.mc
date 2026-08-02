@@ -171,7 +171,7 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
 
     // The widest string each line can display: the slowest pace (4.50) gives the
     // longest interval text, and the pace line is longest at two-digit values.
-    var texts = ["5.71 breaths/min", "Pulse every 6.67 s", "Top button: menu"];
+    var texts = ["5.71 breaths/min", "Pulse every 6.67 s", "Back again to exit"];
     var fonts = [paceFont, subFont, subFont];
     var names = ["pace", "interval", "hint"];
 
@@ -198,5 +198,14 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
             "px wide) does not fit at y=" + y + " where the chord is " + chord
         );
     }
+
+    // The normal hint shares the same anchor as the wider exit prompt.
+    var normalHintW = dc.getTextWidthInPixels("Top button: menu", subFont);
+    Test.assertMessage(
+        Layout.fitsOnRoundScreen(
+            ys[2], normalHintW, dc.getFontHeight(subFont), w, h
+        ),
+        "the normal main-screen hint does not fit"
+    );
     return true;
 }

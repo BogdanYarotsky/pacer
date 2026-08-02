@@ -113,10 +113,24 @@ Three traps, each of which produced a wrong implementation before being measured
    button both raise `onBack`. **A behaviour event alone cannot tell touch from
    button.**
 
-**The primary gate:** `pacerView.onShow()` disables touch globally with
-`WatchUi.configureTouchEvents({ :enabled => false })`; `onHide()` restores touch
-so menus and pickers remain usable. The API is 5.2.0 and supported on the
-vívoactive 5.
+**The primary gate:** `pacerView.onShow()` disables touch globally through
+`TouchControl`. This is mandatory: covering much of the screen with skin can
+trigger a platform-level exit that never reaches the delegate, and only
+`WatchUi.configureTouchEvents({ :enabled => false })` suppresses it. The API is
+5.2.0 and supported on the vívoactive 5. **Do not remove this mechanism.**
+
+The disabled setting can survive Pacer exiting and leave the whole watch
+without touch until reboot. Restoring with `:enabled => true` is also fallible:
+the simulator repeatedly returns `false`, even when called before navigation.
+Therefore physical Back uses a four-second, two-press confirmation. The first
+press immediately shows `Back again to exit`, then restores touch
+asynchronously while the prompt is visible. The second press exits only after
+`TouchControl` verifies the live setting; if cleanup is still pending, the app
+exits from its callback once restoration succeeds. When cleanup fails or the
+window expires, Pacer stays open and re-enables the palm-touch gate. The menu's
+`System.exit()` path follows the same restore-before-exit rule. `onHide()`,
+`onInactive()` and `onStop()` are best-effort restoration fallbacks, not
+permission to exit with an unverified touch state.
 
 **The fallback discriminator:** `onKeyPressed` fires for physical buttons and
 *never* for gestures, always immediately before the behaviour. `pacerDelegate`
@@ -128,10 +142,11 @@ Gesture thresholds live in the device config: swipeRight only counts as Back
 when it starts within `maxDistToEdge` (81px) of the edge, travels more than
 `minSwipeDeltaX` (78px), and finishes inside `maxSwipeDuration` (250ms).
 
-`just input-test` confirms that touch produces no delegate events on the main
-screen while physical buttons still work. It is separate from `just test`
-because it needs a simulator window and synthesises system-wide mouse events
-(it steals the pointer for ~40s).
+`just input-test` confirms that touch is suppressed or safely consumed on the
+main screen, physical buttons still work, the exit-confirmation window expires
+safely, and rejected touch restoration does not strand the app. It is separate
+from `just test` because it needs a simulator window and synthesises system-wide
+mouse events (it steals the pointer for ~40s).
 
 ## Round screen: the bounding box is not the screen
 

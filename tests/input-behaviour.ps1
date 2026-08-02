@@ -154,9 +154,18 @@ try {
     Start-Sleep -Milliseconds 1500
     TouchCheck "swipe after menu" { Inject @{ Action='swipe'; Target='right' } }    'onBack from swipe -> swallowed'
 
-    # A short press of the lower button is a real Back that the app declines so
-    # the system can exit it.
-    Check "press esc"      { Inject @{ Action='press'; Target='esc' } }             'onBack from lower button -> declined'
+    # First Back arms a four-second confirmation and returns immediately while
+    # touch cleanup runs asynchronously. Let that window expire and verify the
+    # palm-touch gate is restored.
+    Check "arm exit"       { Inject @{ Action='press'; Target='esc' } }             'onBack from lower button -> exit armed.*exit cleanup -> touch restore failed'
+    Check "exit timeout"   { Start-Sleep -Seconds 3 }                              'exit window expired -> pacing screen restored.*touch enabled=false success=true'
+
+    # Re-arm and confirm. The simulator rejects touch restoration, so the
+    # second press must remain safe and the app must still accept the upper
+    # button afterward. A real watch exits here once restoration succeeds.
+    Check "re-arm exit"    { Inject @{ Action='press'; Target='esc' } }             'onBack from lower button -> exit armed'
+    Check "confirm pending" { Inject @{ Action='press'; Target='esc' } }            'onBack from lower button -> confirmed, cleanup pending.*exit cleanup -> touch restore failed'
+    Check "button after pending exit" { Inject @{ Action='press'; Target='enter' } } '(exit confirmation cancelled|exit window expired -> pacing screen restored).*onSelect from upper button -> settings'
 }
 finally {
     Stop-MonkeyDo

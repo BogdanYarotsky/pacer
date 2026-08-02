@@ -8,7 +8,7 @@ import Toybox.Timer;
 class pacerApp extends Application.AppBase {
     // Shown on the main screen so the build running on the watch is
     // identifiable at a glance. Bump on every sideload.
-    const APP_VERSION = "0.17";
+    const APP_VERSION = "0.19";
 
     const DEFAULT_PACE_HUNDREDTHS = 571;
     const DEFAULT_VIBE_STRENGTH = 15;
@@ -30,6 +30,7 @@ class pacerApp extends Application.AppBase {
     private var _paceHundredths as Number = DEFAULT_PACE_HUNDREDTHS;
     private var _vibeStrength as Number = DEFAULT_VIBE_STRENGTH;
     private var _vibeDuration as Number = DEFAULT_VIBE_DURATION;
+    private var _exitPromptVisible as Boolean = false;
 
     function initialize() {
         AppBase.initialize();
@@ -52,7 +53,17 @@ class pacerApp extends Application.AppBase {
     }
 
     function onStop(state as Dictionary?) as Void {
+        // Final best-effort cleanup for termination paths not initiated by the
+        // main delegate. TouchControl contains the foreground exception.
+        TouchControl.setEnabled(true);
         stopTimer();
+    }
+
+    // API 4.2.3, supported by vivoactive5 (API 5.2.0). The callback runs when
+    // the app is hidden, so restoration may be rejected; it remains a safe
+    // best-effort fallback for system-driven background transitions.
+    function onInactive(state as Dictionary?) as Void {
+        TouchControl.setEnabled(true);
     }
 
     function startTimer() as Void {
@@ -104,6 +115,17 @@ class pacerApp extends Application.AppBase {
 
     function getStrengthText() as String {
         return _vibeStrength.toString() + "%";
+    }
+
+    function getMainHintText() as String {
+        return _exitPromptVisible ? "Back again to exit" : "Top button: menu";
+    }
+
+    function setExitPromptVisible(visible as Boolean) as Void {
+        if (_exitPromptVisible != visible) {
+            _exitPromptVisible = visible;
+            WatchUi.requestUpdate();
+        }
     }
 
     function getDurationText() as String {

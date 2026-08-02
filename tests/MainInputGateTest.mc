@@ -51,3 +51,23 @@ function mainInputGateConsumesMismatchedKey(logger as Test.Logger) as Boolean {
     );
     return true;
 }
+
+(:test)
+function mainDelegateSwallowsSelectWithoutPhysicalKey(logger as Test.Logger) as Boolean {
+    var delegate = new pacerDelegate();
+    Test.assertMessage(
+        delegate.onSelect(),
+        "Select without KEY_ENTER must be consumed as touch"
+    );
+    return true;
+}
+
+(:test)
+function mainDelegateSwallowsBackWithoutPhysicalKey(logger as Test.Logger) as Boolean {
+    var delegate = new pacerDelegate();
+    Test.assertMessage(
+        delegate.onBack(),
+        "Back without KEY_ESC must be consumed as touch"
+    );
+    return true;
+}
