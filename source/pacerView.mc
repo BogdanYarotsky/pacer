@@ -1,4 +1,6 @@
 import Toybox.Graphics;
+import Toybox.Lang;
+import Toybox.System;
 import Toybox.WatchUi;
 
 class pacerView extends WatchUi.View {
@@ -16,6 +18,7 @@ class pacerView extends WatchUi.View {
     // the state of this View and prepare it to be shown. This includes
     // loading resources into memory.
     function onShow() as Void {
+        setTouchEnabled(false);
     }
 
     // Update the view
@@ -63,6 +66,30 @@ class pacerView extends WatchUi.View {
     // state of this View here. This includes freeing resources from
     // memory.
     function onHide() as Void {
+        // Touch is disabled only while the main pacing screen is visible.
+        // Restore it before a menu/picker is pushed or the app exits.
+        setTouchEnabled(true);
+    }
+
+    // configureTouchEvents is API 5.2.0 and supported by the vivoactive 5.
+    // Keep the has-check because manifest.xml retains its 3.0.0 store floor.
+    private function setTouchEnabled(enabled as Boolean) as Void {
+        var success = false;
+        if (WatchUi has :configureTouchEvents) {
+            success = WatchUi.configureTouchEvents({
+                :enabled => enabled
+            });
+        }
+        traceTouchConfiguration(enabled, success);
+    }
+
+    (:debug)
+    private function traceTouchConfiguration(enabled as Boolean, success as Boolean) as Void {
+        System.println("[input] touch enabled=" + enabled + " success=" + success);
+    }
+
+    (:release)
+    private function traceTouchConfiguration(enabled as Boolean, success as Boolean) as Void {
     }
 
 }

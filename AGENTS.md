@@ -84,6 +84,55 @@ your code is **5.2.0**.
 
 ---
 
+## Input: the measured event chain (do not re-derive this)
+
+Established by driving real input into the simulator with `tools/input.ps1` and
+reading the app's own trace. **Observed, not inferred:**
+
+| Input | Events, in order |
+|---|---|
+| tap | `onSelect`, **then** `onTap` |
+| press enter (upper) | `onKeyPressed(4)`, `onSelect`, `onKey(4)`, `onKeyReleased(4)` |
+| press esc (lower) | `onKeyPressed(5)`, `onBack`, `onKeyReleased(5)` |
+| hold menu (lower, held) | `onKeyPressed(5)`, `onMenu`, `onKey(7)`, `onKeyReleased(5)` |
+| swipe right | `onBack` — **no `onSwipe` at all** |
+| swipe left | nothing |
+| swipe up | `onNextPage`, `onSwipe(0)` |
+| swipe down | `onPreviousPage`, `onSwipe(2)` |
+
+`KEY_ENTER=4`, `KEY_ESC=5`, `KEY_MENU=7`. The lower button is **one** physical
+button: pressed it is Back, held it is Menu.
+
+Three traps, each of which produced a wrong implementation before being measured:
+
+1. **`onSelect` fires BEFORE `onTap`.** Consuming `onTap` cannot suppress a tap.
+2. **A right-swipe never raises `onSwipe`.** Filtering `SWIPE_RIGHT` there is
+   dead code — it arrives only as `onBack`, indistinguishable at that level from
+   the lower physical button.
+3. A tap and the upper button both raise `onSelect`; a right-swipe and the lower
+   button both raise `onBack`. **A behaviour event alone cannot tell touch from
+   button.**
+
+**The primary gate:** `pacerView.onShow()` disables touch globally with
+`WatchUi.configureTouchEvents({ :enabled => false })`; `onHide()` restores touch
+so menus and pickers remain usable. The API is 5.2.0 and supported on the
+vívoactive 5.
+
+**The fallback discriminator:** `onKeyPressed` fires for physical buttons and
+*never* for gestures, always immediately before the behaviour. `pacerDelegate`
+latches the last key press and consumes it inside the behaviour handler. This
+preserves lower-button Back if touch configuration ever fails. Do not replace
+this with `onTap` filtering.
+
+Gesture thresholds live in the device config: swipeRight only counts as Back
+when it starts within `maxDistToEdge` (81px) of the edge, travels more than
+`minSwipeDeltaX` (78px), and finishes inside `maxSwipeDuration` (250ms).
+
+`just input-test` confirms that touch produces no delegate events on the main
+screen while physical buttons still work. It is separate from `just test`
+because it needs a simulator window and synthesises system-wide mouse events
+(it steals the pointer for ~40s).
+
 ## Round screen: the bounding box is not the screen
 
 The display is a **circle**. Text that fits within 390 px of width still gets
@@ -132,6 +181,7 @@ name). They have not caused a problem so far.
 | `just build` | Compile vivoactive5, `-w -l 3` (strict) |
 | `just all-devices` | Compile every product in `manifest.xml` |
 | `just test` | Build with `-t`, run in simulator, parse results, **non-zero exit on failure** |
+| `just input-test` | Drive real taps/swipes/button presses into the simulator and assert which handler fires (~40s, steals the pointer) |
 | `just test test_name=foo` | Run a single test |
 | `just sim` | Launch simulator and load the app |
 | `just shot` | Run in sim, capture window → `shots/vivoactive5.png` |
@@ -258,8 +308,6 @@ reality is the tool working.
 
 ## What cannot be tested from here — needs your wrist
 
-- Taps, swipes, physical button presses (upper Action = settings, right-swipe
-  consumed, `Exit Pacer`).
 - Menu/picker interaction and whether values commit.
 - **`Attention.vibrate` does nothing observable in the simulator.** Whether the
   pulses land at the right interval and strength is only verifiable on-device.

@@ -28,6 +28,12 @@ sim device=device typecheck=typecheck:
 test device=device typecheck=typecheck test_name="":
     pwsh -NoProfile -File tools/test.ps1 -Device {{device}} -Typecheck {{typecheck}} -TestName "{{test_name}}"
 
+# Drive real taps/swipes/button presses into the simulator and assert which
+# handler fires. Steals the mouse pointer while it runs. Kept out of `test`
+# because it needs a simulator window and synthesises system-wide input.
+input-test device=device:
+    pwsh -NoProfile -File tests/input-behaviour.ps1 -Device {{device}}
+
 # Bump the on-screen version, build, and push to the watch over MTP
 deploy device=device:
     pwsh -NoProfile -File tools/deploy.ps1 -Device {{device}}
