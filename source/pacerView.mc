@@ -41,24 +41,21 @@ class pacerView extends WatchUi.View {
             Graphics.TEXT_JUSTIFY_CENTER
         );
 
-        // The info stack is laid out from the fonts' real heights so the lines
-        // cannot overlap and stay inside the curve of the round display. The
-        // fonts are deliberately small: at this height the usable width of a
-        // 390px round screen is well under 390px. See tests/LayoutTest.mc.
-        var paceFont = Graphics.FONT_TINY;
-        var subFont = Graphics.FONT_XTINY;
-        var ys = Layout.stackFromBottom(height, [
-            dc.getFontHeight(paceFont),
-            dc.getFontHeight(subFont),
-            dc.getFontHeight(subFont)
-        ]);
-
-        dc.drawText(center, ys[0], paceFont, app.getPaceText(), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(center, ys[1], subFont, app.getIntervalText(), Graphics.TEXT_JUSTIFY_CENTER);
-        // Shortened from "Top button: settings / exit" (310px): the bottom of a
-        // round 390px screen only offers ~220px, so the original was clipped at
-        // both ends. The menu itself still says "Exit Pacer".
-        dc.drawText(center, ys[2], subFont, app.getMainHintText(), Graphics.TEXT_JUSTIFY_CENTER);
+        // The idle main screen deliberately has no bottom text. The only text
+        // shown here is the temporary exit confirmation after the first Back.
+        if (app.isExitPromptVisible()) {
+            var promptFont = Graphics.FONT_XTINY;
+            var ys = Layout.stackFromBottom(height, [
+                dc.getFontHeight(promptFont)
+            ]);
+            dc.drawText(
+                center,
+                ys[0],
+                promptFont,
+                app.getExitPromptText(),
+                Graphics.TEXT_JUSTIFY_CENTER
+            );
+        }
     }
 
     // Best-effort lifecycle restoration. Controlled navigation and exit paths

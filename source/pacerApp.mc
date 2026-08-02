@@ -117,8 +117,12 @@ class pacerApp extends Application.AppBase {
         return _vibeStrength.toString() + "%";
     }
 
-    function getMainHintText() as String {
-        return _exitPromptVisible ? "Back again to exit" : "Top button: menu";
+    function isExitPromptVisible() as Boolean {
+        return _exitPromptVisible;
+    }
+
+    function getExitPromptText() as String {
+        return "Back again to exit";
     }
 
     function setExitPromptVisible(visible as Boolean) as Void {

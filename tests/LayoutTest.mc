@@ -158,22 +158,12 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     Test.assertMessage(bmp != null, "could not create a buffered bitmap to measure text with");
     var dc = (bmp as Graphics.BufferedBitmap).getDc();
 
-    // These MUST be the fonts pacerView actually draws with, or the test proves
-    // nothing about the real screen.
-    var paceFont = Graphics.FONT_TINY;
-    var subFont = Graphics.FONT_XTINY;
-
-    var ys = Layout.stackFromBottom(h, [
-        dc.getFontHeight(paceFont),
-        dc.getFontHeight(subFont),
-        dc.getFontHeight(subFont)
+    // This MUST be the font pacerView actually uses for its temporary prompt,
+    // or the test proves nothing about the real screen.
+    var promptFont = Graphics.FONT_XTINY;
+    var promptYs = Layout.stackFromBottom(h, [
+        dc.getFontHeight(promptFont)
     ]);
-
-    // The widest string each line can display: the slowest pace (4.50) gives the
-    // longest interval text, and the pace line is longest at two-digit values.
-    var texts = ["5.71 breaths/min", "Pulse every 6.67 s", "Back again to exit"];
-    var fonts = [paceFont, subFont, subFont];
-    var names = ["pace", "interval", "hint"];
 
     // The version line sits alone at the top.
     var versionH = dc.getFontHeight(Graphics.FONT_MEDIUM);
@@ -184,28 +174,22 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
         "the version line (" + versionW + "px wide) does not fit at y=" + Layout.versionY()
     );
 
-    for (var i = 0; i < texts.size(); i += 1) {
-        var y = ys[i];
-        var font = fonts[i];
-        var textW = dc.getTextWidthInPixels(texts[i], font);
-        var fontH = dc.getFontHeight(font);
-        var chord = Layout.halfChordAt(y + fontH, w, h) * 2;
-        logger.debug(names[i] + ": y=" + y + " w=" + textW + " h=" + fontH + " chord=" + chord);
-
-        Test.assertMessage(
-            Layout.fitsOnRoundScreen(y, textW, fontH, w, h),
-            "the " + names[i] + " line (\"" + texts[i] + "\", " + textW +
-            "px wide) does not fit at y=" + y + " where the chord is " + chord
-        );
-    }
-
-    // The normal hint shares the same anchor as the wider exit prompt.
-    var normalHintW = dc.getTextWidthInPixels("Top button: menu", subFont);
+    var prompt = "Back again to exit";
+    var promptY = promptYs[0];
+    var promptW = dc.getTextWidthInPixels(prompt, promptFont);
+    var promptH = dc.getFontHeight(promptFont);
+    var promptChord = Layout.halfChordAt(promptY + promptH, w, h) * 2;
+    logger.debug(
+        "exit prompt: y=" + promptY + " w=" + promptW +
+        " h=" + promptH + " chord=" + promptChord
+    );
     Test.assertMessage(
         Layout.fitsOnRoundScreen(
-            ys[2], normalHintW, dc.getFontHeight(subFont), w, h
+            promptY, promptW, promptH, w, h
         ),
-        "the normal main-screen hint does not fit"
+        "the exit prompt (\"" + prompt + "\", " + promptW +
+        "px wide) does not fit at y=" + promptY +
+        " where the chord is " + promptChord
     );
     return true;
 }
