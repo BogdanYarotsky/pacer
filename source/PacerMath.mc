@@ -28,4 +28,13 @@ module PacerMath {
 
         return whole.toString() + "." + fractionText;
     }
+
+    // Render the pace and its half-breath cue interval for the settings menu.
+    function formatPaceSummary(paceHundredths as Number) as String {
+        var secondsHundredths = ((intervalMillis(paceHundredths) / 10.0) + 0.5).toNumber();
+        return formatHundredths(paceHundredths)
+            + " BPM ("
+            + formatHundredths(secondsHundredths)
+            + " sec)";
+    }
 }

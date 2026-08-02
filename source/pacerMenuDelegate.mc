@@ -15,10 +15,10 @@ function showPacerSettings() as Void {
     TouchControl.setEnabled(true);
 
     var app = getApp();
-    var menu = new WatchUi.Menu2({ :title => "Pacer settings" });
+    var menu = new WatchUi.Menu2(null);
 
     menu.addItem(new WatchUi.MenuItem(
-        "Breathing pace",
+        "Pace",
         app.getPaceText(),
         "pace",
         {}

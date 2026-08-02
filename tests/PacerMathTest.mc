@@ -73,3 +73,18 @@ function pacerMathFormatsEveryPaceInRange(logger as Test.Logger) as Boolean {
     }
     return true;
 }
+
+(:test)
+function pacerMathFormatsPaceSummary(logger as Test.Logger) as Boolean {
+    Test.assertEqualMessage(
+        PacerMath.formatPaceSummary(571),
+        "5.71 BPM (5.25 sec)",
+        "default pace summary should include the cue interval"
+    );
+    Test.assertEqualMessage(
+        PacerMath.formatPaceSummary(570),
+        "5.70 BPM (5.26 sec)",
+        "pace summary should derive the interval from the selected pace"
+    );
+    return true;
+}

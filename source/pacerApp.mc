@@ -105,7 +105,7 @@ class pacerApp extends Application.AppBase {
     }
 
     function getPaceText() as String {
-        return PacerMath.formatHundredths(_paceHundredths) + " breaths/min";
+        return PacerMath.formatPaceSummary(_paceHundredths);
     }
 
     function getIntervalText() as String {
