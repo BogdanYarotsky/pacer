@@ -1,5 +1,6 @@
 import Toybox.Graphics;
 import Toybox.Lang;
+import Toybox.System;
 import Toybox.WatchUi;
 
 class pacerView extends WatchUi.View {
@@ -41,16 +42,27 @@ class pacerView extends WatchUi.View {
             Graphics.TEXT_JUSTIFY_CENTER
         );
 
-        // The idle main screen deliberately has no bottom text. The only text
-        // shown here is the temporary exit confirmation after the first Back.
+        // Keep the clock fixed whether or not the exit prompt is visible by
+        // reserving both lines in the bottom stack.
+        var clockFont = Graphics.FONT_MEDIUM;
+        var promptFont = Graphics.FONT_XTINY;
+        var infoYs = Layout.stackFromBottom(height, [
+            dc.getFontHeight(clockFont),
+            dc.getFontHeight(promptFont)
+        ]);
+        var now = System.getClockTime();
+        dc.drawText(
+            center,
+            infoYs[0],
+            clockFont,
+            ClockText.formatTime(now.hour, now.min),
+            Graphics.TEXT_JUSTIFY_CENTER
+        );
+
         if (app.isExitPromptVisible()) {
-            var promptFont = Graphics.FONT_XTINY;
-            var ys = Layout.stackFromBottom(height, [
-                dc.getFontHeight(promptFont)
-            ]);
             dc.drawText(
                 center,
-                ys[0],
+                infoYs[1],
                 promptFont,
                 app.getExitPromptText(),
                 Graphics.TEXT_JUSTIFY_CENTER

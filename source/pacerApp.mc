@@ -8,7 +8,7 @@ import Toybox.Timer;
 class pacerApp extends Application.AppBase {
     // Shown on the main screen so the build running on the watch is
     // identifiable at a glance. Bump on every sideload.
-    const APP_VERSION = "0.19";
+    const APP_VERSION = "0.20";
 
     const DEFAULT_PACE_HUNDREDTHS = 571;
     const DEFAULT_VIBE_STRENGTH = 15;
@@ -42,6 +42,11 @@ class pacerApp extends Application.AppBase {
     }
 
     function timerCallback() as Void {
+        // Repaint the current View often enough for the minute clock on the
+        // pacing screen. This reuses the cue timer instead of consuming one of
+        // the device's limited Timer slots.
+        WatchUi.requestUpdate();
+
         if (_vibeStrength == 0 || !(Attention has :vibrate)) {
             return;
         }

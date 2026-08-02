@@ -158,24 +158,43 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     Test.assertMessage(bmp != null, "could not create a buffered bitmap to measure text with");
     var dc = (bmp as Graphics.BufferedBitmap).getDc();
 
-    // This MUST be the font pacerView actually uses for its temporary prompt,
-    // or the test proves nothing about the real screen.
+    // These MUST be the fonts pacerView actually uses for its clock and
+    // temporary prompt, or the test proves nothing about the real screen.
+    var clockFont = Graphics.FONT_MEDIUM;
     var promptFont = Graphics.FONT_XTINY;
-    var promptYs = Layout.stackFromBottom(h, [
+    var infoYs = Layout.stackFromBottom(h, [
+        dc.getFontHeight(clockFont),
         dc.getFontHeight(promptFont)
     ]);
 
     // The version line sits alone at the top.
     var versionH = dc.getFontHeight(Graphics.FONT_MEDIUM);
-    var versionW = dc.getTextWidthInPixels("v0.13", Graphics.FONT_MEDIUM);
+    var versionW = dc.getTextWidthInPixels("v0.20", Graphics.FONT_MEDIUM);
     logger.debug("version: y=" + Layout.versionY() + " w=" + versionW + " h=" + versionH);
     Test.assertMessage(
         Layout.fitsOnRoundScreen(Layout.versionY(), versionW, versionH, w, h),
         "the version line (" + versionW + "px wide) does not fit at y=" + Layout.versionY()
     );
 
+    var clock = "23:59";
+    var clockY = infoYs[0];
+    var clockW = dc.getTextWidthInPixels(clock, clockFont);
+    var clockH = dc.getFontHeight(clockFont);
+    logger.debug("clock: y=" + clockY + " w=" + clockW + " h=" + clockH);
+    Test.assertMessage(
+        Layout.fitsOnRoundScreen(clockY, clockW, clockH, w, h),
+        "the clock (\"" + clock + "\") does not fit at y=" + clockY
+    );
+
+    // monkey.png is 101x116 and the resource layout centres it at y=195.
+    var monkeyBottom = (h / 2) + (116 / 2);
+    Test.assertMessage(
+        clockY >= monkeyBottom,
+        "the clock starts at " + clockY + " before the ape ends at " + monkeyBottom
+    );
+
     var prompt = "Back again to exit";
-    var promptY = promptYs[0];
+    var promptY = infoYs[1];
     var promptW = dc.getTextWidthInPixels(prompt, promptFont);
     var promptH = dc.getFontHeight(promptFont);
     var promptChord = Layout.halfChordAt(promptY + promptH, w, h) * 2;

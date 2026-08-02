@@ -1,6 +1,5 @@
 import Toybox.Graphics;
 import Toybox.Lang;
-import Toybox.System;
 import Toybox.WatchUi;
 
 enum {
@@ -9,13 +8,23 @@ enum {
     FORMAT_MILLISECONDS = 2
 }
 
-function showPacerSettings() as Void {
-    // Restore while the pacing View is still unquestionably foreground. Its
-    // onHide callback retries after the transition starts.
-    TouchControl.setEnabled(true);
+// Restore touch when the native settings menu itself becomes foreground. This
+// covers wake-and-immediately-open-settings without relying on transition
+// timing in the main View.
+class pacerSettingsMenu extends WatchUi.Menu2 {
+    function initialize() {
+        Menu2.initialize(null);
+    }
 
+    function onShow() as Void {
+        Menu2.onShow();
+        TouchControl.setEnabled(true);
+    }
+}
+
+function showPacerSettings() as Void {
     var app = getApp();
-    var menu = new WatchUi.Menu2(null);
+    var menu = new pacerSettingsMenu();
 
     menu.addItem(new WatchUi.MenuItem(
         "Pace",
@@ -35,13 +44,6 @@ function showPacerSettings() as Void {
         "duration",
         {}
     ));
-    menu.addItem(new WatchUi.MenuItem(
-        "Exit Pacer",
-        "Stop all pacing cues",
-        "exit",
-        {}
-    ));
-
     WatchUi.pushView(menu, new pacerMenuDelegate(), WatchUi.SLIDE_UP);
 }
 
@@ -88,12 +90,6 @@ class pacerMenuDelegate extends WatchUi.Menu2InputDelegate {
                 app.getVibrationDuration(),
                 FORMAT_MILLISECONDS
             );
-        } else if ("exit".equals(identifier)) {
-            if (TouchControl.setEnabled(true)) {
-                System.exit();
-            } else {
-                item.setSubLabel("Touch reset failed; retry");
-            }
         }
     }
 
