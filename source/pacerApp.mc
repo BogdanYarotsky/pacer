@@ -63,7 +63,6 @@ class pacerApp extends Application.AppBase {
     private var _vibeStrength as Number = DEFAULT_VIBE_STRENGTH;
     private var _vibeDuration as Number = DEFAULT_VIBE_DURATION;
     private var _touchLocked as Boolean = false;
-    private var _exitPromptVisible as Boolean = false;
 
     // Rebuilt only when strength or duration changes, rather than allocated
     // afresh on every cue. At the default pace that is ~11 allocations a minute
@@ -194,17 +193,6 @@ class pacerApp extends Application.AppBase {
 
     function getDurationText() as String {
         return PacerMath.formatDuration(_vibeDuration);
-    }
-
-    function isExitPromptVisible() as Boolean {
-        return _exitPromptVisible;
-    }
-
-    function setExitPromptVisible(visible as Boolean) as Void {
-        if (_exitPromptVisible != visible) {
-            _exitPromptVisible = visible;
-            WatchUi.requestUpdate();
-        }
     }
 
     // The setters clamp through PacerMath.clamp rather than reject an

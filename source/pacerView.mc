@@ -64,9 +64,7 @@ class pacerView extends WatchUi.View {
         // The rows leave the pen dimmed while locked. The footer is the line
         // that says how to unlock, so it is never the dim one.
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        drawCentered(
-            dc, _footerY, FONT_TEXT,
-            Display.footer(locked, app.isExitPromptVisible()));
+        drawCentered(dc, _footerY, FONT_TEXT, Display.footer(locked));
     }
 
     // Best-effort lifecycle restoration. Controlled navigation and exit paths

@@ -16,7 +16,6 @@ module Display {
     const LABEL_STRENGTH = "STRENGTH";
     const LABEL_LENGTH   = "LENGTH";
 
-    const EXIT_PROMPT   = "Back again to exit";
     const HINT_LOCKED   = "TOP: EDIT";
     const HINT_UNLOCKED = "TOP: LOCK";
 
@@ -27,12 +26,11 @@ module Display {
         return "v" + version + (locked ? "  LOCKED" : "  EDIT");
     }
 
-    // The footer either prompts for the second Back press or names what the
-    // upper button will do next. Nothing else competes for that line.
-    function footer(locked as Boolean, exitArmed as Boolean) as String {
-        if (exitArmed) {
-            return EXIT_PROMPT;
-        }
+    // The footer names what the upper button will do next, and nothing else
+    // competes for that line. It used to also carry a "Back again to exit"
+    // prompt; Back now unlocks rather than arming a confirmation, and the row
+    // controls brightening is the feedback that used to need words.
+    function footer(locked as Boolean) as String {
         return locked ? HINT_LOCKED : HINT_UNLOCKED;
     }
 }

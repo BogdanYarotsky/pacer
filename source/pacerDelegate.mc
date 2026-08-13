@@ -1,7 +1,6 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 import Toybox.System;
-import Toybox.Timer;
 
 // Input for Pacer's only screen.
 //
@@ -30,15 +29,8 @@ import Toybox.Timer;
 // starts enabled so onTap can edit the three rows. The upper button toggles the
 // global palm-safe lock; it remains available when that lock suppresses touch.
 class pacerDelegate extends WatchUi.BehaviorDelegate {
-    const EXIT_WINDOW_MS = 4000;
-    const RESTORE_DELAY_MS = 150;
 
     private var _inputGate as MainInputGate;
-    private var _exitArmed as Boolean = false;
-    private var _exitRequested as Boolean = false;
-    private var _touchRestored as Boolean = false;
-    private var _exitWindowTimer as Timer.Timer? = null;
-    private var _restoreTimer as Timer.Timer? = null;
 
     function initialize() {
         BehaviorDelegate.initialize();
@@ -60,7 +52,6 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
 
     function onSelect() as Boolean {
         if (_inputGate.consume(WatchUi.KEY_ENTER)) {
-            cancelExitConfirmation();
             var app = getApp();
             var lock = !app.isTouchLocked();
             if (app.setTouchLocked(lock)) {
@@ -90,44 +81,52 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
             return true;
         }
 
-        cancelExitConfirmation();
         var coordinates = clickEvent.getCoordinates();
-        var action = Layout.editorActionAt(
-            coordinates[0], coordinates[1], Layout.DISPLAY_WIDTH);
-        adjustSetting(action);
+        adjustSetting(Layout.editorActionAt(
+            coordinates[0], coordinates[1], Layout.DISPLAY_WIDTH));
         return true;
     }
 
+    // Back exits -- but never while the watch-global touch setting is still
+    // disabled, because that setting can outlive Pacer and leave the whole watch
+    // untouchable until it is rebooted.
+    //
+    // The lock flag already answers that question exactly. pacerApp records a
+    // lock only after TouchControl confirms the setting really changed, and
+    // nothing else in the app ever disables touch, so "unlocked" and "safe to
+    // exit" are the same condition. That is why there is no confirmation window,
+    // no restore timer and no exit state here: an earlier version tracked armed
+    // / requested / restored across two timers to derive a fact the lock flag
+    // was already holding.
+    //
+    // While locked, Back unlocks and stays put. A session is locked anyway, so
+    // that hands back the two-press exit the old confirmation window provided,
+    // out of the state a session is already in. If the unlock is rejected, Pacer
+    // stays open and stays locked -- the safe failure, and the same one the old
+    // four-second window reached by a much longer road.
     function onBack() as Boolean {
-        if (_inputGate.consume(WatchUi.KEY_ESC)) {
-            if (!_exitArmed) {
-                armExitConfirmation();
-                trace("onBack from lower button -> exit armed");
-                return true;
-            }
-
-            _exitRequested = true;
-            if (_touchRestored) {
-                clearExitState();
-                trace("onBack from lower button -> confirmed, app exits");
-                return false;
-            }
-
-            // A very fast second press can beat the asynchronous restoration,
-            // or the first attempt may have failed. Retry without blocking the
-            // input handler; the callback exits if restoration succeeds.
-            scheduleTouchRestore();
-            trace("onBack from lower button -> confirmed, cleanup pending");
+        if (!_inputGate.consume(WatchUi.KEY_ESC)) {
+            trace("onBack from swipe -> swallowed");
             return true;
         }
-        trace("onBack from swipe -> swallowed");
+
+        var app = getApp();
+        if (!app.isTouchLocked()) {
+            trace("onBack from lower button -> touch already on, app exits");
+            return false;
+        }
+
+        if (app.setTouchLocked(false)) {
+            trace("onBack from lower button -> touch unlocked, press again to exit");
+        } else {
+            trace("onBack from lower button -> unlock failed, staying open");
+        }
         return true;
     }
 
     // There is no second screen. Holding the lower button is intentionally a
     // no-op and its key latch must not leak into a later Back gesture.
     function onMenu() as Boolean {
-        cancelExitConfirmation();
         trace("onMenu -> swallowed");
         _inputGate.clear();
         return true;
@@ -143,63 +142,6 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
     function onPreviousPage() as Boolean {
         trace("onPreviousPage -> swallowed");
         return true;
-    }
-
-    // First Back returns immediately so the prompt can render. Cleanup starts
-    // on the next UI turn rather than making the press appear unresponsive.
-    private function armExitConfirmation() as Void {
-        stopExitTimers();
-        _exitArmed = true;
-        _exitRequested = false;
-        _touchRestored = false;
-        getApp().setExitPromptVisible(true);
-
-        var windowTimer = new Timer.Timer();
-        windowTimer.start(method(:expireExitConfirmation), EXIT_WINDOW_MS, false);
-        _exitWindowTimer = windowTimer;
-        scheduleTouchRestore();
-    }
-
-    private function scheduleTouchRestore() as Void {
-        var existing = _restoreTimer;
-        if (existing != null) {
-            existing.stop();
-        }
-
-        var restoreTimer = new Timer.Timer();
-        restoreTimer.start(method(:restoreTouchForExit), RESTORE_DELAY_MS, false);
-        _restoreTimer = restoreTimer;
-    }
-
-    function restoreTouchForExit() as Void {
-        _restoreTimer = null;
-        if (!_exitArmed) {
-            return;
-        }
-
-        _touchRestored = TouchControl.setEnabled(true);
-        if (!_touchRestored) {
-            trace("exit cleanup -> touch restore failed");
-            return;
-        }
-
-        trace("exit cleanup -> touch restored");
-        if (_exitRequested) {
-            clearExitState();
-            trace("exit cleanup -> confirmed, app exits");
-            System.exit();
-        }
-    }
-
-    function expireExitConfirmation() as Void {
-        _exitWindowTimer = null;
-        if (!_exitArmed) {
-            return;
-        }
-
-        clearExitState();
-        trace("exit window expired -> editor restored");
-        getApp().applyTouchLock();
     }
 
     private function adjustSetting(action as Number) as Void {
@@ -225,35 +167,6 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
             trace("tap length +");
         } else {
             trace("tap outside controls -> ignored");
-        }
-    }
-
-    private function cancelExitConfirmation() as Void {
-        if (_exitArmed) {
-            clearExitState();
-            trace("exit confirmation cancelled");
-        }
-    }
-
-    private function clearExitState() as Void {
-        stopExitTimers();
-        _exitArmed = false;
-        _exitRequested = false;
-        _touchRestored = false;
-        getApp().setExitPromptVisible(false);
-    }
-
-    private function stopExitTimers() as Void {
-        var windowTimer = _exitWindowTimer;
-        if (windowTimer != null) {
-            windowTimer.stop();
-            _exitWindowTimer = null;
-        }
-
-        var restoreTimer = _restoreTimer;
-        if (restoreTimer != null) {
-            restoreTimer.stop();
-            _restoreTimer = null;
         }
     }
 

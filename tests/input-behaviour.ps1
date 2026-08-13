@@ -29,11 +29,24 @@ Stop-Simulator
 Start-Sleep -Seconds 1
 Start-SimulatorIfNeeded | Out-Null
 
-Remove-Item $trace, $errLog -Force -ErrorAction SilentlyContinue
 $prg = Join-Path $RepoRoot "bin\pacer-$Device.prg"
-Start-Process -FilePath $MonkeyDo -ArgumentList @($prg, $Device) -WindowStyle Hidden `
-    -RedirectStandardOutput $trace -RedirectStandardError $errLog | Out-Null
-Start-Sleep -Seconds $SettleSec
+
+# Back now exits the app outright when touch is unlocked, so verifying that
+# needs a second, throwaway app instance -- the first one has to survive every
+# other check. Each phase gets a fresh launch and a fresh trace.
+function Start-App {
+    Remove-Item $trace, $errLog -Force -ErrorAction SilentlyContinue
+    Start-Process -FilePath $MonkeyDo -ArgumentList @($prg, $Device) -WindowStyle Hidden `
+        -RedirectStandardOutput $trace -RedirectStandardError $errLog | Out-Null
+    Start-Sleep -Seconds $SettleSec
+}
+
+function Test-AppRunning {
+    $null -ne (Get-CimInstance Win32_Process -Filter "Name = 'java.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -match 'MonkeyDoDeux' })
+}
+
+Start-App
 
 # --- harness ------------------------------------------------------------------
 $script:failures = 0
@@ -108,18 +121,6 @@ try {
     Check "length plus"     { Inject @{ Action='tap'; X=335; Y=276 } }              'onSelect from tap -> awaiting coordinates.*tap length \+'
     Check "tap value"       { Inject @{ Action='tap'; X=195; Y=204 } }              'onSelect from tap -> awaiting coordinates.*tap outside controls -> ignored'
 
-    # The upper physical button opts into the palm-safe master lock.
-    Check "lock touch"      { Inject @{ Action='press'; Target='enter' } }           'upper button -> touch locked'
-
-    # Real firmware should suppress the callback. The simulator may still send
-    # the behavior phase, in which case the logical lock must swallow it before
-    # the coordinate-bearing callback can change data.
-    Check "tap while locked" { Inject @{ Action='tap'; X=335; Y=132 } }             'onSelect while locked -> swallowed' -AllowNothing
-
-    # The same physical button is always available to unlock. Some simulator
-    # runs reject configureTouchEvents(true); keep that limitation visible.
-    Check "unlock touch"    { Inject @{ Action='press'; Target='enter' } }           'upper button -> (touch unlocked|unlock failed)'
-
     # A right-swipe must not reach onBack or exit the app.
     Check "swipe right" { Inject @{ Action='swipe'; Target='right' } }              'onBack from swipe -> swallowed' -AllowNothing
 
@@ -132,18 +133,47 @@ try {
     # Holding the lower button no longer opens another screen.
     Check "hold menu"      { Inject @{ Action='hold'; Target='menu' } }              'onMenu -> swallowed'
 
-    # First Back arms a four-second confirmation and returns immediately while
-    # touch cleanup runs asynchronously. Let that window expire and verify the
-    # palm-touch gate is restored.
-    Check "arm exit"       { Inject @{ Action='press'; Target='esc' } }             'onBack from lower button -> exit armed.*exit cleanup -> touch restore failed'
-    Check "exit timeout"   { Start-Sleep -Seconds 3 }                               'exit window expired -> editor restored'
+    # The upper physical button opts into the palm-safe master lock. Everything
+    # above had to run first: the simulator accepts disabling touch but rejects
+    # re-enabling it, so this run is locked from here on.
+    Check "lock touch"      { Inject @{ Action='press'; Target='enter' } }           'upper button -> touch locked'
 
-    # Re-arm and confirm. The simulator rejects touch restoration, so the
-    # second press must remain safe and the app must still accept the upper
-    # button afterward. A real watch exits here once restoration succeeds.
-    Check "re-arm exit"    { Inject @{ Action='press'; Target='esc' } }             'onBack from lower button -> exit armed'
-    Check "confirm pending" { Inject @{ Action='press'; Target='esc' } }            'onBack from lower button -> confirmed, cleanup pending.*exit cleanup -> touch restore failed'
-    Check "button after pending exit" { Inject @{ Action='press'; Target='enter' } } '(exit confirmation cancelled|exit window expired -> editor restored).*upper button -> (touch locked|touch unlocked|lock failed|unlock failed)'
+    # Real firmware should suppress the callback. The simulator may still send
+    # the behavior phase, in which case the logical lock must swallow it before
+    # the coordinate-bearing callback can change data.
+    Check "tap while locked" { Inject @{ Action='tap'; X=335; Y=132 } }             'onSelect while locked -> swallowed' -AllowNothing
+
+    # Back while locked unlocks instead of exiting -- Pacer must never leave the
+    # watch-global touch setting disabled behind it. The simulator rejects the
+    # restore, so what is proved here is the safe failure: still open, still
+    # locked. On a watch the restore succeeds and a second Back then exits.
+    Check "back while locked" { Inject @{ Action='press'; Target='esc' } }          'onBack from lower button -> (touch unlocked, press again to exit|unlock failed, staying open)'
+
+    # The upper button is always available to unlock too.
+    Check "unlock touch"    { Inject @{ Action='press'; Target='enter' } }           'upper button -> (touch unlocked|unlock failed)'
+
+    Write-Host ""
+    Write-Host "phase 2: a fresh instance, to watch Back actually exit" -ForegroundColor Cyan
+
+    # The checks above have to keep the app alive, so the exit path needs its own
+    # throwaway instance. A fresh instance always starts unlocked, which is
+    # exactly the state in which Back is allowed to exit. The old four-second
+    # confirmation could never be tested this far: the simulator's rejected
+    # restore meant the app never reached the exit at all.
+    Stop-MonkeyDo
+    Start-Sleep -Seconds 1
+    Start-App
+
+    Check "back exits when unlocked" { Inject @{ Action='press'; Target='esc' } }   'onBack from lower button -> touch already on, app exits'
+
+    $script:checks++
+    Start-Sleep -Seconds 2
+    if (Test-AppRunning) {
+        Write-Host ("  FAIL  {0,-22} the app is still running after Back" -f "app really exited") -ForegroundColor Red
+        $script:failures++
+    } else {
+        Write-Host ("  PASS  {0,-22} process is gone" -f "app really exited") -ForegroundColor Green
+    }
 }
 finally {
     Stop-MonkeyDo

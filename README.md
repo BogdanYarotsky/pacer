@@ -63,13 +63,16 @@ global touch lock. Locked, the controls dim, taps do nothing, and the hint reads
 a platform-level exit that never reaches the app at all. Lock it before a
 session; the upper button still unlocks.
 
-**Lower button — press twice to exit.** The first press shows `Back again to
-exit` and starts restoring the global touch setting in the background. The second
-press within four seconds exits, but only once that restoration is verified. If
-the window lapses or restoration fails, Pacer stays open. That caution is not
-paranoia: `configureTouchEvents({ :enabled => false })` is a *watch-global*
-setting that can outlive the app and leave the whole watch untouchable until it
-is rebooted.
+**Lower button — Back.** Unlocked, Back exits. Locked, Back unlocks and stays
+put, so during a session — when you are locked anyway — it takes two presses to
+leave, and the first one visibly brightens the controls.
+
+Pacer will not exit while the touch lock is engaged, because
+`configureTouchEvents({ :enabled => false })` is a *watch-global* setting that
+can outlive the app and leave the whole watch untouchable until it is rebooted.
+Being unlocked is exactly the condition that makes leaving safe, so that one flag
+is the entire guard — no confirmation window, no timers. If unlocking is
+rejected, Pacer stays open and stays locked.
 
 A right swipe is the same event as the lower button as far as the API is
 concerned, so it is swallowed rather than treated as Back — see the input notes
@@ -138,7 +141,7 @@ running app, a graphics context or a simulator window.
 | --- | --- |
 | `source/pacerApp.mc` | Settings, storage, the cue timer, app lifecycle |
 | `source/pacerView.mc` | The only screen — draws, decides nothing |
-| `source/pacerDelegate.mc` | Input, the touch lock, the two-press exit flow |
+| `source/pacerDelegate.mc` | Input, the touch lock, and when Back may exit |
 | `source/MainInputGate.mc` | Tells a physical button from a touch gesture |
 | `source/TouchControl.mc` | The watch-global touch switch, and its failure modes |
 | `source/Layout.mc` | Every coordinate, including round-screen chord maths |

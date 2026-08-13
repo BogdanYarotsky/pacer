@@ -122,14 +122,26 @@ trigger a platform-level exit that never reaches the delegate, and only
 The disabled setting can survive Pacer exiting and leave the whole watch
 without touch until reboot. Restoring with `:enabled => true` is also fallible:
 the simulator repeatedly returns `false`, even when called before navigation.
-Therefore physical Back uses a four-second, two-press confirmation. The first
-press immediately shows `Back again to exit`, then restores touch
-asynchronously while the prompt is visible. The second press exits only after
-`TouchControl` verifies the live setting; if cleanup is still pending, the app
-exits from its callback once restoration succeeds. When cleanup fails or the
-window expires, Pacer stays open and re-enables the palm-touch gate. `onHide()`,
-`onInactive()` and `onStop()` are best-effort restoration fallbacks, not
-permission to exit with an unverified touch state.
+
+**The exit rule is one line: Back exits only when the app is unlocked.** The lock
+flag already carries the fact that matters, because `setTouchLocked` records a
+lock *only* after `TouchControl` confirms the setting really changed, and nothing
+else in the app ever disables touch. So "unlocked" and "safe to leave" are the
+same condition. Locked, Back unlocks and stays put; if that unlock is rejected,
+Pacer stays open and stays locked — the safe failure.
+
+An earlier version derived this with a four-second confirmation window, an
+`armed`/`requested`/`restored` triple and two timers — about a hundred lines to
+recompute something one boolean already knew. It also had a hidden cost: because
+the simulator always rejects the restore, the app could never reach its own exit
+under test, so the exit path shipped unverified. `just input-test` now launches a
+second throwaway instance and asserts the process is actually gone.
+
+The two-press protection that window provided is not lost. A session runs locked,
+and locked means the first Back unlocks rather than exits.
+
+`onHide()`, `onInactive()` and `onStop()` remain best-effort restoration
+fallbacks, not permission to exit with an unverified touch state.
 
 **The fallback discriminator:** `onKeyPressed` fires for physical buttons and
 *never* for gestures, always immediately before the behaviour. `pacerDelegate`
@@ -142,10 +154,15 @@ when it starts within `maxDistToEdge` (81px) of the edge, travels more than
 `minSwipeDeltaX` (78px), and finishes inside `maxSwipeDuration` (250ms).
 
 `just input-test` confirms that touch is suppressed or safely consumed on the
-main screen, physical buttons still work, the exit-confirmation window expires
-safely, and rejected touch restoration does not strand the app. It is separate
-from `just test` because it needs a simulator window and synthesises system-wide
-mouse events (it steals the pointer for ~40s).
+main screen, that physical buttons still work, that a rejected touch restoration
+leaves Pacer open and locked rather than stranded, and — in a second throwaway
+instance — that Back really does exit when unlocked. It is separate from
+`just test` because it needs a simulator window and synthesises system-wide mouse
+events (it steals the pointer for ~40s).
+
+Order matters in that script: the simulator accepts `:enabled => false` but
+rejects `:enabled => true`, so once a run locks touch it stays locked. Every
+check that needs touch has to come before the lock check.
 
 ## Round screen: the bounding box is not the screen
 

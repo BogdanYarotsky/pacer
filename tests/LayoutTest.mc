@@ -242,11 +242,7 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
         );
     }
 
-    var footers = [
-        Display.footer(true, false),
-        Display.footer(false, false),
-        Display.footer(false, true)
-    ];
+    var footers = [ Display.footer(true), Display.footer(false) ];
     var footerY = Layout.footerY(h, dc.getFontHeight(textFont));
     for (var i = 0; i < footers.size(); i += 1) {
         assertLineFits(dc, footerY, footers[i] as String, textFont, "footer " + i);
