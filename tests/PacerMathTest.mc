@@ -1,6 +1,85 @@
 import Toybox.Lang;
 import Toybox.Test;
 
+// --- clamp ------------------------------------------------------------------
+//
+// These are the tests that used to drive the real setters and therefore write to
+// Storage. Pure arithmetic needs neither, so a killed simulator or a crashed run
+// can no longer leave a value stranded in the simulator's persisted state -- the
+// way an earlier deliberately-failed run left it holding 6.50 BPM at 99%.
+//
+// Coverage of the setters actually calling this lives in
+// settingsStepsWalkEveryRangeEndToEnd, which reaches 100% from 99 + 2 and can
+// only do so if the setter clamps.
+
+(:test)
+function pacerMathClampReturnsInRangeValuesUntouched(logger as Test.Logger) as Boolean {
+    for (var v = 1; v <= 100; v += 1) {
+        Test.assertEqualMessage(
+            PacerMath.clamp(v, 1, 100), v,
+            "clamp(" + v + ", 1, 100) should pass an in-range value through unchanged"
+        );
+    }
+    return true;
+}
+
+(:test)
+function pacerMathClampIsExactAtBothBoundaries(logger as Test.Logger) as Boolean {
+    Test.assertEqualMessage(PacerMath.clamp(1, 1, 100), 1, "the minimum itself is in range");
+    Test.assertEqualMessage(PacerMath.clamp(100, 1, 100), 100, "the maximum itself is in range");
+    Test.assertEqualMessage(PacerMath.clamp(0, 1, 100), 1, "one below the minimum clamps up");
+    Test.assertEqualMessage(PacerMath.clamp(101, 1, 100), 100, "one above the maximum clamps down");
+    return true;
+}
+
+// A degenerate single-value range must still terminate on that value rather
+// than picking whichever bound the branches happen to reach first.
+(:test)
+function pacerMathClampHandlesASingleValueRange(logger as Test.Logger) as Boolean {
+    Test.assertEqualMessage(PacerMath.clamp(-5, 7, 7), 7, "below a single-value range");
+    Test.assertEqualMessage(PacerMath.clamp(7, 7, 7), 7, "on a single-value range");
+    Test.assertEqualMessage(PacerMath.clamp(99, 7, 7), 7, "above a single-value range");
+    return true;
+}
+
+// Sweep every one of the app's real ranges, well past both ends, and assert the
+// three properties that matter: the result is always inside the range, values
+// inside are returned unchanged, and values outside land on the nearer bound.
+(:test)
+function pacerMathClampHoldsAcrossEveryRealRange(logger as Test.Logger) as Boolean {
+    var app = getApp();
+    var ranges = [
+        [app.MIN_PACE_HUNDREDTHS, app.MAX_PACE_HUNDREDTHS],
+        [app.MIN_VIBE_STRENGTH, app.MAX_VIBE_STRENGTH],
+        [app.MIN_VIBE_DURATION, app.MAX_VIBE_DURATION]
+    ];
+
+    for (var r = 0; r < ranges.size(); r += 1) {
+        var range = ranges[r] as Array<Number>;
+        var minimum = range[0];
+        var maximum = range[1];
+        logger.debug("clamp sweep over " + minimum + ".." + maximum);
+
+        for (var v = minimum - 50; v <= maximum + 50; v += 1) {
+            var got = PacerMath.clamp(v, minimum, maximum);
+            Test.assertMessage(
+                got >= minimum && got <= maximum,
+                "clamp(" + v + ", " + minimum + ", " + maximum + ") = " + got + " is out of range"
+            );
+            if (v < minimum) {
+                Test.assertEqualMessage(got, minimum, "clamp(" + v + ") should be the minimum");
+            } else if (v > maximum) {
+                Test.assertEqualMessage(got, maximum, "clamp(" + v + ") should be the maximum");
+            } else {
+                Test.assertEqualMessage(got, v, "clamp(" + v + ") should be unchanged");
+            }
+        }
+    }
+    return true;
+}
+
+// --- pace arithmetic --------------------------------------------------------
+
 // The default pace of 5.71 breaths/min is a personally measured resonance
 // frequency. 3000000 / 571 = 5253.94..., which must round to 5254 rather than
 // truncate to 5253 -- at ~11 cues a minute a 1ms truncation is harmless, but the

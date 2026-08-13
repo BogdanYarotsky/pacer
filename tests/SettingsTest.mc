@@ -1,118 +1,64 @@
 import Toybox.Lang;
 import Toybox.Test;
 
-// The setters clamp to the supported range instead of rejecting an out-of-range
-// value, and these tests exist because the strength row now depends on it:
-// STRENGTH_STEP is 2 over a 1..100 range, which does not divide evenly. Stepping
-// up lands on 99, and the next tap asks for 101. Rejecting that would leave 100%
-// permanently unreachable, with the "+" control going dead one step short of the
-// top and nothing on screen to explain why.
+// Settings behaviour that can only be observed through the real setters.
 //
-// These tests write through to Storage, because that is the behaviour under
-// test. Every one of them restores what it found from a `finally`, not from the
-// end of the happy path: a failing assertion throws, and a restore that only
-// runs on success leaves the simulator holding whatever value the test died on
-// for every run after it.
+// The clamping arithmetic itself is tested purely in PacerMathTest -- it does
+// not belong here, because every test in this file writes through to Storage and
+// a test that writes to Storage can strand a value there. The one below is
+// therefore the only one that does, and it restores from a `finally` so a failed
+// assertion cannot leave the simulator holding the value it died on.
 
-function snapshotSettings(app as pacerApp) as Array<Number> {
-    return [
-        app.getPaceHundredths(),
-        app.getVibrationStrength(),
-        app.getVibrationDuration()
-    ] as Array<Number>;
-}
-
-function restoreSettings(app as pacerApp, saved as Array<Number>) as Void {
-    app.setPaceHundredths(saved[0]);
-    app.setVibrationStrength(saved[1]);
-    app.setVibrationDuration(saved[2]);
-}
-
+// Range and step declarations must be coherent before any of them is walked.
+// Reads constants only -- nothing here writes.
 (:test)
-function settingsClampToBothEndsOfEveryRange(logger as Test.Logger) as Boolean {
+function settingsRangesAndStepsAreCoherent(logger as Test.Logger) as Boolean {
     var app = getApp();
-    var saved = snapshotSettings(app);
 
-    try {
-        app.setPaceHundredths(app.MAX_PACE_HUNDREDTHS + 40);
-        Test.assertEqualMessage(
-            app.getPaceHundredths(), app.MAX_PACE_HUNDREDTHS,
-            "a pace above the range should clamp to the maximum"
-        );
-        app.setPaceHundredths(app.MIN_PACE_HUNDREDTHS - 40);
-        Test.assertEqualMessage(
-            app.getPaceHundredths(), app.MIN_PACE_HUNDREDTHS,
-            "a pace below the range should clamp to the minimum"
-        );
+    Test.assertMessage(
+        app.MIN_PACE_HUNDREDTHS < app.MAX_PACE_HUNDREDTHS, "the pace range is inverted");
+    Test.assertMessage(
+        app.MIN_VIBE_STRENGTH < app.MAX_VIBE_STRENGTH, "the strength range is inverted");
+    Test.assertMessage(
+        app.MIN_VIBE_DURATION < app.MAX_VIBE_DURATION, "the length range is inverted");
 
-        app.setVibrationStrength(app.MAX_VIBE_STRENGTH + 5);
-        Test.assertEqualMessage(
-            app.getVibrationStrength(), app.MAX_VIBE_STRENGTH,
-            "strength should clamp to 100%"
-        );
-        app.setVibrationStrength(app.MIN_VIBE_STRENGTH - 5);
-        Test.assertEqualMessage(
-            app.getVibrationStrength(), app.MIN_VIBE_STRENGTH,
-            "strength should clamp to the 1% floor"
-        );
+    Test.assertMessage(app.PACE_STEP > 0, "the pace step must advance");
+    Test.assertMessage(app.STRENGTH_STEP > 0, "the strength step must advance");
+    Test.assertMessage(app.DURATION_STEP > 0, "the length step must advance");
 
-        app.setVibrationDuration(app.MAX_VIBE_DURATION + 10);
-        Test.assertEqualMessage(
-            app.getVibrationDuration(), app.MAX_VIBE_DURATION,
-            "length should clamp to the maximum"
-        );
-        app.setVibrationDuration(app.MIN_VIBE_DURATION - 10);
-        Test.assertEqualMessage(
-            app.getVibrationDuration(), app.MIN_VIBE_DURATION,
-            "length should clamp to the minimum"
-        );
-    } finally {
-        restoreSettings(app, saved);
-    }
-
+    // A default outside its own range would be silently replaced on first run.
     Test.assertEqualMessage(
-        app.getPaceHundredths(), saved[0], "the pace was not restored"
-    );
+        PacerMath.clamp(app.DEFAULT_PACE_HUNDREDTHS, app.MIN_PACE_HUNDREDTHS, app.MAX_PACE_HUNDREDTHS),
+        app.DEFAULT_PACE_HUNDREDTHS, "the default pace is outside the pace range");
     Test.assertEqualMessage(
-        app.getVibrationStrength(), saved[1], "the strength was not restored"
-    );
+        PacerMath.clamp(app.DEFAULT_VIBE_STRENGTH, app.MIN_VIBE_STRENGTH, app.MAX_VIBE_STRENGTH),
+        app.DEFAULT_VIBE_STRENGTH, "the default strength is outside the strength range");
     Test.assertEqualMessage(
-        app.getVibrationDuration(), saved[2], "the length was not restored"
-    );
-    return true;
-}
+        PacerMath.clamp(app.DEFAULT_VIBE_DURATION, app.MIN_VIBE_DURATION, app.MAX_VIBE_DURATION),
+        app.DEFAULT_VIBE_DURATION, "the default length is outside the length range");
 
-// The strength scale must bottom out at 1%, not 0%. A cue the hardware might not
-// be able to produce is the point of that setting; silence is not one of its
-// values any more, so nothing may quietly reintroduce it.
-(:test)
-function settingsStrengthNeverReachesSilence(logger as Test.Logger) as Boolean {
-    var app = getApp();
-    var saved = snapshotSettings(app);
-
-    try {
-        Test.assertEqualMessage(
-            app.MIN_VIBE_STRENGTH, 1,
-            "the weakest cue is 1% -- 0% would be no vibration at all"
-        );
-        app.setVibrationStrength(-50);
-        Test.assertMessage(
-            app.getVibrationStrength() > 0,
-            "no input may drive strength to 0%, got " + app.getVibrationStrength()
-        );
-    } finally {
-        restoreSettings(app, saved);
-    }
+    // The strength scale bottoms out at the weakest cue the hardware can be
+    // asked for, not at silence. Nothing may quietly reintroduce a mute.
+    Test.assertEqualMessage(
+        app.MIN_VIBE_STRENGTH, 1,
+        "the weakest cue is 1% -- 0% would be no vibration at all");
     return true;
 }
 
 // Walk each range end to end exactly as the tap controls do. Every value must
-// stay inside the range, and both endpoints must actually be reached -- that is
-// the whole property clamping exists to provide.
+// stay inside the range, and both endpoints must actually be reached.
+//
+// This is also the only coverage that the setters really clamp: STRENGTH_STEP is
+// 2 over a 1..100 range, so stepping up lands on 99 and the next tap asks for
+// 101. Reaching 100% at all is only possible if that request is clamped rather
+// than rejected -- rejecting it would leave the "+" control dead one step short
+// of the top with nothing on screen to explain why.
 (:test)
 function settingsStepsWalkEveryRangeEndToEnd(logger as Test.Logger) as Boolean {
     var app = getApp();
-    var saved = snapshotSettings(app);
+    var savedPace = app.getPaceHundredths();
+    var savedStrength = app.getVibrationStrength();
+    var savedDuration = app.getVibrationDuration();
 
     try {
         app.setPaceHundredths(app.MIN_PACE_HUNDREDTHS);
@@ -178,7 +124,15 @@ function settingsStepsWalkEveryRangeEndToEnd(logger as Test.Logger) as Boolean {
         );
         logger.debug("length: " + taps + " taps from ceiling to floor");
     } finally {
-        restoreSettings(app, saved);
+        app.setPaceHundredths(savedPace);
+        app.setVibrationStrength(savedStrength);
+        app.setVibrationDuration(savedDuration);
     }
+
+    Test.assertEqualMessage(app.getPaceHundredths(), savedPace, "the pace was not restored");
+    Test.assertEqualMessage(
+        app.getVibrationStrength(), savedStrength, "the strength was not restored");
+    Test.assertEqualMessage(
+        app.getVibrationDuration(), savedDuration, "the length was not restored");
     return true;
 }

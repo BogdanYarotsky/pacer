@@ -207,14 +207,13 @@ class pacerApp extends Application.AppBase {
         }
     }
 
-    // The setters clamp rather than reject an out-of-range value, so a step that
-    // does not divide the range evenly still reaches the endpoint instead of
-    // stalling one step short of it. The unchanged guard is what that clamping
-    // makes necessary: without it, every tap on "+" at the maximum would rewrite
-    // Storage and restart the cue timer to no effect.
+    // The setters clamp through PacerMath.clamp rather than reject an
+    // out-of-range value -- see the reasoning there. The unchanged guard is what
+    // that clamping makes necessary: without it, every tap on "+" at the maximum
+    // would rewrite Storage and restart the cue timer to no effect.
 
     function setPaceHundredths(value as Number) as Void {
-        var next = clamp(value, MIN_PACE_HUNDREDTHS, MAX_PACE_HUNDREDTHS);
+        var next = PacerMath.clamp(value, MIN_PACE_HUNDREDTHS, MAX_PACE_HUNDREDTHS);
         if (next == _paceHundredths) {
             return;
         }
@@ -229,7 +228,7 @@ class pacerApp extends Application.AppBase {
     }
 
     function setVibrationStrength(value as Number) as Void {
-        var next = clamp(value, MIN_VIBE_STRENGTH, MAX_VIBE_STRENGTH);
+        var next = PacerMath.clamp(value, MIN_VIBE_STRENGTH, MAX_VIBE_STRENGTH);
         if (next == _vibeStrength) {
             return;
         }
@@ -241,7 +240,7 @@ class pacerApp extends Application.AppBase {
     }
 
     function setVibrationDuration(value as Number) as Void {
-        var next = clamp(value, MIN_VIBE_DURATION, MAX_VIBE_DURATION);
+        var next = PacerMath.clamp(value, MIN_VIBE_DURATION, MAX_VIBE_DURATION);
         if (next == _vibeDuration) {
             return;
         }
@@ -250,16 +249,6 @@ class pacerApp extends Application.AppBase {
         _vibeProfiles = null;
         Storage.setValue(DURATION_STORAGE_KEY, next);
         WatchUi.requestUpdate();
-    }
-
-    private function clamp(value as Number, minimum as Number, maximum as Number) as Number {
-        if (value < minimum) {
-            return minimum;
-        }
-        if (value > maximum) {
-            return maximum;
-        }
-        return value;
     }
 
     private function loadSettings() as Void {

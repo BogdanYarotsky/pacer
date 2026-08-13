@@ -5,6 +5,25 @@ import Toybox.Lang;
 // measure the same strings the view draws rather than a second copy of them.
 module PacerMath {
 
+    // Constrain a value to an inclusive range.
+    //
+    // The settings setters clamp rather than reject, so a step that does not
+    // divide its range evenly still reaches the endpoint instead of stalling one
+    // step short of it -- STRENGTH_STEP is 2 over a 1..100 range, and rejecting
+    // the 101 that follows 99 would put 100% out of reach entirely.
+    //
+    // It lives here, and not as a private helper on pacerApp, so the arithmetic
+    // can be tested exhaustively without writing a single value to Storage.
+    function clamp(value as Number, minimum as Number, maximum as Number) as Number {
+        if (value < minimum) {
+            return minimum;
+        }
+        if (value > maximum) {
+            return maximum;
+        }
+        return value;
+    }
+
     // Milliseconds between vibration cues.
     //
     // Each breath gets two cues, one at each inhale/exhale boundary, so a cue
