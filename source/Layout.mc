@@ -15,7 +15,23 @@ import Toybox.Math;
 // having at all.
 module Layout {
 
-    const VERSION_FROM_TOP = 18;
+    const DISPLAY_WIDTH = 390;
+    const CLOCK_FROM_TOP = 12;
+    const STATUS_FROM_TOP = 65;
+    const EDITOR_FIRST_ROW_TOP = 96;
+    const EDITOR_ROW_HEIGHT = 72;
+    const EDITOR_ROW_COUNT = 3;
+    const CONTROL_INSET = 55;
+    const CONTROL_RADIUS = 24;
+    const CONTROL_HIT_EDGE = 110;
+
+    const ACTION_NONE = 0;
+    const ACTION_PACE_DOWN = 1;
+    const ACTION_PACE_UP = 2;
+    const ACTION_STRENGTH_DOWN = 3;
+    const ACTION_STRENGTH_UP = 4;
+    const ACTION_DURATION_DOWN = 5;
+    const ACTION_DURATION_UP = 6;
 
     // Clearance from the bottom edge for the info stack, and the gap between
     // its lines. The stack is positioned from measured font heights rather than
@@ -30,8 +46,53 @@ module Layout {
         return width / 2;
     }
 
-    function versionY() as Number {
-        return VERSION_FROM_TOP;
+    function clockY() as Number {
+        return CLOCK_FROM_TOP;
+    }
+
+    function statusY() as Number {
+        return STATUS_FROM_TOP;
+    }
+
+    function editorRowTop(index as Number) as Number {
+        return EDITOR_FIRST_ROW_TOP + (index * EDITOR_ROW_HEIGHT);
+    }
+
+    function editorRowCenter(index as Number) as Number {
+        return editorRowTop(index) + (EDITOR_ROW_HEIGHT / 2);
+    }
+
+    function editorLabelY(index as Number) as Number {
+        return editorRowTop(index) + 3;
+    }
+
+    function editorValueY(index as Number) as Number {
+        return editorRowTop(index) + 35;
+    }
+
+    function editorControlX(width as Number, increase as Boolean) as Number {
+        return increase ? width - CONTROL_INSET : CONTROL_INSET;
+    }
+
+    // Map only the large edge hit zones to an action. The centre text is not
+    // interactive, preventing an accidental adjustment while reading a value.
+    function editorActionAt(x as Number, y as Number, width as Number) as Number {
+        if (y < EDITOR_FIRST_ROW_TOP ||
+                y >= EDITOR_FIRST_ROW_TOP + (EDITOR_ROW_COUNT * EDITOR_ROW_HEIGHT)) {
+            return ACTION_NONE;
+        }
+
+        var direction = 0;
+        if (x <= CONTROL_HIT_EDGE) {
+            direction = 1;
+        } else if (x >= width - CONTROL_HIT_EDGE) {
+            direction = 2;
+        } else {
+            return ACTION_NONE;
+        }
+
+        var row = ((y - EDITOR_FIRST_ROW_TOP) / EDITOR_ROW_HEIGHT).toNumber();
+        return (row * 2) + direction;
     }
 
     // Top-edge y for each line of a bottom-anchored stack, in reading order.

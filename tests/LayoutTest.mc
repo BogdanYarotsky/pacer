@@ -1,6 +1,7 @@
 import Toybox.Lang;
 import Toybox.Test;
 import Toybox.Graphics;
+import Toybox.System;
 
 // Layout tests for the vivoactive 5.
 //
@@ -21,12 +22,37 @@ function layoutCenterXIsHalfWidth(logger as Test.Logger) as Boolean {
     return true;
 }
 
+// pacerDelegate maps taps with Layout.DISPLAY_WIDTH while pacerView draws with
+// dc.getWidth(). If those two ever disagree, the hit zones drift away from the
+// controls they are drawn under and every tap lands on the wrong thing. The
+// device itself is the arbiter.
+(:test)
+function layoutDisplayWidthMatchesTheDevice(logger as Test.Logger) as Boolean {
+    var settings = System.getDeviceSettings();
+    logger.debug("device screen = " + settings.screenWidth + "x" + settings.screenHeight);
+    Test.assertEqualMessage(
+        Layout.DISPLAY_WIDTH, settings.screenWidth,
+        "Layout.DISPLAY_WIDTH (" + Layout.DISPLAY_WIDTH +
+            ") must match the device screen width (" + settings.screenWidth + ")"
+    );
+    Test.assertEqualMessage(
+        settings.screenWidth, settings.screenHeight,
+        "the round-screen chord maths assumes a square bounding box"
+    );
+    return true;
+}
+
 (:test)
 function layoutAnchorsAreOnScreen(logger as Test.Logger) as Boolean {
     var h = LayoutTestConst.VA5_H;
     var ys = Layout.stackFromBottom(h, [34, 26, 26]);
 
-    Test.assertMessage(Layout.versionY() >= 0, "version y is above the top edge");
+    Test.assertMessage(Layout.clockY() >= 0, "clock is above the top edge");
+    Test.assertMessage(Layout.statusY() >= 0, "status is above the top edge");
+    Test.assertMessage(
+        Layout.editorRowTop(2) + Layout.EDITOR_ROW_HEIGHT < h,
+        "editor rows extend below the screen"
+    );
     for (var i = 0; i < ys.size(); i += 1) {
         var y = ys[i];
         logger.debug("stack[" + i + "] y=" + y);
@@ -142,12 +168,39 @@ function layoutFitIsExactAtTheChordBoundary(logger as Test.Logger) as Boolean {
     return true;
 }
 
+// Measure one real string at one real anchor and fail with numbers, not a
+// yes/no. Graphics.getFontHeight cannot be called bare in the test runner -- it
+// raises "Invalid Font Specified" because there is no graphics context -- so
+// callers pass a Dc taken from a buffered bitmap.
+function assertLineFits(
+    dc as Graphics.Dc,
+    y as Number,
+    text as String,
+    font as Graphics.FontType,
+    what as String
+) as Void {
+    var w = LayoutTestConst.VA5_W;
+    var h = LayoutTestConst.VA5_H;
+    var textWidth = dc.getTextWidthInPixels(text, font);
+    var fontHeight = dc.getFontHeight(font);
+    var lower = y + fontHeight;
+    var chord = Layout.halfChordAt(y, w, h) * 2;
+    var lowerChord = Layout.halfChordAt(lower, w, h) * 2;
+    if (lowerChord < chord) { chord = lowerChord; }
+
+    Test.assertMessage(
+        Layout.fitsOnRoundScreen(y, textWidth, fontHeight, w, h),
+        what + ": \"" + text + "\" is " + textWidth + "px wide at y=" + y +
+            " where the usable chord is only " + chord + "px"
+    );
+}
+
 // The real check, against metrics measured from the device's own font set.
 //
-// Graphics.getFontHeight cannot be called bare in the test runner -- it raises
-// "Invalid Font Specified" because there is no graphics context. A buffered
-// bitmap gives a genuine Dc, so both font heights AND rendered text widths are
-// measured rather than guessed.
+// Every string here comes from Display or from the same formatter the app uses,
+// so this measures what the view actually draws. Hardcoding the strings here is
+// how the test came to be checking "v0.22  UNLOCKED" for a screen that had said
+// "v0.22  EDIT" for several commits.
 (:test)
 function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     var w = LayoutTestConst.VA5_W;
@@ -158,57 +211,76 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     Test.assertMessage(bmp != null, "could not create a buffered bitmap to measure text with");
     var dc = (bmp as Graphics.BufferedBitmap).getDc();
 
-    // These MUST be the fonts pacerView actually uses for its clock and
-    // temporary prompt, or the test proves nothing about the real screen.
     var clockFont = Graphics.FONT_MEDIUM;
-    var promptFont = Graphics.FONT_XTINY;
-    var infoYs = Layout.stackFromBottom(h, [
-        dc.getFontHeight(clockFont),
-        dc.getFontHeight(promptFont)
-    ]);
+    var textFont = Graphics.FONT_XTINY;
+    var version = getApp().APP_VERSION;
 
-    // The version line sits alone at the top.
-    var versionH = dc.getFontHeight(Graphics.FONT_MEDIUM);
-    var versionW = dc.getTextWidthInPixels("v0.20", Graphics.FONT_MEDIUM);
-    logger.debug("version: y=" + Layout.versionY() + " w=" + versionW + " h=" + versionH);
-    Test.assertMessage(
-        Layout.fitsOnRoundScreen(Layout.versionY(), versionW, versionH, w, h),
-        "the version line (" + versionW + "px wide) does not fit at y=" + Layout.versionY()
-    );
+    // 24-hour is the wider of the two clock formats, and 23:59 the widest hour.
+    assertLineFits(dc, Layout.clockY(), ClockText.formatTime(23, 59, true), clockFont, "clock");
 
-    var clock = "23:59";
-    var clockY = infoYs[0];
-    var clockW = dc.getTextWidthInPixels(clock, clockFont);
-    var clockH = dc.getFontHeight(clockFont);
-    logger.debug("clock: y=" + clockY + " w=" + clockW + " h=" + clockH);
-    Test.assertMessage(
-        Layout.fitsOnRoundScreen(clockY, clockW, clockH, w, h),
-        "the clock (\"" + clock + "\") does not fit at y=" + clockY
-    );
+    assertLineFits(dc, Layout.statusY(), Display.status(version, true), textFont, "status locked");
+    assertLineFits(dc, Layout.statusY(), Display.status(version, false), textFont, "status unlocked");
 
-    // monkey.png is 101x116 and the resource layout centres it at y=195.
-    var monkeyBottom = (h / 2) + (116 / 2);
-    Test.assertMessage(
-        clockY >= monkeyBottom,
-        "the clock starts at " + clockY + " before the ape ends at " + monkeyBottom
-    );
+    var labels = [ Display.LABEL_PACE, Display.LABEL_STRENGTH, Display.LABEL_LENGTH ];
+    for (var i = 0; i < labels.size(); i += 1) {
+        assertLineFits(dc, Layout.editorLabelY(i), labels[i] as String, textFont, "label " + i);
 
-    var prompt = "Back again to exit";
-    var promptY = infoYs[1];
-    var promptW = dc.getTextWidthInPixels(prompt, promptFont);
-    var promptH = dc.getFontHeight(promptFont);
-    var promptChord = Layout.halfChordAt(promptY + promptH, w, h) * 2;
-    logger.debug(
-        "exit prompt: y=" + promptY + " w=" + promptW +
-        " h=" + promptH + " chord=" + promptChord
-    );
-    Test.assertMessage(
-        Layout.fitsOnRoundScreen(
-            promptY, promptW, promptH, w, h
-        ),
-        "the exit prompt (\"" + prompt + "\", " + promptW +
-        "px wide) does not fit at y=" + promptY +
-        " where the chord is " + promptChord
-    );
+        // The controls are circles, not text: check both extremes of each one
+        // against the chord at the row's own height.
+        var cy = Layout.editorRowCenter(i);
+        var radius = Layout.CONTROL_RADIUS;
+        var topHalf = Layout.halfChordAt(cy - radius, w, h);
+        var bottomHalf = Layout.halfChordAt(cy + radius, w, h);
+        var half = topHalf < bottomHalf ? topHalf : bottomHalf;
+        Test.assertMessage(
+            Layout.editorControlX(w, false) - radius >= (w / 2) - half &&
+            Layout.editorControlX(w, true) + radius <= (w / 2) + half,
+            "editor controls " + i + " extend outside the round screen"
+        );
+    }
+
+    var footers = [
+        Display.footer(true, false),
+        Display.footer(false, false),
+        Display.footer(false, true)
+    ];
+    var footerY = Layout.stackFromBottom(h, [dc.getFontHeight(textFont)])[0];
+    for (var i = 0; i < footers.size(); i += 1) {
+        assertLineFits(dc, footerY, footers[i] as String, textFont, "footer " + i);
+    }
+
+    return true;
+}
+
+// Not a sample of plausible values -- every value the tap editor can reach.
+// A string that only overflows at 1000 ms or at a three-digit strength is
+// exactly what a handful of hand-picked worst cases misses.
+(:test)
+function layoutEveryReachableValueFits(logger as Test.Logger) as Boolean {
+    var w = LayoutTestConst.VA5_W;
+    var h = LayoutTestConst.VA5_H;
+    var app = getApp();
+
+    var ref = Graphics.createBufferedBitmap({:width => w, :height => h});
+    var bmp = ref.get();
+    Test.assertMessage(bmp != null, "could not create a buffered bitmap to measure text with");
+    var dc = (bmp as Graphics.BufferedBitmap).getDc();
+    var textFont = Graphics.FONT_XTINY;
+
+    // Stepping by 1 rather than by the control's own step: clamping means the
+    // endpoint is reachable even when the step does not divide the range, so
+    // every integer in the band is a value the row can end up displaying.
+    for (var v = app.MIN_PACE_HUNDREDTHS; v <= app.MAX_PACE_HUNDREDTHS; v += 1) {
+        assertLineFits(
+            dc, Layout.editorValueY(0), PacerMath.formatPaceSummary(v), textFont, "pace " + v);
+    }
+    for (var v = app.MIN_VIBE_STRENGTH; v <= app.MAX_VIBE_STRENGTH; v += 1) {
+        assertLineFits(
+            dc, Layout.editorValueY(1), PacerMath.formatStrength(v), textFont, "strength " + v);
+    }
+    for (var v = app.MIN_VIBE_DURATION; v <= app.MAX_VIBE_DURATION; v += 1) {
+        assertLineFits(
+            dc, Layout.editorValueY(2), PacerMath.formatDuration(v), textFont, "duration " + v);
+    }
     return true;
 }

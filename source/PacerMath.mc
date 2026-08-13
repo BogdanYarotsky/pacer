@@ -29,12 +29,23 @@ module PacerMath {
         return whole.toString() + "." + fractionText;
     }
 
-    // Render the pace and its half-breath cue interval for the settings menu.
+    // Render the pace and its half-breath cue interval for the PACE row.
     function formatPaceSummary(paceHundredths as Number) as String {
         var secondsHundredths = ((intervalMillis(paceHundredths) / 10.0) + 0.5).toNumber();
         return formatHundredths(paceHundredths)
-            + " BPM ("
+            + " BPM / "
             + formatHundredths(secondsHundredths)
-            + " sec)";
+            + "s";
+    }
+
+    // The other two rows. These live here rather than inline in pacerApp so the
+    // layout sweep in tests/LayoutTest.mc measures the same strings the view
+    // draws instead of a second copy of the same format.
+    function formatStrength(percent as Number) as String {
+        return percent.toString() + "%";
+    }
+
+    function formatDuration(milliseconds as Number) as String {
+        return milliseconds.toString() + " ms";
     }
 }

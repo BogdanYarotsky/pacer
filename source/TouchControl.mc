@@ -17,12 +17,11 @@ module TouchControl {
                     :enabled => enabled
                 });
 
-                // A redundant enable may be reported as false. The live state
-                // is the safety condition that matters before exit.
-                if (enabled && !success &&
-                        WatchUi has :getTouchEventsConfiguration) {
+                // A redundant request may be reported as false. The live state
+                // is what matters both for entering the lock and before exit.
+                if (!success && WatchUi has :getTouchEventsConfiguration) {
                     var configuration = WatchUi.getTouchEventsConfiguration();
-                    success = configuration[:enabled] == true;
+                    success = configuration[:enabled] == enabled;
                 }
             } catch (error) {
                 // The API throws outside foreground mode. Lifecycle fallbacks

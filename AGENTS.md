@@ -127,8 +127,7 @@ press immediately shows `Back again to exit`, then restores touch
 asynchronously while the prompt is visible. The second press exits only after
 `TouchControl` verifies the live setting; if cleanup is still pending, the app
 exits from its callback once restoration succeeds. When cleanup fails or the
-window expires, Pacer stays open and re-enables the palm-touch gate. The menu's
-`System.exit()` path follows the same restore-before-exit rule. `onHide()`,
+window expires, Pacer stays open and re-enables the palm-touch gate. `onHide()`,
 `onInactive()` and `onStop()` are best-effort restoration fallbacks, not
 permission to exit with an unverified touch state.
 
@@ -157,6 +156,18 @@ hint line (y≈366) the usable width is only ~190 px, not 390.
 `source/Layout.mc` models this with `halfChordAt()` and `fitsOnRoundScreen()`.
 **All layout coordinates must come from `Layout`.** Do not put literal pixel
 offsets in `pacerView.mc` — that is exactly the bug the tests exist to catch.
+
+**The same rule applies to strings, via `source/Display.mc`.** A fit test can
+only be trusted if it measures the string the view actually draws. The layout
+test spent several commits asserting that `"v0.22  UNLOCKED"` fit, on a screen
+that had been drawing `"v0.22  EDIT"` the whole time — green, and measuring
+nothing. `Display` holds the captions and `PacerMath.format*` holds the value
+strings; `pacerView` and `LayoutTest` both read from there, so the two cannot
+diverge. `layoutEveryReachableValueFits` then sweeps **every** value the tap
+controls can reach (all 201 paces, 21 strengths, 96 lengths) rather than a
+hand-picked worst case, and `layoutDisplayWidthMatchesTheDevice` pins
+`Layout.DISPLAY_WIDTH` — which `pacerDelegate` maps taps with — to
+`System.getDeviceSettings().screenWidth`, which is what `pacerView` draws with.
 
 ---
 

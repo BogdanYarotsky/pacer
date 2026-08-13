@@ -53,11 +53,11 @@ function mainInputGateConsumesMismatchedKey(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function mainDelegateSwallowsSelectWithoutPhysicalKey(logger as Test.Logger) as Boolean {
+function mainDelegateDefersUnlockedTapToOnTap(logger as Test.Logger) as Boolean {
     var delegate = new pacerDelegate();
     Test.assertMessage(
-        delegate.onSelect(),
-        "Select without KEY_ENTER must be consumed as touch"
+        !delegate.onSelect(),
+        "unlocked Select without KEY_ENTER must defer to coordinate-bearing onTap"
     );
     return true;
 }

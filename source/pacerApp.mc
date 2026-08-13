@@ -1,6 +1,7 @@
 import Toybox.Application;
 import Toybox.Application.Storage;
 import Toybox.Lang;
+import Toybox.System;
 import Toybox.WatchUi;
 import Toybox.Attention;
 import Toybox.Timer;
@@ -8,7 +9,7 @@ import Toybox.Timer;
 class pacerApp extends Application.AppBase {
     // Shown on the main screen so the build running on the watch is
     // identifiable at a glance. Bump on every sideload.
-    const APP_VERSION = "0.20";
+    const APP_VERSION = "0.22";
 
     const DEFAULT_PACE_HUNDREDTHS = 571;
     const DEFAULT_VIBE_STRENGTH = 15;
@@ -17,10 +18,41 @@ class pacerApp extends Application.AppBase {
     // Adult resonance frequency falls within 4.5-6.5 breaths/min.
     const MIN_PACE_HUNDREDTHS = 450;
     const MAX_PACE_HUNDREDTHS = 650;
-    const MIN_VIBE_STRENGTH = 0;
+
+    // VibeProfile.dutyCycle is documented as 0-100%, "0 indicating no vibration
+    // and 100 indicating the strongest" -- so this range IS the full API range,
+    // less the mute. The floor is 1 rather than 0 deliberately: the bottom of
+    // the scale should be the weakest cue the hardware can attempt, not silence.
+    //
+    // Whether 1% produces anything a wrist can feel is NOT knowable from here.
+    // Attention.vibrate does nothing observable in the simulator, and a rotating
+    // -mass actuator has a minimum duty cycle below which it does not turn at
+    // all -- commonly quoted around 30% for PWM drive. Finding the real floor is
+    // a job for the watch; the point of starting at 1 is that the scale no
+    // longer hides the bottom of it.
+    const MIN_VIBE_STRENGTH = 1;
     const MAX_VIBE_STRENGTH = 100;
-    const MIN_VIBE_DURATION = 50;
+
+    // VibeProfile.length is documented only as "milliseconds" -- the SDK states
+    // no bounds at either end, so this range is entirely our own choice.
+    //
+    // 20 ms is deliberately below anything a body can register, for the same
+    // reason as the 1% floor: a range that starts at the threshold cannot tell
+    // you where the threshold is. Published vibrotactile work puts the shortest
+    // perceivable pulse around 30 ms, and rhythmic patterns need nearer 50 ms;
+    // actuator rise time is the harder limit, 50-100 ms to reach full amplitude
+    // on a rotating-mass motor. Expect the first genuinely felt step to be some
+    // way above the floor.
+    const MIN_VIBE_DURATION = 20;
     const MAX_VIBE_DURATION = 1000;
+
+    // One step per tap of the corresponding edge control. These live here, not
+    // in pacerDelegate, so the range and the step that walks it are declared
+    // together -- a step that does not divide its range is how an endpoint
+    // becomes unreachable.
+    const PACE_STEP = 1;
+    const STRENGTH_STEP = 2;
+    const DURATION_STEP = 10;
 
     const PACE_STORAGE_KEY = "paceHundredths";
     const STRENGTH_STORAGE_KEY = "vibrationStrength";
@@ -30,7 +62,18 @@ class pacerApp extends Application.AppBase {
     private var _paceHundredths as Number = DEFAULT_PACE_HUNDREDTHS;
     private var _vibeStrength as Number = DEFAULT_VIBE_STRENGTH;
     private var _vibeDuration as Number = DEFAULT_VIBE_DURATION;
+    private var _touchLocked as Boolean = false;
     private var _exitPromptVisible as Boolean = false;
+
+    // Rebuilt only when strength or duration changes, rather than allocated
+    // afresh on every cue. At the default pace that is ~11 allocations a minute
+    // for the entire length of a session.
+    private var _vibeProfiles as Array<Attention.VibeProfile>? = null;
+
+    // The clock is the only thing on screen the cue timer can change, and it
+    // changes once a minute. Redrawing on every cue would repaint the whole
+    // display ~11 times a minute to show the same pixels.
+    private var _lastDrawnMinute as Number = -1;
 
     function initialize() {
         AppBase.initialize();
@@ -42,19 +85,31 @@ class pacerApp extends Application.AppBase {
     }
 
     function timerCallback() as Void {
-        // Repaint the current View often enough for the minute clock on the
-        // pacing screen. This reuses the cue timer instead of consuming one of
-        // the device's limited Timer slots.
-        WatchUi.requestUpdate();
+        var minute = System.getClockTime().min;
+        if (minute != _lastDrawnMinute) {
+            _lastDrawnMinute = minute;
+            WatchUi.requestUpdate();
+        }
 
-        if (_vibeStrength == 0 || !(Attention has :vibrate)) {
+        // No mute branch: the strength floor is 1%, not 0%. The weakest setting
+        // still asks the hardware for a cue, and whether one arrives is the
+        // hardware's answer to give.
+        if (!(Attention has :vibrate)) {
             return;
         }
 
-        var vibe = [
-            new Attention.VibeProfile(_vibeStrength, _vibeDuration)
-        ] as Array<Attention.VibeProfile>;
-        Attention.vibrate(vibe);
+        Attention.vibrate(vibeProfiles());
+    }
+
+    private function vibeProfiles() as Array<Attention.VibeProfile> {
+        var profiles = _vibeProfiles;
+        if (profiles == null) {
+            profiles = [
+                new Attention.VibeProfile(_vibeStrength, _vibeDuration)
+            ] as Array<Attention.VibeProfile>;
+            _vibeProfiles = profiles;
+        }
+        return profiles;
     }
 
     function onStop(state as Dictionary?) as Void {
@@ -69,6 +124,11 @@ class pacerApp extends Application.AppBase {
     // best-effort fallback for system-driven background transitions.
     function onInactive(state as Dictionary?) as Void {
         TouchControl.setEnabled(true);
+    }
+
+    function onActive(state as Dictionary?) as Void {
+        applyTouchLock();
+        WatchUi.requestUpdate();
     }
 
     function startTimer() as Void {
@@ -102,6 +162,24 @@ class pacerApp extends Application.AppBase {
         return _vibeDuration;
     }
 
+    function isTouchLocked() as Boolean {
+        return _touchLocked;
+    }
+
+    function setTouchLocked(locked as Boolean) as Boolean {
+        if (!TouchControl.setEnabled(!locked)) {
+            return false;
+        }
+
+        _touchLocked = locked;
+        WatchUi.requestUpdate();
+        return true;
+    }
+
+    function applyTouchLock() as Boolean {
+        return TouchControl.setEnabled(!_touchLocked);
+    }
+
     // Each breath has two cues: one at each inhale/exhale boundary.
     // The arithmetic itself lives in PacerMath so it can be unit tested without
     // an application instance -- see tests/PacerMathTest.mc.
@@ -113,21 +191,12 @@ class pacerApp extends Application.AppBase {
         return PacerMath.formatPaceSummary(_paceHundredths);
     }
 
-    function getIntervalText() as String {
-        var secondsHundredths = ((getIntervalMilliseconds() / 10.0) + 0.5).toNumber();
-        return "Pulse every " + PacerMath.formatHundredths(secondsHundredths) + " s";
-    }
-
     function getStrengthText() as String {
-        return _vibeStrength.toString() + "%";
+        return PacerMath.formatStrength(_vibeStrength);
     }
 
     function isExitPromptVisible() as Boolean {
         return _exitPromptVisible;
-    }
-
-    function getExitPromptText() as String {
-        return "Back again to exit";
     }
 
     function setExitPromptVisible(visible as Boolean) as Void {
@@ -138,16 +207,23 @@ class pacerApp extends Application.AppBase {
     }
 
     function getDurationText() as String {
-        return _vibeDuration.toString() + " ms";
+        return PacerMath.formatDuration(_vibeDuration);
     }
 
+    // The setters clamp rather than reject an out-of-range value, so a step that
+    // does not divide the range evenly still reaches the endpoint instead of
+    // stalling one step short of it. The unchanged guard is what that clamping
+    // makes necessary: without it, every tap on "+" at the maximum would rewrite
+    // Storage and restart the cue timer to no effect.
+
     function setPaceHundredths(value as Number) as Void {
-        if (value < MIN_PACE_HUNDREDTHS || value > MAX_PACE_HUNDREDTHS) {
+        var next = clamp(value, MIN_PACE_HUNDREDTHS, MAX_PACE_HUNDREDTHS);
+        if (next == _paceHundredths) {
             return;
         }
 
-        _paceHundredths = value;
-        Storage.setValue(PACE_STORAGE_KEY, value);
+        _paceHundredths = next;
+        Storage.setValue(PACE_STORAGE_KEY, next);
 
         if (_timer != null) {
             startTimer();
@@ -156,23 +232,37 @@ class pacerApp extends Application.AppBase {
     }
 
     function setVibrationStrength(value as Number) as Void {
-        if (value < MIN_VIBE_STRENGTH || value > MAX_VIBE_STRENGTH) {
+        var next = clamp(value, MIN_VIBE_STRENGTH, MAX_VIBE_STRENGTH);
+        if (next == _vibeStrength) {
             return;
         }
 
-        _vibeStrength = value;
-        Storage.setValue(STRENGTH_STORAGE_KEY, value);
+        _vibeStrength = next;
+        _vibeProfiles = null;
+        Storage.setValue(STRENGTH_STORAGE_KEY, next);
         WatchUi.requestUpdate();
     }
 
     function setVibrationDuration(value as Number) as Void {
-        if (value < MIN_VIBE_DURATION || value > MAX_VIBE_DURATION) {
+        var next = clamp(value, MIN_VIBE_DURATION, MAX_VIBE_DURATION);
+        if (next == _vibeDuration) {
             return;
         }
 
-        _vibeDuration = value;
-        Storage.setValue(DURATION_STORAGE_KEY, value);
+        _vibeDuration = next;
+        _vibeProfiles = null;
+        Storage.setValue(DURATION_STORAGE_KEY, next);
         WatchUi.requestUpdate();
+    }
+
+    private function clamp(value as Number, minimum as Number, maximum as Number) as Number {
+        if (value < minimum) {
+            return minimum;
+        }
+        if (value > maximum) {
+            return maximum;
+        }
+        return value;
     }
 
     private function loadSettings() as Void {

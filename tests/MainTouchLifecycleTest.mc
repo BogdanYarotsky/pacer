@@ -1,23 +1,13 @@
 import Toybox.Lang;
 import Toybox.Test;
-import Toybox.WatchUi;
-
-// The unit-test application shows its real initial View before test entries
-// run, so this observes the master gate in its actual lifecycle context.
+// The test runner rejects configureTouchEvents(true), even from the foreground
+// View. The platform state is therefore covered by the real input test; here we
+// assert the app's own fresh-instance contract.
 (:test)
-function mainScreenStartsWithTouchDisabled(logger as Test.Logger) as Boolean {
-    if (!(WatchUi has :getTouchEventsConfiguration)) {
-        Test.assertMessage(
-            false,
-            "vivoactive5 must expose getTouchEventsConfiguration (API 5.2.0)"
-        );
-        return true;
-    }
-
-    var configuration = WatchUi.getTouchEventsConfiguration();
+function editorStartsLogicallyUnlocked(logger as Test.Logger) as Boolean {
     Test.assertMessage(
-        configuration[:enabled] == false,
-        "main screen must start with touch events disabled"
+        !getApp().isTouchLocked(),
+        "a fresh editor must not opt into touch lock"
     );
     return true;
 }

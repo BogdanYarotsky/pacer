@@ -3,71 +3,67 @@ import Toybox.Lang;
 import Toybox.System;
 import Toybox.WatchUi;
 
+// The one and only screen: a clock, a status line, three tap-editable settings
+// and a footer hint.
+//
+// Every coordinate comes from Layout and every string from Display. Neither a
+// pixel offset nor a literal caption belongs in this file -- both are covered by
+// unit tests that can only test what they can also see.
 class pacerView extends WatchUi.View {
 
     function initialize() {
         View.initialize();
     }
 
-    // Load your resources here
-    function onLayout(dc as Dc) as Void {
-        setLayout(Rez.Layouts.MainLayout(dc));
-    }
-
-    // Disable the platform's raw touch handling while the pacing screen is
-    // visible. This is required to suppress the non-programmable palm-cover
-    // exit gesture on the vivoactive 5.
+    // Touch locking is opt-in. Returning to this sole View reapplies the user's
+    // current choice; a fresh app instance always starts unlocked.
     function onShow() as Void {
-        TouchControl.setEnabled(false);
+        getApp().applyTouchLock();
     }
 
-    // Update the view
     function onUpdate(dc as Dc) as Void {
-        View.onUpdate(dc);
-
-        // All coordinates come from Layout, which is pure and unit tested
-        // against the real 390x390 round geometry. Do not reintroduce literal
-        // offsets here -- see tests/LayoutTest.mc.
         var width = dc.getWidth();
         var height = dc.getHeight();
         var center = Layout.centerX(width);
         var app = getApp();
+        var locked = app.isTouchLocked();
+
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+        dc.clear();
 
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(
-            center,
-            Layout.versionY(),
-            Graphics.FONT_MEDIUM,
-            "v" + app.APP_VERSION,
-            Graphics.TEXT_JUSTIFY_CENTER
-        );
-
-        // Keep the clock fixed whether or not the exit prompt is visible by
-        // reserving both lines in the bottom stack.
-        var clockFont = Graphics.FONT_MEDIUM;
-        var promptFont = Graphics.FONT_XTINY;
-        var infoYs = Layout.stackFromBottom(height, [
-            dc.getFontHeight(clockFont),
-            dc.getFontHeight(promptFont)
-        ]);
         var now = System.getClockTime();
         dc.drawText(
             center,
-            infoYs[0],
-            clockFont,
-            ClockText.formatTime(now.hour, now.min),
+            Layout.clockY(),
+            Graphics.FONT_MEDIUM,
+            ClockText.formatTime(now.hour, now.min, System.getDeviceSettings().is24Hour),
+            Graphics.TEXT_JUSTIFY_CENTER
+        );
+        dc.drawText(
+            center,
+            Layout.statusY(),
+            Graphics.FONT_XTINY,
+            Display.status(app.APP_VERSION, locked),
             Graphics.TEXT_JUSTIFY_CENTER
         );
 
-        if (app.isExitPromptVisible()) {
-            dc.drawText(
-                center,
-                infoYs[1],
-                promptFont,
-                app.getExitPromptText(),
-                Graphics.TEXT_JUSTIFY_CENTER
-            );
-        }
+        drawEditorRow(dc, width, 0, Display.LABEL_PACE, app.getPaceText(), locked);
+        drawEditorRow(dc, width, 1, Display.LABEL_STRENGTH, app.getStrengthText(), locked);
+        drawEditorRow(dc, width, 2, Display.LABEL_LENGTH, app.getDurationText(), locked);
+
+        var footerFont = Graphics.FONT_XTINY;
+        var footerYs = Layout.stackFromBottom(height, [
+            dc.getFontHeight(footerFont)
+        ]);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(
+            center,
+            footerYs[0],
+            footerFont,
+            Display.footer(locked, app.isExitPromptVisible()),
+            Graphics.TEXT_JUSTIFY_CENTER
+        );
     }
 
     // Best-effort lifecycle restoration. Controlled navigation and exit paths
@@ -75,6 +71,58 @@ class pacerView extends WatchUi.View {
     // foreground-only API.
     function onHide() as Void {
         TouchControl.setEnabled(true);
+    }
+
+    private function drawEditorRow(
+        dc as Dc,
+        width as Number,
+        index as Number,
+        label as String,
+        value as String,
+        locked as Boolean
+    ) as Void {
+        var center = Layout.centerX(width);
+        var leftX = Layout.editorControlX(width, false);
+        var rightX = Layout.editorControlX(width, true);
+        var controlY = Layout.editorRowCenter(index);
+
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(
+            center,
+            Layout.editorLabelY(index),
+            Graphics.FONT_XTINY,
+            label,
+            Graphics.TEXT_JUSTIFY_CENTER
+        );
+        dc.drawText(
+            center,
+            Layout.editorValueY(index),
+            Graphics.FONT_XTINY,
+            value,
+            Graphics.TEXT_JUSTIFY_CENTER
+        );
+
+        // Dimmed while locked, so the screen says which taps are live rather
+        // than silently ignoring them.
+        if (locked) {
+            dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        }
+        dc.drawCircle(leftX, controlY, Layout.CONTROL_RADIUS);
+        dc.drawCircle(rightX, controlY, Layout.CONTROL_RADIUS);
+        dc.drawText(
+            leftX,
+            controlY,
+            Graphics.FONT_XTINY,
+            "-",
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
+        );
+        dc.drawText(
+            rightX,
+            controlY,
+            Graphics.FONT_XTINY,
+            "+",
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
+        );
     }
 
 }

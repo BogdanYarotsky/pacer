@@ -3,7 +3,7 @@ import Toybox.WatchUi;
 import Toybox.System;
 import Toybox.Timer;
 
-// Main-screen input, v0.15.
+// Input for Pacer's only screen.
 //
 // THE PROBLEM: a behaviour event on its own cannot tell a physical button from
 // a touch. Measured on a vivoactive 5 by driving real input into the simulator
@@ -26,16 +26,9 @@ import Toybox.Timer;
 //     dead code. The swipe arrives only as onBack -- the same event as the
 //     lower physical button.
 //
-// THE FIX: onKeyPressed fires for physical buttons and never for gestures, and
-// always immediately before the behaviour event. Latching the pressed key and
-// consuming it inside the behaviour handler tells the two apart reliably.
-// The view's configureTouchEvents master gate remains necessary because the
-// palm-cover exit gesture occurs below this programmable delegate layer.
-//
-//   onSelect  with a fresh KEY_ENTER latch -> upper button -> open settings
-//   onSelect  with no latch                -> a tap        -> swallow
-//   onBack    with a fresh KEY_ESC latch   -> lower button -> let the app exit
-//   onBack    with no latch                -> right-swipe  -> swallow
+// onKeyPressed distinguishes both physical buttons from touch behavior. Touch
+// starts enabled so onTap can edit the three rows. The upper button toggles the
+// global palm-safe lock; it remains available when that lock suppresses touch.
 class pacerDelegate extends WatchUi.BehaviorDelegate {
     const EXIT_WINDOW_MS = 4000;
     const RESTORE_DELAY_MS = 150;
@@ -67,12 +60,40 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
     function onSelect() as Boolean {
         if (_inputGate.consume(WatchUi.KEY_ENTER)) {
             cancelExitConfirmation();
-            trace("onSelect from upper button -> settings");
-            showPacerSettings();
-        } else {
-            trace("onSelect from tap -> swallowed");
+            var app = getApp();
+            var lock = !app.isTouchLocked();
+            if (app.setTouchLocked(lock)) {
+                trace(lock ? "upper button -> touch locked" : "upper button -> touch unlocked");
+            } else {
+                trace(lock ? "upper button -> lock failed" : "upper button -> unlock failed");
+            }
+            return true;
         }
-        // Always consumed: a tap must never reach the system default.
+
+        // Returning true here suppresses the later coordinate-bearing onTap
+        // callback on vivoactive 5. Defer an unlocked tap so onTap can edit the
+        // selected control, but consume the behavior immediately while locked.
+        if (getApp().isTouchLocked()) {
+            trace("onSelect while locked -> swallowed");
+            return true;
+        }
+
+        trace("onSelect from tap -> awaiting coordinates");
+        return false;
+    }
+
+    function onTap(clickEvent as WatchUi.ClickEvent) as Boolean {
+        var app = getApp();
+        if (app.isTouchLocked()) {
+            trace("onTap while locked -> swallowed");
+            return true;
+        }
+
+        cancelExitConfirmation();
+        var coordinates = clickEvent.getCoordinates();
+        var action = Layout.editorActionAt(
+            coordinates[0], coordinates[1], Layout.DISPLAY_WIDTH);
+        adjustSetting(action);
         return true;
     }
 
@@ -102,12 +123,12 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // Holding the lower button raises the menu behaviour on this device.
+    // There is no second screen. Holding the lower button is intentionally a
+    // no-op and its key latch must not leak into a later Back gesture.
     function onMenu() as Boolean {
         cancelExitConfirmation();
-        trace("onMenu -> settings");
-        _inputGate.clear();   // the press that produced this must not linger
-        showPacerSettings();
+        trace("onMenu -> swallowed");
+        _inputGate.clear();
         return true;
     }
 
@@ -176,8 +197,34 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
         }
 
         clearExitState();
-        trace("exit window expired -> pacing screen restored");
-        TouchControl.setEnabled(false);
+        trace("exit window expired -> editor restored");
+        getApp().applyTouchLock();
+    }
+
+    private function adjustSetting(action as Number) as Void {
+        var app = getApp();
+
+        if (action == Layout.ACTION_PACE_DOWN) {
+            app.setPaceHundredths(app.getPaceHundredths() - app.PACE_STEP);
+            trace("tap pace -");
+        } else if (action == Layout.ACTION_PACE_UP) {
+            app.setPaceHundredths(app.getPaceHundredths() + app.PACE_STEP);
+            trace("tap pace +");
+        } else if (action == Layout.ACTION_STRENGTH_DOWN) {
+            app.setVibrationStrength(app.getVibrationStrength() - app.STRENGTH_STEP);
+            trace("tap strength -");
+        } else if (action == Layout.ACTION_STRENGTH_UP) {
+            app.setVibrationStrength(app.getVibrationStrength() + app.STRENGTH_STEP);
+            trace("tap strength +");
+        } else if (action == Layout.ACTION_DURATION_DOWN) {
+            app.setVibrationDuration(app.getVibrationDuration() - app.DURATION_STEP);
+            trace("tap length -");
+        } else if (action == Layout.ACTION_DURATION_UP) {
+            app.setVibrationDuration(app.getVibrationDuration() + app.DURATION_STEP);
+            trace("tap length +");
+        } else {
+            trace("tap outside controls -> ignored");
+        }
     }
 
     private function cancelExitConfirmation() as Void {

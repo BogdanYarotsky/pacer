@@ -93,79 +93,57 @@ function Check {
 # value of -Action and fails ValidateSet.
 function Inject { param([hashtable]$a) & "$PSScriptRoot\..\tools\input.ps1" @a -Device $Device }
 
-# The vivoactive 5 simulator is inconsistent: it acknowledges disabling touch
-# but may still deliver touch behaviors. Accept either safe result--no event at
-# all, or the delegate's consumed fallback--and keep the distinction visible.
-$touchConfigured = ((Lines) -join ' | ') -match 'touch enabled=false success=true'
-
-function TouchCheck {
-    param([string]$Name, [scriptblock]$Do, [string]$FallbackExpect = "")
-
-    if ($FallbackExpect -eq "") {
-        Check $Name $Do -ExpectNothing
-    } elseif ($touchConfigured) {
-        Check $Name $Do $FallbackExpect -AllowNothing
-    } else {
-        Check $Name $Do $FallbackExpect
-    }
-}
-
 Write-Host ""
 Write-Host "input behaviour on $Device" -ForegroundColor Cyan
-Write-Host ("touch gate: {0}" -f $(if ($touchConfigured) { "master acknowledged; safe fallback also accepted" } else { "simulator rejected; testing delegate fallback" })) -ForegroundColor Cyan
+Write-Host "touch starts enabled; upper button opts into the master lock" -ForegroundColor Cyan
 
 # Teardown must run even when a check throws, or the surviving simulator blocks
 # the calling shell and the run looks like a hang.
 try {
 
-    # The main View disables touch at the source. No touch behavior or raw touch
-    # callback should reach the delegate at all.
-    TouchCheck "tap centre"     { Inject @{ Action='tap' } }                        'onSelect from tap -> swallowed'
-    TouchCheck "tap off-centre" { Inject @{ Action='tap'; X=120; Y=300 } }          'onSelect from tap -> swallowed'
+    # The editor starts unlocked. Every setting is changed directly through its
+    # edge controls; tapping the centre text is intentionally inert.
+    Check "pace plus"       { Inject @{ Action='tap'; X=335; Y=132 } }              'onSelect from tap -> awaiting coordinates.*tap pace \+'
+    Check "strength minus"  { Inject @{ Action='tap'; X=55;  Y=204 } }              'onSelect from tap -> awaiting coordinates.*tap strength -'
+    Check "length plus"     { Inject @{ Action='tap'; X=335; Y=276 } }              'onSelect from tap -> awaiting coordinates.*tap length \+'
+    Check "tap value"       { Inject @{ Action='tap'; X=195; Y=204 } }              'onSelect from tap -> awaiting coordinates.*tap outside controls -> ignored'
 
-    # The upper physical button is the way into settings.
-    Check "press enter"    { Inject @{ Action='press'; Target='enter' } }           'onSelect from upper button -> settings'
+    # The upper physical button opts into the palm-safe master lock.
+    Check "lock touch"      { Inject @{ Action='press'; Target='enter' } }           'upper button -> touch locked'
 
-    # Back out of the menu that just opened so later checks run on the main screen.
-    Inject @{ Action='press'; Target='esc' } | Out-Null
-    Start-Sleep -Milliseconds 1500
+    # Real firmware should suppress the callback. The simulator may still send
+    # the behavior phase, in which case the logical lock must swallow it before
+    # the coordinate-bearing callback can change data.
+    Check "tap while locked" { Inject @{ Action='tap'; X=335; Y=132 } }             'onSelect while locked -> swallowed' -AllowNothing
+
+    # The same physical button is always available to unlock. Some simulator
+    # runs reject configureTouchEvents(true); keep that limitation visible.
+    Check "unlock touch"    { Inject @{ Action='press'; Target='enter' } }           'upper button -> (touch unlocked|unlock failed)'
 
     # A right-swipe must not reach onBack or exit the app.
-    TouchCheck "swipe right" { Inject @{ Action='swipe'; Target='right' } }         'onBack from swipe -> swallowed'
+    Check "swipe right" { Inject @{ Action='swipe'; Target='right' } }              'onBack from swipe -> swallowed' -AllowNothing
 
-    # Prove the app survived the swipe using the physical upper button, then
-    # return from the menu for the remaining checks.
-    Check "button after swipe" { Inject @{ Action='press'; Target='enter' } }        'onSelect from upper button -> settings'
-    Inject @{ Action='press'; Target='esc' } | Out-Null
-    Start-Sleep -Milliseconds 1500
-
-    TouchCheck "swipe up"   { Inject @{ Action='swipe'; Target='up' } }             'onNextPage -> swallowed'
-    TouchCheck "swipe down" { Inject @{ Action='swipe'; Target='down' } }           'onPreviousPage -> swallowed'
+    Check "swipe up"   { Inject @{ Action='swipe'; Target='up' } }                  'onNextPage -> swallowed' -AllowNothing
+    Check "swipe down" { Inject @{ Action='swipe'; Target='down' } }                'onPreviousPage -> swallowed' -AllowNothing
 
     # Left swipe is unmapped on this device and should produce nothing at all.
-    TouchCheck "swipe left" { Inject @{ Action='swipe'; Target='left' } }
+    Check "swipe left" { Inject @{ Action='swipe'; Target='left' } } -ExpectNothing
 
-    # Holding the lower button is the menu behaviour.
-    Check "hold menu"      { Inject @{ Action='hold'; Target='menu' } }             'onMenu -> settings'
-
-    # Leave the menu and verify touch was disabled again when the main View was
-    # restored.
-    Inject @{ Action='press'; Target='esc' } | Out-Null
-    Start-Sleep -Milliseconds 1500
-    TouchCheck "swipe after menu" { Inject @{ Action='swipe'; Target='right' } }    'onBack from swipe -> swallowed'
+    # Holding the lower button no longer opens another screen.
+    Check "hold menu"      { Inject @{ Action='hold'; Target='menu' } }              'onMenu -> swallowed'
 
     # First Back arms a four-second confirmation and returns immediately while
     # touch cleanup runs asynchronously. Let that window expire and verify the
     # palm-touch gate is restored.
     Check "arm exit"       { Inject @{ Action='press'; Target='esc' } }             'onBack from lower button -> exit armed.*exit cleanup -> touch restore failed'
-    Check "exit timeout"   { Start-Sleep -Seconds 3 }                              'exit window expired -> pacing screen restored.*touch enabled=false success=true'
+    Check "exit timeout"   { Start-Sleep -Seconds 3 }                               'exit window expired -> editor restored'
 
     # Re-arm and confirm. The simulator rejects touch restoration, so the
     # second press must remain safe and the app must still accept the upper
     # button afterward. A real watch exits here once restoration succeeds.
     Check "re-arm exit"    { Inject @{ Action='press'; Target='esc' } }             'onBack from lower button -> exit armed'
     Check "confirm pending" { Inject @{ Action='press'; Target='esc' } }            'onBack from lower button -> confirmed, cleanup pending.*exit cleanup -> touch restore failed'
-    Check "button after pending exit" { Inject @{ Action='press'; Target='enter' } } '(exit confirmation cancelled|exit window expired -> pacing screen restored).*onSelect from upper button -> settings'
+    Check "button after pending exit" { Inject @{ Action='press'; Target='enter' } } '(exit confirmation cancelled|exit window expired -> editor restored).*upper button -> (touch locked|touch unlocked|lock failed|unlock failed)'
 }
 finally {
     Stop-MonkeyDo
