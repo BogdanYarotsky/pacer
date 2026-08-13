@@ -15,9 +15,18 @@ class pacerApp extends Application.AppBase {
     const DEFAULT_VIBE_STRENGTH = 15;
     const DEFAULT_VIBE_DURATION = 170;
 
-    // Adult resonance frequency falls within 4.5-6.5 breaths/min.
+    // Adult resonance frequency falls within 4.5-7.0 breaths/min, which is the
+    // band standard assessment protocols sweep (4.5, 5.0 ... 7.0). The ceiling
+    // was 6.5 for a while and simply could not express the top of that band.
+    //
+    // The 0.01 step is finer than any published protocol resolves to -- they use
+    // 0.5 steps, 0.2 in refined variants -- because the default here came from an
+    // individual measurement at that resolution, and the range is walked by
+    // nudging a known value rather than sweeping it. The precision is real all
+    // the way down: all 251 values map to distinct timer periods, the closest
+    // pair 6 ms apart, so no two paces silently collapse to the same cue.
     const MIN_PACE_HUNDREDTHS = 450;
-    const MAX_PACE_HUNDREDTHS = 650;
+    const MAX_PACE_HUNDREDTHS = 700;
 
     // VibeProfile.dutyCycle is documented as 0-100%, "0 indicating no vibration
     // and 100 indicating the strongest" -- so this range IS the full API range,

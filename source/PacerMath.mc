@@ -26,8 +26,10 @@ module PacerMath {
 
     // Milliseconds between vibration cues.
     //
-    // Each breath gets two cues, one at each inhale/exhale boundary, so a cue
-    // interval is half a breath:
+    // Each breath gets two cues, one at each turn-around, so a cue interval is
+    // half a breath. The two cues are identical on purpose: with an equal I:E
+    // ratio the boundaries are interchangeable, so this is a metronome at twice
+    // the breath rate and carries no phase. See AGENTS.md before "improving" it.
     //     60000 / (paceHundredths / 100) / 2  ==  3000000 / paceHundredths
     // The + 0.5 rounds to nearest rather than truncating.
     function intervalMillis(paceHundredths as Number) as Number {

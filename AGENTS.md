@@ -5,6 +5,39 @@ resonance-frequency breathing. Single target device.
 
 ---
 
+## TWO DESIGN DECISIONS THAT LOOK LIKE BUGS. DO NOT "FIX" THEM.
+
+**1. The cue is haptic. There is never a visual breathing indicator.** No
+animated arc, no pulsing ring, no phase readout. The app exists to pace breathing
+*without* looking at the watch, so a visual cue would invite exactly the
+attention it is meant to free. A screen that does not change between pulses is
+the intended design, not a gap. This is also why the cue timer only requests a
+redraw when the displayed minute changes.
+
+**2. The two cues per breath are identical, and carry no phase information.**
+What the wrist feels is a metronome at twice the breath rate; nothing in it
+distinguishes "inhale now" from "exhale now".
+
+This is correct because inhale and exhale are the same length — an equal I:E
+ratio, chosen deliberately, on the grounds that there is no good evidence 4:6 or
+1:2 does anything measurable. Equal phases make the two boundaries
+interchangeable, so there is no wrong beat to start on and inverted phase is the
+identical practice.
+
+What that buys is **free re-entry**: distraction, a notification buzz, a missed
+pulse, even the timer restarting mid-session when the pace is nudged — every
+disturbance costs exactly one breath and resolves itself on the next cue, with
+nothing to count and no way to be wrong.
+
+An agent reviewing this app will be tempted to encode the phase (one pulse in,
+two pulses out) — `Attention.vibrate` takes up to 8 `VibeProfile`s, so it is
+nearly free to build. **It has already been proposed once and was wrong.** It
+would trade the self-healing property away to fix a problem that only exists
+under an asymmetric ratio this app does not use. If the I:E ratio ever stops
+being 1:1, revisit this; until then the identical cue is load-bearing.
+
+---
+
 ## THE MANDATORY LOOP
 
 ```

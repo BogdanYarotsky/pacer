@@ -1,12 +1,26 @@
 # Pacer for vívoactive 5
 
 Pacer is a resonance-frequency breathing pacer. It vibrates twice per breathing
-cycle — once at each inhale/exhale boundary — and does nothing else. There is one
-screen and no menus.
+cycle — once at each turn-around — and does nothing else. There is one screen and
+no menus. The cue is haptic and always will be; there is no visual pacing
+element, because the point is to pace your breathing without looking at a watch.
 
-The pace range covers the adult resonance frequency band. The default of 5.71
-breaths/min is a personally measured resonance frequency, not a generic value;
-re-measure and adjust it on the watch rather than in code.
+**The two cues are deliberately identical, and that is the whole design.**
+Inhale and exhale are the same length, so the two boundaries are
+interchangeable, and what you feel is simply a metronome at twice your breath
+rate. Which pulse is which does not matter and is not encoded. That is not a
+limitation to be fixed — it is what makes the pacer self-healing. Lose your
+place, catch a stray notification buzz, get distracted for half a minute, and
+you rejoin on the very next pulse with nothing to count and no way to be wrong.
+Making the two cues distinguishable would destroy that to solve a problem
+symmetric breathing does not have.
+
+The pace range is 4.50–7.00 breaths/min, the band standard resonance-frequency
+assessment protocols sweep. The default of 5.71 is a personally measured
+resonance frequency, not a generic value; re-measure and adjust it on the watch
+rather than in code. The 0.01 step is finer than any published protocol resolves
+to — they use 0.5 steps, 0.2 in refined variants — because the range is walked by
+nudging a known value, not by sweeping it.
 
 ## Using it
 
@@ -31,7 +45,7 @@ a hint line:
 
 | Setting | Default | Range | Step per tap |
 | --- | ---: | ---: | ---: |
-| Breathing pace | 5.71 breaths/min | 4.50–6.50 | 0.01 |
+| Breathing pace | 5.71 breaths/min | 4.50–7.00 | 0.01 |
 | Vibration strength | 15% | 1–100% | 2% |
 | Vibration length | 170 ms | 20–1000 ms | 10 ms |
 

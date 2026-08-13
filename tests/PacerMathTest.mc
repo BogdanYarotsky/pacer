@@ -92,16 +92,16 @@ function pacerMathIntervalAtDefaultPace(logger as Test.Logger) as Boolean {
     return true;
 }
 
-// The supported band is 4.50-6.50 breaths/min. A faster pace must mean a
-// shorter gap between cues.
+// The supported band is 4.50-7.00 breaths/min, the range assessment protocols
+// sweep. A faster pace must mean a shorter gap between cues.
 (:test)
 function pacerMathIntervalShrinksAsPaceRises(logger as Test.Logger) as Boolean {
     var slow = PacerMath.intervalMillis(450);
-    var fast = PacerMath.intervalMillis(650);
-    logger.debug("450 -> " + slow + " ms, 650 -> " + fast + " ms");
+    var fast = PacerMath.intervalMillis(700);
+    logger.debug("450 -> " + slow + " ms, 700 -> " + fast + " ms");
     Test.assertMessage(slow > fast, "a slower pace must give a longer interval");
     Test.assertEqualMessage(slow, 6667, "450 hundredths should give 6667 ms");
-    Test.assertEqualMessage(fast, 4615, "650 hundredths should give 4615 ms");
+    Test.assertEqualMessage(fast, 4286, "700 hundredths should give 4286 ms");
     return true;
 }
 
@@ -129,15 +129,18 @@ function pacerMathFormatsZeroPaddedFraction(logger as Test.Logger) as Boolean {
     Test.assertEqualMessage(PacerMath.formatHundredths(600), "6.00", "600 should format as 6.00");
     Test.assertEqualMessage(PacerMath.formatHundredths(571), "5.71", "571 should format as 5.71");
     Test.assertEqualMessage(PacerMath.formatHundredths(450), "4.50", "450 should format as 4.50");
-    Test.assertEqualMessage(PacerMath.formatHundredths(650), "6.50", "650 should format as 6.50");
+    Test.assertEqualMessage(PacerMath.formatHundredths(700), "7.00", "700 should format as 7.00");
     return true;
 }
 
-// Every pace the picker can produce must format as N.NN -- four characters, one
-// dot, two digits after it.
+// Every pace the editor can reach must format as N.NN -- four characters, one
+// dot, two digits after it. Bounds come from the app rather than being repeated
+// here: hardcoded 450/650 meant this sweep silently stopped covering the range
+// the moment the ceiling moved.
 (:test)
 function pacerMathFormatsEveryPaceInRange(logger as Test.Logger) as Boolean {
-    for (var v = 450; v <= 650; v += 1) {
+    var app = getApp();
+    for (var v = app.MIN_PACE_HUNDREDTHS; v <= app.MAX_PACE_HUNDREDTHS; v += 1) {
         var s = PacerMath.formatHundredths(v);
         Test.assertEqualMessage(
             s.length(), 4,
