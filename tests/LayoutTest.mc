@@ -45,52 +45,55 @@ function layoutDisplayWidthMatchesTheDevice(logger as Test.Logger) as Boolean {
 (:test)
 function layoutAnchorsAreOnScreen(logger as Test.Logger) as Boolean {
     var h = LayoutTestConst.VA5_H;
-    var ys = Layout.stackFromBottom(h, [34, 26, 26]);
 
-    Test.assertMessage(Layout.clockY() >= 0, "clock is above the top edge");
-    Test.assertMessage(Layout.statusY() >= 0, "status is above the top edge");
+    Test.assertMessage(Layout.CLOCK_Y >= 0, "clock is above the top edge");
+    Test.assertMessage(
+        Layout.STATUS_Y > Layout.CLOCK_Y,
+        "the status line must sit below the clock"
+    );
+    Test.assertMessage(
+        Layout.editorRowTop(0) > Layout.STATUS_Y,
+        "the first editor row must sit below the status line"
+    );
     Test.assertMessage(
         Layout.editorRowTop(2) + Layout.EDITOR_ROW_HEIGHT < h,
         "editor rows extend below the screen"
     );
-    for (var i = 0; i < ys.size(); i += 1) {
-        var y = ys[i];
-        logger.debug("stack[" + i + "] y=" + y);
-        Test.assertMessage(y >= 0, "stack line " + i + " is above the top edge: " + y);
-        Test.assertMessage(y < h, "stack line " + i + " is below the bottom edge: " + y);
-    }
     return true;
 }
 
-// Lines must never overlap: each line's top edge has to clear the bottom of the
-// line above it. This is the exact defect that shipped in the original layout.
+// The footer is anchored off the bottom edge by the height of the font it will
+// actually be drawn in, so it cannot run off the screen whatever that font is.
+// Fixed per-line offsets are the exact defect that shipped in the original
+// layout: 74/46/24 px from the bottom for fonts 48-54 px tall, so every line
+// overlapped the one above it.
 (:test)
-function layoutStackLinesNeverOverlap(logger as Test.Logger) as Boolean {
+function layoutFooterClearsTheBottomEdgeForAnyFont(logger as Test.Logger) as Boolean {
     var h = LayoutTestConst.VA5_H;
-    var heights = [54, 48, 35];             // deliberately large, worst case
-    var ys = Layout.stackFromBottom(h, heights);
+    var heights = [20, 26, 35, 48, 54];
 
-    Test.assertEqualMessage(ys.size(), 3, "stackFromBottom should return one y per line");
-    for (var i = 1; i < ys.size(); i += 1) {
-        var previousBottom = ys[i - 1] + heights[i - 1];
-        logger.debug("line " + i + " top=" + ys[i] + " previous bottom=" + previousBottom);
+    for (var i = 0; i < heights.size(); i += 1) {
+        var fontHeight = heights[i] as Number;
+        var y = Layout.footerY(h, fontHeight);
+        var bottom = y + fontHeight;
+        logger.debug("font " + fontHeight + "px -> footer y=" + y + " bottom=" + bottom);
+
+        Test.assertMessage(y >= 0, "footer for a " + fontHeight + "px font is off the top: " + y);
         Test.assertMessage(
-            ys[i] >= previousBottom,
-            "line " + i + " (y=" + ys[i] + ") overlaps the line above it (ends at " + previousBottom + ")"
+            bottom <= h,
+            "footer for a " + fontHeight + "px font runs off the bottom: " + bottom + " > " + h
+        );
+        Test.assertMessage(
+            bottom <= h - Layout.FOOTER_BOTTOM_MARGIN,
+            "footer for a " + fontHeight + "px font eats into the bottom margin"
         );
     }
-    return true;
-}
 
-// The whole stack has to stay clear of the bottom edge whatever the fonts are.
-(:test)
-function layoutStackClearsTheBottomEdge(logger as Test.Logger) as Boolean {
-    var h = LayoutTestConst.VA5_H;
-    var heights = [54, 48, 35];
-    var ys = Layout.stackFromBottom(h, heights);
-    var bottom = ys[2] + heights[2];
-    logger.debug("stack bottom = " + bottom + " of " + h);
-    Test.assertMessage(bottom <= h, "the stack runs off the bottom edge: " + bottom + " > " + h);
+    // A taller font must move the line up, never push it down into the edge.
+    Test.assertMessage(
+        Layout.footerY(h, 54) < Layout.footerY(h, 20),
+        "a taller font must raise the footer anchor"
+    );
     return true;
 }
 
@@ -216,10 +219,10 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     var version = getApp().APP_VERSION;
 
     // 24-hour is the wider of the two clock formats, and 23:59 the widest hour.
-    assertLineFits(dc, Layout.clockY(), ClockText.formatTime(23, 59, true), clockFont, "clock");
+    assertLineFits(dc, Layout.CLOCK_Y, ClockText.formatTime(23, 59, true), clockFont, "clock");
 
-    assertLineFits(dc, Layout.statusY(), Display.status(version, true), textFont, "status locked");
-    assertLineFits(dc, Layout.statusY(), Display.status(version, false), textFont, "status unlocked");
+    assertLineFits(dc, Layout.STATUS_Y, Display.status(version, true), textFont, "status locked");
+    assertLineFits(dc, Layout.STATUS_Y, Display.status(version, false), textFont, "status unlocked");
 
     var labels = [ Display.LABEL_PACE, Display.LABEL_STRENGTH, Display.LABEL_LENGTH ];
     for (var i = 0; i < labels.size(); i += 1) {
@@ -244,7 +247,7 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
         Display.footer(false, false),
         Display.footer(false, true)
     ];
-    var footerY = Layout.stackFromBottom(h, [dc.getFontHeight(textFont)])[0];
+    var footerY = Layout.footerY(h, dc.getFontHeight(textFont));
     for (var i = 0; i < footers.size(); i += 1) {
         assertLineFits(dc, footerY, footers[i] as String, textFont, "footer " + i);
     }

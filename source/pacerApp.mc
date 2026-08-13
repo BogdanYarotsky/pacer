@@ -72,8 +72,9 @@ class pacerApp extends Application.AppBase {
 
     // The clock is the only thing on screen the cue timer can change, and it
     // changes once a minute. Redrawing on every cue would repaint the whole
-    // display ~11 times a minute to show the same pixels.
-    private var _lastDrawnMinute as Number = -1;
+    // display ~11 times a minute to show the same pixels. Every other change
+    // requests its own update, so this gates the timer's redraw alone.
+    private var _lastRedrawMinute as Number = -1;
 
     function initialize() {
         AppBase.initialize();
@@ -86,8 +87,8 @@ class pacerApp extends Application.AppBase {
 
     function timerCallback() as Void {
         var minute = System.getClockTime().min;
-        if (minute != _lastDrawnMinute) {
-            _lastDrawnMinute = minute;
+        if (minute != _lastRedrawMinute) {
+            _lastRedrawMinute = minute;
             WatchUi.requestUpdate();
         }
 
@@ -131,10 +132,13 @@ class pacerApp extends Application.AppBase {
         WatchUi.requestUpdate();
     }
 
+    // Each breath has two cues, one at each inhale/exhale boundary, so the timer
+    // period is half a breath. The arithmetic lives in PacerMath so it is
+    // testable without an application instance -- see tests/PacerMathTest.mc.
     function startTimer() as Void {
         stopTimer();
         var timer = new Timer.Timer();
-        timer.start(method(:timerCallback), getIntervalMilliseconds(), true);
+        timer.start(method(:timerCallback), PacerMath.intervalMillis(_paceHundredths), true);
         _timer = timer;
     }
 
@@ -180,19 +184,16 @@ class pacerApp extends Application.AppBase {
         return TouchControl.setEnabled(!_touchLocked);
     }
 
-    // Each breath has two cues: one at each inhale/exhale boundary.
-    // The arithmetic itself lives in PacerMath so it can be unit tested without
-    // an application instance -- see tests/PacerMathTest.mc.
-    function getIntervalMilliseconds() as Number {
-        return PacerMath.intervalMillis(_paceHundredths);
-    }
-
     function getPaceText() as String {
         return PacerMath.formatPaceSummary(_paceHundredths);
     }
 
     function getStrengthText() as String {
         return PacerMath.formatStrength(_vibeStrength);
+    }
+
+    function getDurationText() as String {
+        return PacerMath.formatDuration(_vibeDuration);
     }
 
     function isExitPromptVisible() as Boolean {
@@ -204,10 +205,6 @@ class pacerApp extends Application.AppBase {
             _exitPromptVisible = visible;
             WatchUi.requestUpdate();
         }
-    }
-
-    function getDurationText() as String {
-        return PacerMath.formatDuration(_vibeDuration);
     }
 
     // The setters clamp rather than reject an out-of-range value, so a step that

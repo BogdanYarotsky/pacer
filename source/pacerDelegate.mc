@@ -33,7 +33,7 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
     const EXIT_WINDOW_MS = 4000;
     const RESTORE_DELAY_MS = 150;
 
-    private var _inputGate as MainInputGate = new MainInputGate();
+    private var _inputGate as MainInputGate;
     private var _exitArmed as Boolean = false;
     private var _exitRequested as Boolean = false;
     private var _touchRestored as Boolean = false;
@@ -42,6 +42,7 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
 
     function initialize() {
         BehaviorDelegate.initialize();
+        _inputGate = new MainInputGate();
     }
 
     function onKeyPressed(keyEvent as WatchUi.KeyEvent) as Boolean {
