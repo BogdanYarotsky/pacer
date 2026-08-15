@@ -121,52 +121,106 @@ function pacerMathTwoCuesPerBreath(logger as Test.Logger) as Boolean {
     return true;
 }
 
-// The zero-padding branch is the one that actually bites: without it 6.05 would
-// render as "6.5" and read as a completely different pace.
+// The fraction's LEADING zero is the one that actually bites: without it 6.05
+// would render as "6.5" and read as a completely different pace. Trimming the
+// trailing zeros must not touch it -- the two edits meet inside the same branch.
 (:test)
 function pacerMathFormatsZeroPaddedFraction(logger as Test.Logger) as Boolean {
     Test.assertEqualMessage(PacerMath.formatHundredths(605), "6.05", "605 should format as 6.05");
-    Test.assertEqualMessage(PacerMath.formatHundredths(600), "6.00", "600 should format as 6.00");
+    Test.assertEqualMessage(PacerMath.formatHundredths(501), "5.01", "501 should format as 5.01");
     Test.assertEqualMessage(PacerMath.formatHundredths(571), "5.71", "571 should format as 5.71");
-    Test.assertEqualMessage(PacerMath.formatHundredths(450), "4.50", "450 should format as 4.50");
-    Test.assertEqualMessage(PacerMath.formatHundredths(700), "7.00", "700 should format as 7.00");
     return true;
 }
 
-// Every pace the editor can reach must format as N.NN -- four characters, one
-// dot, two digits after it. Bounds come from the app rather than being repeated
-// here: hardcoded 450/650 meant this sweep silently stopped covering the range
-// the moment the ceiling moved.
+// Trailing zeros come off to cut clutter on the pace row: a hundredths digit of
+// zero drops one place, and a fraction of zero drops the point as well.
+(:test)
+function pacerMathTrimsTrailingZeros(logger as Test.Logger) as Boolean {
+    Test.assertEqualMessage(PacerMath.formatHundredths(570), "5.7", "570 should trim to 5.7");
+    Test.assertEqualMessage(PacerMath.formatHundredths(450), "4.5", "450 should trim to 4.5");
+    Test.assertEqualMessage(PacerMath.formatHundredths(510), "5.1", "510 should trim to 5.1");
+    Test.assertEqualMessage(PacerMath.formatHundredths(600), "6", "600 should trim to 6");
+    Test.assertEqualMessage(PacerMath.formatHundredths(700), "7", "700 should trim to 7");
+    Test.assertEqualMessage(PacerMath.formatHundredths(500), "5", "500 should trim to 5");
+    return true;
+}
+
+// Every pace the editor can reach must render as a decimal that reads back as
+// the value it came from, with no trailing zero left on it. Bounds come from the
+// app rather than being repeated here: hardcoded 450/650 meant this sweep
+// silently stopped covering the range the moment the ceiling moved.
+//
+// The round trip is the assertion that carries the weight, and it replaces a
+// fixed "four characters, dot in position 1" shape that trimming makes false.
+// Dropping trailing zeros and keeping the fraction's leading one are the same
+// branch seen from two sides, and a string that reads back as the wrong number
+// is the bug both are about: "6.5" for 605 has the right shape, no trailing
+// zero, and is a different pace.
 (:test)
 function pacerMathFormatsEveryPaceInRange(logger as Test.Logger) as Boolean {
     var app = getApp();
     for (var v = app.MIN_PACE_HUNDREDTHS; v <= app.MAX_PACE_HUNDREDTHS; v += 1) {
         var s = PacerMath.formatHundredths(v);
-        Test.assertEqualMessage(
-            s.length(), 4,
-            "formatHundredths(" + v + ") = '" + s + "' should be 4 characters"
-        );
-        // substring returns String?, so narrow it before comparing.
-        var dot = s.substring(1, 2);
+
+        // String.toFloat is documented as Float or Null, so an unparseable
+        // string is a failure in itself. The + 0.5 absorbs float error before
+        // truncating -- "4.29" comes back as 4.2899998, not 4.29.
+        var parsed = s.toFloat();
         Test.assertMessage(
-            dot != null && (dot as String).equals("."),
-            "formatHundredths(" + v + ") = '" + s + "' should have a dot in position 1"
+            parsed != null,
+            "formatHundredths(" + v + ") = '" + s + "' does not parse as a number"
         );
+        var readBack = (((parsed as Float) * 100.0) + 0.5).toNumber();
+        Test.assertEqualMessage(
+            readBack, v,
+            "formatHundredths(" + v + ") = '" + s + "' reads back as " + readBack
+        );
+
+        // Only a value with a fraction has a decimal point to leave a zero on.
+        if (v % 100 != 0) {
+            var last = s.substring(s.length() - 1, s.length());
+            Test.assertMessage(
+                last != null && !(last as String).equals("0"),
+                "formatHundredths(" + v + ") = '" + s + "' still ends in a trailing zero"
+            );
+        }
     }
     return true;
 }
 
+// The pace leads and its cue interval follows past a divider. Both halves are
+// pinned as one string, spacing included, because the row is read as one: a
+// refactor that keeps the numbers right and moves a space, a unit or the divider
+// still changes what the screen says.
 (:test)
 function pacerMathFormatsPaceSummary(logger as Test.Logger) as Boolean {
     Test.assertEqualMessage(
         PacerMath.formatPaceSummary(571),
-        "5.71 BPM / 5.25s",
-        "default pace summary should include the cue interval"
+        "5.71bpm | 5.25s",
+        "the default pace should lead, with its cue interval past the divider"
     );
     Test.assertEqualMessage(
         PacerMath.formatPaceSummary(570),
-        "5.70 BPM / 5.26s",
-        "pace summary should derive the interval from the selected pace"
+        "5.7bpm | 5.26s",
+        "the interval must be derived from the selected pace"
+    );
+    // Both ends of the range, where the interval is longest and shortest -- and
+    // both of them trim, which is where the line is at its shortest on screen.
+    Test.assertEqualMessage(
+        PacerMath.formatPaceSummary(450),
+        "4.5bpm | 6.67s",
+        "the slowest pace should give the longest interval"
+    );
+    Test.assertEqualMessage(
+        PacerMath.formatPaceSummary(700),
+        "7bpm | 4.29s",
+        "the fastest pace should give the shortest interval"
+    );
+    // The one value where both halves trim away to whole numbers.
+    Test.assertEqualMessage(
+        PacerMath.formatPaceSummary(600),
+        "6bpm | 5s",
+        "6 breaths a minute is exactly one cue every five seconds"
     );
     return true;
 }

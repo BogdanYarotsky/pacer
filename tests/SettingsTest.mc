@@ -37,20 +37,52 @@ function settingsRangesAndStepsAreCoherent(logger as Test.Logger) as Boolean {
         PacerMath.clamp(app.DEFAULT_VIBE_DURATION, app.MIN_VIBE_DURATION, app.MAX_VIBE_DURATION),
         app.DEFAULT_VIBE_DURATION, "the default length is outside the length range");
 
+    // Every range divides evenly by its own step, so a walk lands exactly on both
+    // endpoints instead of stalling one step short of one of them. This replaces
+    // a pin on the literal floor value, which duplicated a constant a UI tweak is
+    // allowed to move; the ladder is the property that must hold whatever the
+    // floor is tuned to.
+    Test.assertEqualMessage(
+        (app.MAX_PACE_HUNDREDTHS - app.MIN_PACE_HUNDREDTHS) % app.PACE_STEP, 0,
+        "the pace step does not divide the pace range");
+    Test.assertEqualMessage(
+        (app.MAX_VIBE_STRENGTH - app.MIN_VIBE_STRENGTH) % app.STRENGTH_STEP, 0,
+        "the strength step does not divide the strength range");
+    Test.assertEqualMessage(
+        (app.MAX_VIBE_DURATION - app.MIN_VIBE_DURATION) % app.DURATION_STEP, 0,
+        "the length step does not divide the length range");
+
+    // ...and each default sits on its own ladder, so a fresh install starts on a
+    // value the taps can come back to. A default one step beside the ladder is
+    // how the strength scale ran on odd percents for as long as it did.
+    Test.assertEqualMessage(
+        (app.DEFAULT_PACE_HUNDREDTHS - app.MIN_PACE_HUNDREDTHS) % app.PACE_STEP, 0,
+        "the default pace is off the pace ladder");
+    Test.assertEqualMessage(
+        (app.DEFAULT_VIBE_STRENGTH - app.MIN_VIBE_STRENGTH) % app.STRENGTH_STEP, 0,
+        "the default strength is off the strength ladder");
+    Test.assertEqualMessage(
+        (app.DEFAULT_VIBE_DURATION - app.MIN_VIBE_DURATION) % app.DURATION_STEP, 0,
+        "the default length is off the length ladder");
+
     // The strength scale bottoms out at the weakest cue the hardware can be
     // asked for, not at silence. Nothing may quietly reintroduce a mute.
-    Test.assertEqualMessage(
-        app.MIN_VIBE_STRENGTH, 1,
-        "the weakest cue is 1% -- 0% would be no vibration at all");
+    Test.assertMessage(
+        app.MIN_VIBE_STRENGTH > 0,
+        "the strength floor must still ask for a cue -- 0% would be no vibration");
     return true;
 }
 
 // Walk each range end to end exactly as the tap controls do. Every value must
 // stay inside the range, and both endpoints must actually be reached.
 //
-// This is also the only coverage that the setters really clamp: STRENGTH_STEP is
-// 2 over a 1..100 range, so stepping up lands on 99 and the next tap asks for
-// 101. Reaching 100% at all is only possible if that request is clamped rather
+// This is also the only coverage that the setters really clamp. Every range
+// divides evenly by its own step now, so a walk that starts on the ladder never
+// needs the clamp at all -- which is why the last leg below starts off it. A
+// value stored by an earlier build need not be on the current ladder: strength
+// ran 1..100 by 2 until the floor moved to 2, so every value that build wrote is
+// odd, and from an odd value the tap that should reach 100% asks for 101.
+// Landing on the endpoint is only possible if that request is clamped rather
 // than rejected -- rejecting it would leave the "+" control dead one step short
 // of the top with nothing on screen to explain why.
 (:test)
@@ -77,7 +109,6 @@ function settingsStepsWalkEveryRangeEndToEnd(logger as Test.Logger) as Boolean {
         );
         logger.debug("pace: " + taps + " taps from floor to ceiling");
 
-        // The range whose step does not divide it: 1..100 by 2.
         app.setVibrationStrength(app.MIN_VIBE_STRENGTH);
         taps = 0;
         while (app.getVibrationStrength() < app.MAX_VIBE_STRENGTH && taps < 1000) {
@@ -105,8 +136,34 @@ function settingsStepsWalkEveryRangeEndToEnd(logger as Test.Logger) as Boolean {
         }
         Test.assertEqualMessage(
             app.getVibrationStrength(), app.MIN_VIBE_STRENGTH,
-            "stepping down must reach the 1% floor"
+            "stepping down must reach the strength floor"
         );
+
+        // Off the ladder, in both directions. MIN + 1 is what a value written by
+        // the 1..100-by-2 build looks like to this one: the step will never hit
+        // an endpoint squarely from there, so only the clamp can land it.
+        app.setVibrationStrength(app.MIN_VIBE_STRENGTH + 1);
+        taps = 0;
+        while (app.getVibrationStrength() > app.MIN_VIBE_STRENGTH && taps < 1000) {
+            app.setVibrationStrength(app.getVibrationStrength() - app.STRENGTH_STEP);
+            taps += 1;
+        }
+        Test.assertEqualMessage(
+            app.getVibrationStrength(), app.MIN_VIBE_STRENGTH,
+            "stepping down off the ladder must land on the floor, not below or beside it"
+        );
+
+        app.setVibrationStrength(app.MIN_VIBE_STRENGTH + 1);
+        taps = 0;
+        while (app.getVibrationStrength() < app.MAX_VIBE_STRENGTH && taps < 1000) {
+            app.setVibrationStrength(app.getVibrationStrength() + app.STRENGTH_STEP);
+            taps += 1;
+        }
+        Test.assertEqualMessage(
+            app.getVibrationStrength(), app.MAX_VIBE_STRENGTH,
+            "stepping up off the ladder must still land exactly on 100%"
+        );
+        logger.debug("strength: " + taps + " taps from one off the floor to the ceiling");
 
         app.setVibrationDuration(app.MAX_VIBE_DURATION);
         taps = 0;

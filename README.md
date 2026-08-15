@@ -30,42 +30,62 @@ Nothing on it changes on its own except the clock, once a minute:
 ```
                     07:42
 
+        ( − )      POWER           ( + )
+                   20%
+
         ( − )      PACE            ( + )
-                   5.71 BPM / 5.25s
+                   5.71bpm | 5.25s
 
-        ( − )      STRENGTH        ( + )
-                   15%
-
-        ( − )      LENGTH          ( + )
-                   170 ms
+        ( − )      BUZZ            ( + )
+                   100 ms
 
                     v0.22
 ```
 
 | Setting | Default | Range | Step per tap |
 | --- | ---: | ---: | ---: |
-| Breathing pace | 5.71 breaths/min | 4.50–7.00 | 0.01 |
-| Vibration strength | 15% | 1–100% | 2% |
-| Vibration length | 170 ms | 20–1000 ms | 10 ms |
+| Vibration strength — the `POWER` row | 20% | 2–100% | 2% |
+| Breathing pace — the `PACE` row | 5.71 breaths/min | 4.50–7.00 | 0.01 |
+| Vibration length — the `BUZZ` row | 100 ms | 10–250 ms | 10 ms |
+
+`PACE` leads with breaths per minute — the number a tap moves, and the one
+resonance-frequency protocols are written in — and carries the cue interval
+beside it past a divider, because that is the half you can check against a clock:
+count one gap between buzzes and you know the setting is what you think it is.
+The interval is half a breath, since there are two cues per breath.
+
+Trailing zeros are dropped on both numbers to cut clutter, so 6.00 reads
+`6 bpm (5s)`. The line therefore changes width as you tap through it, and being
+centred it shifts under the thumb rather than growing to one side. Seconds are
+written `s` rather than `sec` because the spelled-out version is wider than the
+gap between the two circles and drew straight through them.
+
+`POWER` and `BUZZ` each step by their own unit, and every range divides evenly by
+its step, so both endpoints are exactly reachable: 24 taps walk the buzz length
+end to end, 49 the power scale.
 
 Tap the `−` and `+` circles to change a value. The centre text is deliberately
 inert, so reading a value can never change it. Values are written to
 `Application.Storage` immediately and survive app restarts.
 
-**There is no mute.** Strength bottoms out at 1%, not 0%, because the useful
+**There is no mute.** Strength bottoms out at 2%, not 0%, because the useful
 question at the bottom of the scale is "can I still feel this?" and silence
 cannot answer it. Both floors sit deliberately *below* what a wrist is likely to
 register, so the threshold is somewhere you can find rather than somewhere the
 range hides:
 
-- `VibeProfile.dutyCycle` is documented as 0–100%, so 1–100% is the entire API
-  range minus silence. A rotating-mass actuator has a duty cycle below which it
-  does not turn at all — often quoted near 30% for PWM drive — so expect a dead
-  band at the bottom that is the motor's, not the app's.
+- `VibeProfile.dutyCycle` is documented as 0–100%, so the scale is the entire API
+  range minus silence, walked in even steps: 2, 4, … 100. A rotating-mass
+  actuator has a duty cycle below which it does not turn at all — often quoted
+  near 30% for PWM drive — so expect a dead band at the bottom that is the
+  motor's, not the app's.
 - `VibeProfile.length` has **no documented bounds** in the SDK at either end;
-  20–1000 ms is entirely this app's choice. Published vibrotactile work puts the
+  10–250 ms is entirely this app's choice. Published vibrotactile work puts the
   shortest perceivable pulse near 30 ms and rhythmic patterns nearer 50 ms, and
-  actuator rise time is the harder limit at 50–100 ms to full amplitude.
+  actuator rise time is the harder limit at 50–100 ms to full amplitude. The
+  ceiling is 250 because a pulse long enough to be felt as a buzz rather than a
+  tick has stopped being a metronome beat, and use in practice stays under
+  ~200 ms.
 
 None of that is verifiable from a computer: `Attention.vibrate` does nothing
 observable in the simulator. Sweep it on your own wrist.

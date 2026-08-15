@@ -12,8 +12,17 @@ class pacerApp extends Application.AppBase {
     const APP_VERSION = "0.22";
 
     const DEFAULT_PACE_HUNDREDTHS = 571;
-    const DEFAULT_VIBE_STRENGTH = 15;
-    const DEFAULT_VIBE_DURATION = 170;
+
+    // Both vibe defaults sit on their own ladders -- settingsRangesAndStepsAre
+    // Coherent proves it -- and both are starting points for a wrist to move
+    // from, not values derived from anything here. Where they land against the
+    // figures quoted with each range below: 100 ms is the top of the 50-100 ms a
+    // rotating-mass actuator needs to reach full amplitude, and 20% is under the
+    // ~30% duty cycle commonly quoted for PWM drive -- as every default this app
+    // has shipped has been, which is fair evidence that figure does not bind on
+    // this watch.
+    const DEFAULT_VIBE_STRENGTH = 20;
+    const DEFAULT_VIBE_DURATION = 100;
 
     // Adult resonance frequency falls within 4.5-7.0 breaths/min, which is the
     // band standard assessment protocols sweep (4.5, 5.0 ... 7.0). The ceiling
@@ -30,35 +39,48 @@ class pacerApp extends Application.AppBase {
 
     // VibeProfile.dutyCycle is documented as 0-100%, "0 indicating no vibration
     // and 100 indicating the strongest" -- so this range IS the full API range,
-    // less the mute. The floor is 1 rather than 0 deliberately: the bottom of
-    // the scale should be the weakest cue the hardware can attempt, not silence.
+    // less the mute. The floor is above 0 deliberately: the bottom of the scale
+    // should be the weakest cue the hardware can attempt, not silence.
     //
-    // Whether 1% produces anything a wrist can feel is NOT knowable from here.
+    // It is 2 and not the 1 it was because STRENGTH_STEP is 2. A floor of 1 put
+    // the entire scale on odd percents and left the floor standing beside its own
+    // ladder; at 2 the scale is exactly the fifty even percents, floor and
+    // ceiling included. Nothing is lost at the bottom -- 1% against 2% is not a
+    // distinction a wrist was ever going to make.
+    //
+    // Whether 2% produces anything a wrist can feel is NOT knowable from here.
     // Attention.vibrate does nothing observable in the simulator, and a rotating
     // -mass actuator has a minimum duty cycle below which it does not turn at
     // all -- commonly quoted around 30% for PWM drive. Finding the real floor is
-    // a job for the watch; the point of starting at 1 is that the scale no
+    // a job for the watch; the point of starting this low is that the scale no
     // longer hides the bottom of it.
-    const MIN_VIBE_STRENGTH = 1;
+    const MIN_VIBE_STRENGTH = 2;
     const MAX_VIBE_STRENGTH = 100;
 
     // VibeProfile.length is documented only as "milliseconds" -- the SDK states
     // no bounds at either end, so this range is entirely our own choice.
     //
-    // 20 ms is deliberately below anything a body can register, for the same
-    // reason as the 1% floor: a range that starts at the threshold cannot tell
+    // 10 ms is deliberately below anything a body can register, for the same
+    // reason as the 2% floor: a range that starts at the threshold cannot tell
     // you where the threshold is. Published vibrotactile work puts the shortest
     // perceivable pulse around 30 ms, and rhythmic patterns need nearer 50 ms;
     // actuator rise time is the harder limit, 50-100 ms to reach full amplitude
     // on a rotating-mass motor. Expect the first genuinely felt step to be some
     // way above the floor.
-    const MIN_VIBE_DURATION = 20;
-    const MAX_VIBE_DURATION = 1000;
+    //
+    // The ceiling is 250 ms, down from 1000. The top three quarters of that
+    // range were reaching for nothing: use in practice stays under ~200 ms, and
+    // a pulse long enough to be felt as a buzz rather than a tick has stopped
+    // being a metronome beat. 250 keeps headroom over what gets used and makes
+    // the whole scale 24 taps end to end instead of 98.
+    const MIN_VIBE_DURATION = 10;
+    const MAX_VIBE_DURATION = 250;
 
     // One step per tap of the corresponding edge control. These live here, not
     // in pacerDelegate, so the range and the step that walks it are declared
     // together -- a step that does not divide its range is how an endpoint
-    // becomes unreachable.
+    // becomes unreachable. All three divide evenly, and the defaults sit on their
+    // own ladders; settingsRangesAndStepsAreCoherent asserts both.
     const PACE_STEP = 1;
     const STRENGTH_STEP = 2;
     const DURATION_STEP = 10;

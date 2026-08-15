@@ -263,10 +263,63 @@ out in words on two lines while the row controls were already showing it by
 dimming — but the rule they cost is permanent. `Display` holds the captions and
 `PacerMath.format*`/`ClockText.formatTime` hold the value strings; `pacerView`
 and `LayoutTest` both read from there, so the two cannot diverge.
-`layoutEveryReachableValueFits` then sweeps **every** value the tap controls can
-reach (all 251 paces, 100 strengths, 981 lengths) and `layoutEveryClockMinuteFits`
-every minute of the day in both clock formats, rather than a hand-picked worst
-case, and `layoutDisplayWidthMatchesTheDevice` pins
+
+**Captions are display strings and nothing else, and two of the three no longer
+match the code under them.** The rows read `POWER` over
+`_vibeStrength`/`vibrationStrength` and `BUZZ` over
+`_vibeDuration`/`vibrationDuration`. A caption can be re-worded in `Display.mc`
+alone; a **storage key cannot be re-worded at all**, because it is on the watch's
+disk and renaming it silently resets that setting on every watch running Pacer.
+The same holds for `paceHundredths` under the `PACE` row.
+
+The `PACE` value is `5.71bpm | 5.25s` — the pace leads, being what a tap moves
+and what assessment protocols are written in, with the cue interval past the
+divider because that is the half you can check against a clock. Each number sits
+against its own unit with no space, so the line splits at the divider rather than
+at four separate gaps. Both numbers drop trailing zeros, so 6.00 renders
+`6bpm | 5s` and the line changes width as it is tapped through.
+
+## Row order lives in two places and they must agree
+
+The screen is **POWER, PACE, BUZZ**, which is not the order the settings were
+built in. That order is written down twice:
+
+- the `ACTION_` constants in `Layout.mc`, because `editorActionAt` encodes its
+  result as `(row * 2) + direction`, and
+- the three `drawEditorRow` calls in `pacerView.mc`.
+
+`pacerDelegate` dispatches on the constants **by name**, so it needs no edit when
+the order changes — which is exactly what makes this dangerous. If the two lists
+disagree, everything still compiles, every test that does not check the mapping
+still passes, and every tap silently edits a different setting than the one under
+the thumb. `editorLayoutMapsEveryControl` is the test that catches it, and
+`tests/input-behaviour.ps1` is the one that proves it against real taps.
+
+## The second width budget: the chord is not the only thing a row runs out of
+
+An editor row has a circle parked at each end, and its label and value are
+centred between them. **A line that fits the chord can still be drawn straight
+through both controls** — the rows sit near the vertical centre, where the glass
+is at its widest and the chord check is at its most forgiving, so that check
+cannot see this collision at all.
+
+Measured, not argued: `"5.22 sec (5.75 bpm)"` is **239 px** in `FONT_XTINY`
+against the **232 px** between the two circles. It passed every fit test on the
+screen and overlapped both controls, which is how `sec` became `s` and the line
+came down to 204 px.
+
+`Layout.editorTextMaxWidth()` is that budget — the gap between the controls less
+a 10 px gutter each side, 212 px on this device — and
+`layoutEveryReachableValueFits` now checks **both** budgets for every reachable
+value, labels included. Any new caption or value format has to clear it, and the
+`PACE` row is the one with the least room to spare, at its widest with two
+decimals in both halves: `"5.71bpm | 5.25s"`. Trailing-zero trimming only ever
+shortens it, so that is the worst case the sweep has to clear.
+
+Coverage is exhaustive rather than sampled. That same sweep walks **every** value
+the tap controls can reach (all 251 paces, 99 strengths, 241 lengths) and
+`layoutEveryClockMinuteFits` every minute of the day in both clock formats,
+rather than a hand-picked worst case. `layoutDisplayWidthMatchesTheDevice` pins
 `Layout.DISPLAY_WIDTH` — which `pacerDelegate` maps taps with — to
 `System.getDeviceSettings().screenWidth`, which is what `pacerView` draws with.
 
@@ -449,8 +502,8 @@ reality is the tool working.
 
 - **`Attention.vibrate` does nothing observable in the simulator.** Whether the
   pulses land at the right interval and strength is only verifiable on-device.
-- **Where the cue stops being felt.** The strength floor is 1% and the length
-  floor 20 ms, both deliberately below what a body registers, so the bottom of
+- **Where the cue stops being felt.** The strength floor is 2% and the length
+  floor 10 ms, both deliberately below what a body registers, so the bottom of
   each scale is findable rather than hidden. Only a wrist can say where it is.
 - Whether 5.71 breaths/min actually feels right.
 - Real memory pressure and battery cost.

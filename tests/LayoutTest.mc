@@ -210,6 +210,28 @@ function assertLineFits(
     );
 }
 
+// The second budget every editor row has to live inside, and the one the chord
+// maths cannot see: the row is centred between two circles, so a line wide
+// enough to reach them draws straight through them. "5.22 sec (5.75 bpm)" did
+// exactly that -- 239px against the 232px between the controls -- while passing
+// every fit check on the screen, because it was well inside the chord the whole
+// time. Widths come from the device's own font metrics, same as assertLineFits.
+function assertClearsControls(
+    dc as Graphics.Dc,
+    text as String,
+    font as Graphics.FontType,
+    what as String
+) as Void {
+    var budget = Layout.editorTextMaxWidth(LayoutTestConst.VA5_W);
+    var textWidth = dc.getTextWidthInPixels(text, font);
+
+    Test.assertMessage(
+        textWidth <= budget,
+        what + ": \"" + text + "\" is " + textWidth + "px wide, and only " + budget +
+            "px is clear of the -/+ controls"
+    );
+}
+
 // The real check, against metrics measured from the device's own font set.
 //
 // Every string here comes from Display or from the same formatter the app uses,
@@ -237,9 +259,10 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     assertLineFits(
         dc, Layout.clockY(clockHeight), ClockText.formatTime(23, 59, true), clockFont, "clock");
 
-    var labels = [ Display.LABEL_PACE, Display.LABEL_STRENGTH, Display.LABEL_LENGTH ];
+    var labels = [ Display.LABEL_POWER, Display.LABEL_PACE, Display.LABEL_BUZZ ];
     for (var i = 0; i < labels.size(); i += 1) {
         assertLineFits(dc, Layout.editorLabelY(i), labels[i] as String, textFont, "label " + i);
+        assertClearsControls(dc, labels[i] as String, textFont, "label " + i);
 
         // The controls are circles, not text: check both extremes of each one
         // against the chord at the row's own height.
@@ -304,8 +327,10 @@ function layoutEveryClockMinuteFits(logger as Test.Logger) as Boolean {
 }
 
 // Not a sample of plausible values -- every value the tap editor can reach.
-// A string that only overflows at 1000 ms or at a three-digit strength is
-// exactly what a handful of hand-picked worst cases misses.
+// A string that only overflows at a three-digit length, or at one end of the
+// pace range and not the other, is exactly what a handful of hand-picked worst
+// cases misses. The interval row carries two numbers and their units now, so it
+// is the widest line on the screen and the one this sweep is really for.
 (:test)
 function layoutEveryReachableValueFits(logger as Test.Logger) as Boolean {
     var w = LayoutTestConst.VA5_W;
@@ -319,19 +344,32 @@ function layoutEveryReachableValueFits(logger as Test.Logger) as Boolean {
     var textFont = Graphics.FONT_XTINY;
 
     // Stepping by 1 rather than by the control's own step: clamping means the
-    // endpoint is reachable even when the step does not divide the range, so
-    // every integer in the band is a value the row can end up displaying.
-    for (var v = app.MIN_PACE_HUNDREDTHS; v <= app.MAX_PACE_HUNDREDTHS; v += 1) {
-        assertLineFits(
-            dc, Layout.editorValueY(0), PacerMath.formatPaceSummary(v), textFont, "pace " + v);
-    }
+    // endpoint is reachable even from a value that is off the ladder, so every
+    // integer in the band is a value the row can end up displaying.
+    //
+    // Both budgets are checked for every one of them -- the chord above and
+    // below the line, and the clear width between the two controls. The second
+    // is the one the pace row spends: it is the widest line on the screen, and
+    // the strength and buzz rows have well over 100px to spare against it.
+    //
+    // The row indices are the on-screen order, POWER then PACE then BUZZ. They
+    // are not interchangeable: editorValueY(0) is nearer the top of the glass
+    // than editorValueY(1), so sweeping a row's values at another row's anchor
+    // measures the wrong chord.
     for (var v = app.MIN_VIBE_STRENGTH; v <= app.MAX_VIBE_STRENGTH; v += 1) {
-        assertLineFits(
-            dc, Layout.editorValueY(1), PacerMath.formatStrength(v), textFont, "strength " + v);
+        var strength = PacerMath.formatStrength(v);
+        assertLineFits(dc, Layout.editorValueY(0), strength, textFont, "strength " + v);
+        assertClearsControls(dc, strength, textFont, "strength " + v);
+    }
+    for (var v = app.MIN_PACE_HUNDREDTHS; v <= app.MAX_PACE_HUNDREDTHS; v += 1) {
+        var pace = PacerMath.formatPaceSummary(v);
+        assertLineFits(dc, Layout.editorValueY(1), pace, textFont, "pace " + v);
+        assertClearsControls(dc, pace, textFont, "pace " + v);
     }
     for (var v = app.MIN_VIBE_DURATION; v <= app.MAX_VIBE_DURATION; v += 1) {
-        assertLineFits(
-            dc, Layout.editorValueY(2), PacerMath.formatDuration(v), textFont, "duration " + v);
+        var duration = PacerMath.formatDuration(v);
+        assertLineFits(dc, Layout.editorValueY(2), duration, textFont, "duration " + v);
+        assertClearsControls(dc, duration, textFont, "duration " + v);
     }
     return true;
 }
@@ -340,23 +378,29 @@ function layoutEveryReachableValueFits(logger as Test.Logger) as Boolean {
 //
 // editorActionAt encodes its result as (row * 2) + direction, so these six cases
 // are what pins the ACTION_ constants to staying contiguous and in order.
+//
+// The y values are the three rows top to bottom, and the actions are the screen
+// order they now carry: POWER, PACE, BUZZ. This is the test that fails if a row
+// is moved on screen without moving its ACTION_ constants with it -- the failure
+// mode being that every tap edits a different setting than the one under it,
+// which nothing else here would notice.
 
 (:test)
 function editorLayoutMapsEveryControl(logger as Test.Logger) as Boolean {
     var w = 390;
-    Test.assertEqualMessage(Layout.editorActionAt(55, 130, w), Layout.ACTION_PACE_DOWN, "pace -");
-    Test.assertEqualMessage(Layout.editorActionAt(335, 130, w), Layout.ACTION_PACE_UP, "pace +");
-    Test.assertEqualMessage(Layout.editorActionAt(55, 202, w), Layout.ACTION_STRENGTH_DOWN, "strength -");
-    Test.assertEqualMessage(Layout.editorActionAt(335, 202, w), Layout.ACTION_STRENGTH_UP, "strength +");
-    Test.assertEqualMessage(Layout.editorActionAt(55, 274, w), Layout.ACTION_DURATION_DOWN, "duration -");
-    Test.assertEqualMessage(Layout.editorActionAt(335, 274, w), Layout.ACTION_DURATION_UP, "duration +");
+    Test.assertEqualMessage(Layout.editorActionAt(55, 130, w), Layout.ACTION_STRENGTH_DOWN, "power -");
+    Test.assertEqualMessage(Layout.editorActionAt(335, 130, w), Layout.ACTION_STRENGTH_UP, "power +");
+    Test.assertEqualMessage(Layout.editorActionAt(55, 202, w), Layout.ACTION_PACE_DOWN, "pace -");
+    Test.assertEqualMessage(Layout.editorActionAt(335, 202, w), Layout.ACTION_PACE_UP, "pace +");
+    Test.assertEqualMessage(Layout.editorActionAt(55, 274, w), Layout.ACTION_DURATION_DOWN, "buzz -");
+    Test.assertEqualMessage(Layout.editorActionAt(335, 274, w), Layout.ACTION_DURATION_UP, "buzz +");
     return true;
 }
 
 (:test)
 function editorLayoutRejectsLabelsAndOutsideRows(logger as Test.Logger) as Boolean {
     var w = 390;
-    Test.assertEqualMessage(Layout.editorActionAt(195, 130, w), Layout.ACTION_NONE, "pace label");
+    Test.assertEqualMessage(Layout.editorActionAt(195, 130, w), Layout.ACTION_NONE, "power label");
     Test.assertEqualMessage(Layout.editorActionAt(55, 90, w), Layout.ACTION_NONE, "above rows");
     Test.assertEqualMessage(Layout.editorActionAt(335, 312, w), Layout.ACTION_NONE, "below rows");
     return true;

@@ -114,9 +114,14 @@ try {
 
     # Every setting is changed directly through its edge controls; tapping the
     # centre text is intentionally inert.
-    Check "pace plus"       { Inject @{ Action='tap'; X=335; Y=132 } }              'onSelect from tap -> awaiting coordinates.*tap pace \+'
-    Check "strength minus"  { Inject @{ Action='tap'; X=55;  Y=204 } }              'onSelect from tap -> awaiting coordinates.*tap strength -'
-    Check "length plus"     { Inject @{ Action='tap'; X=335; Y=276 } }              'onSelect from tap -> awaiting coordinates.*tap length \+'
+    #
+    # The rows are POWER, PACE, BUZZ top to bottom, so y=132 is strength and
+    # y=204 is pace. The trace lines still say strength and length because they
+    # name the code's own setting, not the caption above it. This is the check
+    # that a re-ordered screen still edits the setting a thumb is actually on.
+    Check "power plus"      { Inject @{ Action='tap'; X=335; Y=132 } }              'onSelect from tap -> awaiting coordinates.*tap strength \+'
+    Check "pace minus"      { Inject @{ Action='tap'; X=55;  Y=204 } }              'onSelect from tap -> awaiting coordinates.*tap pace -'
+    Check "buzz plus"       { Inject @{ Action='tap'; X=335; Y=276 } }              'onSelect from tap -> awaiting coordinates.*tap length \+'
     Check "tap value"       { Inject @{ Action='tap'; X=195; Y=204 } }              'onSelect from tap -> awaiting coordinates.*tap outside controls -> ignored'
 
     # A right-swipe reaches onBack exactly as the lower button does. This is the

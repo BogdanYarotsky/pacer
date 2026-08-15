@@ -27,6 +27,10 @@ module Layout {
     const CONTROL_RADIUS = 24;
     const CONTROL_HIT_EDGE = 110;
 
+    // Clearance either side of a row's centred text, between it and the "-" and
+    // "+" circles. See editorTextMaxWidth.
+    const EDITOR_TEXT_GUTTER = 10;
+
     // Clearance from the bottom edge for the version line, which is positioned
     // from its measured font height rather than a fixed offset: the original
     // code used offsets of 74/46/24 from the bottom, i.e. gaps of 28 and 22 px,
@@ -37,11 +41,19 @@ module Layout {
     // editorActionAt encodes its result as (row * 2) + direction, so these must
     // stay contiguous and in this order, decrease before increase. All six are
     // pinned by the tap-hit-mapping tests in tests/LayoutTest.mc.
+    //
+    // **The order of this block IS the order of the rows on screen**, which is
+    // POWER, PACE, BUZZ -- so strength is row 0 and pace is row 1, and the
+    // numbering deliberately does not follow the order the settings were built
+    // in. pacerView draws in this same order and pacerDelegate dispatches by
+    // name, so re-ordering the screen means editing this block and the draw
+    // calls together. If they ever disagree, every tap edits the wrong setting
+    // and nothing on screen says so.
     const ACTION_NONE = 0;
-    const ACTION_PACE_DOWN = 1;
-    const ACTION_PACE_UP = 2;
-    const ACTION_STRENGTH_DOWN = 3;
-    const ACTION_STRENGTH_UP = 4;
+    const ACTION_STRENGTH_DOWN = 1;
+    const ACTION_STRENGTH_UP = 2;
+    const ACTION_PACE_DOWN = 3;
+    const ACTION_PACE_UP = 4;
     const ACTION_DURATION_DOWN = 5;
     const ACTION_DURATION_UP = 6;
 
@@ -82,6 +94,22 @@ module Layout {
 
     function editorControlX(width as Number, increase as Boolean) as Number {
         return increase ? width - CONTROL_INSET : CONTROL_INSET;
+    }
+
+    // Widest a row's centred label or value may be drawn.
+    //
+    // The round-screen chord is not the only thing a row can run out of, and it
+    // is the more forgiving of the two: an editor row sits near the vertical
+    // centre where the glass is widest, but it also has a circle parked at each
+    // end of it. A line long enough to reach one draws straight through it.
+    //
+    // That is not hypothetical. "5.22 sec (5.75 bpm)" measured 239 px in
+    // FONT_XTINY against the 232 px between the two circles, and cleared every
+    // chord check on the screen while sitting on top of both controls. The
+    // gutter is what keeps a line that only just misses them from reading as if
+    // it touches -- the layout it replaced had about 12 px of air each side.
+    function editorTextMaxWidth(width as Number) as Number {
+        return width - (2 * (CONTROL_INSET + CONTROL_RADIUS + EDITOR_TEXT_GUTTER));
     }
 
     // Top edge of the bottom-anchored version line, given the height of the font

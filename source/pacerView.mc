@@ -55,9 +55,11 @@ class pacerView extends WatchUi.View {
             dc, _clockY, FONT_CLOCK,
             ClockText.formatTime(now.hour, now.min, System.getDeviceSettings().is24Hour));
 
-        drawEditorRow(dc, 0, Display.LABEL_PACE, app.getPaceText());
-        drawEditorRow(dc, 1, Display.LABEL_STRENGTH, app.getStrengthText());
-        drawEditorRow(dc, 2, Display.LABEL_LENGTH, app.getDurationText());
+        // POWER, PACE, BUZZ -- the same order as the ACTION_ constants in
+        // Layout, which is what maps a tap to the row under it.
+        drawEditorRow(dc, 0, Display.LABEL_POWER, app.getStrengthText());
+        drawEditorRow(dc, 1, Display.LABEL_PACE, app.getPaceText());
+        drawEditorRow(dc, 2, Display.LABEL_BUZZ, app.getDurationText());
 
         drawCentered(dc, _versionY, FONT_TEXT, Display.version(app.APP_VERSION));
     }
