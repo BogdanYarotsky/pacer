@@ -5,7 +5,7 @@ resonance-frequency breathing. Single target device.
 
 ---
 
-## TWO DESIGN DECISIONS THAT LOOK LIKE BUGS. DO NOT "FIX" THEM.
+## THREE DESIGN DECISIONS THAT LOOK LIKE BUGS. DO NOT "FIX" THEM.
 
 **1. The cue is haptic. There is never a visual breathing indicator.** No
 animated arc, no pulsing ring, no phase readout. The app exists to pace breathing
@@ -50,6 +50,25 @@ nearly free to build. **It has already been proposed once and was wrong.** It
 would trade the self-healing property away to fix a problem that only exists
 under an asymmetric ratio this app does not use. If the I:E ratio ever stops
 being 1:1, revisit this; until then the identical cue is load-bearing.
+
+**3. Pacer builds nothing the watch or another app already does.** It is a
+metronome for the wrist and nothing else. Where a capability already exists
+outside the app, Pacer delegates to it rather than growing its own copy.
+
+Two things follow from that, both of which read as missing features:
+
+- **Palm safety is the watch's Lock Screen**, not an app-level touch lock. See
+  the section below for what reimplementing it cost.
+- **There is no session timer.** No duration setting, no elapsed-time display, no
+  auto-stop, no start button. Someone who wants a time-bound session runs a timer
+  app alongside Pacer, which the watch does perfectly well already.
+
+The test for any proposed feature is: does the watch, or an app the user can run
+in parallel, already do this? If yes, it does not belong here. Adding it would
+buy a little convenience for a permanent increase in the surface that can break —
+and the touch lock is the standing proof of how that trade goes. It was a real
+feature, correctly motivated, and it could leave the whole watch needing a
+reboot.
 
 ---
 
