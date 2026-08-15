@@ -25,9 +25,13 @@ import Toybox.System;
 //     dead code. The swipe arrives only as onBack -- the same event as the
 //     lower physical button.
 //
-// onKeyPressed distinguishes both physical buttons from touch behavior. Touch
-// starts enabled so onTap can edit the three rows. The upper button toggles the
-// global palm-safe lock; it remains available when that lock suppresses touch.
+// onKeyPressed distinguishes both physical buttons from touch behavior, and that
+// distinction is the only thing this class still needs to get right: a
+// right-swipe and the lower button arrive as the same onBack, and only one of
+// them may close the app.
+//
+// Palm safety is the watch's own Lock Screen, not Pacer's job. Nothing here
+// touches WatchUi.configureTouchEvents -- see AGENTS.md for why that matters.
 class pacerDelegate extends WatchUi.BehaviorDelegate {
 
     private var _inputGate as MainInputGate;
@@ -50,78 +54,49 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
         return false;
     }
 
+    // The upper button has no job left -- it used to toggle Pacer's own touch
+    // lock. It is still consumed rather than declined, so a press cannot fall
+    // through to anything else. Held, it opens the watch's controls menu, which
+    // never reaches the app at all and is where the Lock Screen lives.
     function onSelect() as Boolean {
         if (_inputGate.consume(WatchUi.KEY_ENTER)) {
-            var app = getApp();
-            var lock = !app.isTouchLocked();
-            if (app.setTouchLocked(lock)) {
-                trace(lock ? "upper button -> touch locked" : "upper button -> touch unlocked");
-            } else {
-                trace(lock ? "upper button -> lock failed" : "upper button -> unlock failed");
-            }
+            trace("upper button -> no action");
             return true;
         }
 
-        // Returning true here suppresses the later coordinate-bearing onTap
-        // callback on vivoactive 5. Defer an unlocked tap so onTap can edit the
-        // selected control, but consume the behavior immediately while locked.
-        if (getApp().isTouchLocked()) {
-            trace("onSelect while locked -> swallowed");
-            return true;
-        }
-
+        // Declining here is what lets the later coordinate-bearing onTap run:
+        // returning true would suppress it on vivoactive 5, and onSelect has no
+        // coordinates to edit a control with.
         trace("onSelect from tap -> awaiting coordinates");
         return false;
     }
 
     function onTap(clickEvent as WatchUi.ClickEvent) as Boolean {
-        var app = getApp();
-        if (app.isTouchLocked()) {
-            trace("onTap while locked -> swallowed");
-            return true;
-        }
-
         var coordinates = clickEvent.getCoordinates();
         adjustSetting(Layout.editorActionAt(
             coordinates[0], coordinates[1], Layout.DISPLAY_WIDTH));
         return true;
     }
 
-    // Back exits -- but never while the watch-global touch setting is still
-    // disabled, because that setting can outlive Pacer and leave the whole watch
-    // untouchable until it is rebooted.
+    // Back exits. That is the whole rule.
     //
-    // The lock flag already answers that question exactly. pacerApp records a
-    // lock only after TouchControl confirms the setting really changed, and
-    // nothing else in the app ever disables touch, so "unlocked" and "safe to
-    // exit" are the same condition. That is why there is no confirmation window,
-    // no restore timer and no exit state here: an earlier version tracked armed
-    // / requested / restored across two timers to derive a fact the lock flag
-    // was already holding.
+    // It used to be conditional, because Pacer disabled the watch-global touch
+    // setting itself and must never have left it that way -- first a four-second
+    // two-press confirmation with two timers, then a single check of its own lock
+    // flag. The watch's built-in Lock Screen now owns palm safety, so Pacer
+    // disables nothing and has nothing to restore before leaving.
     //
-    // While locked, Back unlocks and stays put. A session is locked anyway, so
-    // that hands back the two-press exit the old confirmation window provided,
-    // out of the state a session is already in. If the unlock is rejected, Pacer
-    // stays open and stays locked -- the safe failure, and the same one the old
-    // four-second window reached by a much longer road.
+    // The swipe check stays, and is now the only conditional in this file. A
+    // right-swipe arrives as the same onBack as the lower button, so without the
+    // gate a stray swipe would close the app mid-session.
     function onBack() as Boolean {
         if (!_inputGate.consume(WatchUi.KEY_ESC)) {
             trace("onBack from swipe -> swallowed");
             return true;
         }
 
-        var app = getApp();
-        if (!app.isTouchLocked()) {
-            trace("onBack from lower button -> touch already on, app exits");
-            return false;
-        }
-
-        if (app.setTouchLocked(false)) {
-            trace("onBack from lower button -> touch unlocked, press again to exit");
-        } else {
-            trace("onBack from lower button -> unlock failed, staying open");
-        }
-        return true;
+        trace("onBack from lower button -> app exits");
+        return false;
     }
 
     // There is no second screen. Holding the lower button is intentionally a

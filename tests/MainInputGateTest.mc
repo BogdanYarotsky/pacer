@@ -53,11 +53,11 @@ function mainInputGateConsumesMismatchedKey(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function mainDelegateDefersUnlockedTapToOnTap(logger as Test.Logger) as Boolean {
+function mainDelegateDefersTapToOnTap(logger as Test.Logger) as Boolean {
     var delegate = new pacerDelegate();
     Test.assertMessage(
         !delegate.onSelect(),
-        "unlocked Select without KEY_ENTER must defer to coordinate-bearing onTap"
+        "Select without KEY_ENTER must defer to the coordinate-bearing onTap"
     );
     return true;
 }
@@ -68,24 +68,6 @@ function mainDelegateSwallowsBackWithoutPhysicalKey(logger as Test.Logger) as Bo
     Test.assertMessage(
         delegate.onBack(),
         "Back without KEY_ESC must be consumed as touch"
-    );
-    return true;
-}
-
-// A fresh app instance must never opt into the touch lock. This is a safety
-// invariant, not a default: pacerView.onShow calls applyTouchLock, so an
-// unlocked start makes every launch assert touch-ON, and onBack exits only when
-// unlocked, so a fresh launch can always be left. Starting locked would invert
-// both -- every launch would disable touch, and a rejected unlock would leave
-// nothing able to re-enable it.
-//
-// The platform state itself is covered by tests/input-behaviour.ps1; the test
-// runner rejects configureTouchEvents(true) even from the foreground View.
-(:test)
-function editorStartsLogicallyUnlocked(logger as Test.Logger) as Boolean {
-    Test.assertMessage(
-        !getApp().isTouchLocked(),
-        "a fresh editor must not opt into touch lock"
     );
     return true;
 }

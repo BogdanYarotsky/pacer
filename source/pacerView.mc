@@ -8,6 +8,10 @@ import Toybox.WatchUi;
 // the clock is the only thing on the screen that moves, and it moves once a
 // minute.
 //
+// The pen is set white once and never changes, because there is no longer any
+// screen state to render. Palm safety is the watch's own Lock Screen now, so the
+// app has no lock of its own to dim the controls for -- see AGENTS.md.
+//
 // Every coordinate comes from Layout and every string from Display. Neither a
 // pixel offset nor a literal caption belongs in this file -- both are covered by
 // unit tests that can only test what they can also see.
@@ -39,15 +43,8 @@ class pacerView extends WatchUi.View {
         _versionY = Layout.versionY(dc.getHeight(), dc.getFontHeight(FONT_TEXT));
     }
 
-    // Touch locking is opt-in. Returning to this sole View reapplies the user's
-    // current choice; a fresh app instance always starts unlocked.
-    function onShow() as Void {
-        getApp().applyTouchLock();
-    }
-
     function onUpdate(dc as Dc) as Void {
         var app = getApp();
-        var locked = app.isTouchLocked();
         var now = System.getClockTime();
 
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
@@ -58,21 +55,11 @@ class pacerView extends WatchUi.View {
             dc, _clockY, FONT_CLOCK,
             ClockText.formatTime(now.hour, now.min, System.getDeviceSettings().is24Hour));
 
-        drawEditorRow(dc, 0, Display.LABEL_PACE, app.getPaceText(), locked);
-        drawEditorRow(dc, 1, Display.LABEL_STRENGTH, app.getStrengthText(), locked);
-        drawEditorRow(dc, 2, Display.LABEL_LENGTH, app.getDurationText(), locked);
+        drawEditorRow(dc, 0, Display.LABEL_PACE, app.getPaceText());
+        drawEditorRow(dc, 1, Display.LABEL_STRENGTH, app.getStrengthText());
+        drawEditorRow(dc, 2, Display.LABEL_LENGTH, app.getDurationText());
 
-        // The rows leave the pen dimmed while locked. The version says nothing
-        // about the lock, so it takes the pen back.
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         drawCentered(dc, _versionY, FONT_TEXT, Display.version(app.APP_VERSION));
-    }
-
-    // Best-effort lifecycle restoration. Controlled navigation and exit paths
-    // restore earlier because this callback can be too late for the
-    // foreground-only API.
-    function onHide() as Void {
-        TouchControl.setEnabled(true);
     }
 
     private function drawCentered(
@@ -85,18 +72,10 @@ class pacerView extends WatchUi.View {
         dc as Dc,
         index as Number,
         label as String,
-        value as String,
-        locked as Boolean
+        value as String
     ) as Void {
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         drawCentered(dc, Layout.editorLabelY(index), FONT_TEXT, label);
         drawCentered(dc, Layout.editorValueY(index), FONT_TEXT, value);
-
-        // Dimmed while locked, so the screen says which taps are live rather
-        // than silently ignoring them.
-        if (locked) {
-            dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        }
 
         var controlY = Layout.editorRowCenter(index);
         drawControl(dc, _controlLeftX, controlY, "-");

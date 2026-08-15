@@ -71,7 +71,6 @@ class pacerApp extends Application.AppBase {
     private var _paceHundredths as Number = DEFAULT_PACE_HUNDREDTHS;
     private var _vibeStrength as Number = DEFAULT_VIBE_STRENGTH;
     private var _vibeDuration as Number = DEFAULT_VIBE_DURATION;
-    private var _touchLocked as Boolean = false;
 
     // Rebuilt only when strength or duration changes, rather than allocated
     // afresh on every cue. At the default pace that is ~11 allocations a minute
@@ -126,21 +125,12 @@ class pacerApp extends Application.AppBase {
     }
 
     function onStop(state as Dictionary?) as Void {
-        // Final best-effort cleanup for termination paths not initiated by the
-        // main delegate. TouchControl contains the foreground exception.
-        TouchControl.setEnabled(true);
         stopTimer();
     }
 
-    // API 4.2.3, supported by vivoactive5 (API 5.2.0). The callback runs when
-    // the app is hidden, so restoration may be rejected; it remains a safe
-    // best-effort fallback for system-driven background transitions.
-    function onInactive(state as Dictionary?) as Void {
-        TouchControl.setEnabled(true);
-    }
-
+    // The clock can be a whole minute stale by the time the app comes back to
+    // the foreground, so redraw rather than wait for the next cue.
     function onActive(state as Dictionary?) as Void {
-        applyTouchLock();
         WatchUi.requestUpdate();
     }
 
@@ -176,24 +166,6 @@ class pacerApp extends Application.AppBase {
 
     function getVibrationDuration() as Number {
         return _vibeDuration;
-    }
-
-    function isTouchLocked() as Boolean {
-        return _touchLocked;
-    }
-
-    function setTouchLocked(locked as Boolean) as Boolean {
-        if (!TouchControl.setEnabled(!locked)) {
-            return false;
-        }
-
-        _touchLocked = locked;
-        WatchUi.requestUpdate();
-        return true;
-    }
-
-    function applyTouchLock() as Boolean {
-        return TouchControl.setEnabled(!_touchLocked);
     }
 
     function getPaceText() as String {

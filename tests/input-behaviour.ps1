@@ -31,9 +31,7 @@ Start-SimulatorIfNeeded | Out-Null
 
 $prg = Join-Path $RepoRoot "bin\pacer-$Device.prg"
 
-# Back now exits the app outright when touch is unlocked, so verifying that
-# needs a second, throwaway app instance -- the first one has to survive every
-# other check. Each phase gets a fresh launch and a fresh trace.
+# Back closes the app, so the exit check runs last and nothing may follow it.
 function Start-App {
     Remove-Item $trace, $errLog -Force -ErrorAction SilentlyContinue
     Start-Process -FilePath $MonkeyDo -ArgumentList @($prg, $Device) -WindowStyle Hidden `
@@ -108,20 +106,22 @@ function Inject { param([hashtable]$a) & "$PSScriptRoot\..\tools\input.ps1" @a -
 
 Write-Host ""
 Write-Host "input behaviour on $Device" -ForegroundColor Cyan
-Write-Host "touch starts enabled; upper button opts into the master lock" -ForegroundColor Cyan
+Write-Host "the app owns no touch state; Back is the only thing that closes it" -ForegroundColor Cyan
 
 # Teardown must run even when a check throws, or the surviving simulator blocks
 # the calling shell and the run looks like a hang.
 try {
 
-    # The editor starts unlocked. Every setting is changed directly through its
-    # edge controls; tapping the centre text is intentionally inert.
+    # Every setting is changed directly through its edge controls; tapping the
+    # centre text is intentionally inert.
     Check "pace plus"       { Inject @{ Action='tap'; X=335; Y=132 } }              'onSelect from tap -> awaiting coordinates.*tap pace \+'
     Check "strength minus"  { Inject @{ Action='tap'; X=55;  Y=204 } }              'onSelect from tap -> awaiting coordinates.*tap strength -'
     Check "length plus"     { Inject @{ Action='tap'; X=335; Y=276 } }              'onSelect from tap -> awaiting coordinates.*tap length \+'
     Check "tap value"       { Inject @{ Action='tap'; X=195; Y=204 } }              'onSelect from tap -> awaiting coordinates.*tap outside controls -> ignored'
 
-    # A right-swipe must not reach onBack or exit the app.
+    # A right-swipe reaches onBack exactly as the lower button does. This is the
+    # one distinction the delegate still has to make, and getting it wrong closes
+    # the app on a stray swipe mid-session.
     Check "swipe right" { Inject @{ Action='swipe'; Target='right' } }              'onBack from swipe -> swallowed' -AllowNothing
 
     Check "swipe up"   { Inject @{ Action='swipe'; Target='up' } }                  'onNextPage -> swallowed' -AllowNothing
@@ -133,38 +133,16 @@ try {
     # Holding the lower button no longer opens another screen.
     Check "hold menu"      { Inject @{ Action='hold'; Target='menu' } }              'onMenu -> swallowed'
 
-    # The upper physical button opts into the palm-safe master lock. Everything
-    # above had to run first: the simulator accepts disabling touch but rejects
-    # re-enabling it, so this run is locked from here on.
-    Check "lock touch"      { Inject @{ Action='press'; Target='enter' } }           'upper button -> touch locked'
+    # The upper button lost its only job when the app-level touch lock went; palm
+    # safety is the watch's own Lock Screen now. It must still be swallowed rather
+    # than fall through to anything else.
+    Check "upper button"   { Inject @{ Action='press'; Target='enter' } }            'upper button -> no action'
 
-    # Real firmware should suppress the callback. The simulator may still send
-    # the behavior phase, in which case the logical lock must swallow it before
-    # the coordinate-bearing callback can change data.
-    Check "tap while locked" { Inject @{ Action='tap'; X=335; Y=132 } }             'onSelect while locked -> swallowed' -AllowNothing
-
-    # Back while locked unlocks instead of exiting -- Pacer must never leave the
-    # watch-global touch setting disabled behind it. The simulator rejects the
-    # restore, so what is proved here is the safe failure: still open, still
-    # locked. On a watch the restore succeeds and a second Back then exits.
-    Check "back while locked" { Inject @{ Action='press'; Target='esc' } }          'onBack from lower button -> (touch unlocked, press again to exit|unlock failed, staying open)'
-
-    # The upper button is always available to unlock too.
-    Check "unlock touch"    { Inject @{ Action='press'; Target='enter' } }           'upper button -> (touch unlocked|unlock failed)'
-
-    Write-Host ""
-    Write-Host "phase 2: a fresh instance, to watch Back actually exit" -ForegroundColor Cyan
-
-    # The checks above have to keep the app alive, so the exit path needs its own
-    # throwaway instance. A fresh instance always starts unlocked, which is
-    # exactly the state in which Back is allowed to exit. The old four-second
-    # confirmation could never be tested this far: the simulator's rejected
-    # restore meant the app never reached the exit at all.
-    Stop-MonkeyDo
-    Start-Sleep -Seconds 1
-    Start-App
-
-    Check "back exits when unlocked" { Inject @{ Action='press'; Target='esc' } }   'onBack from lower button -> touch already on, app exits'
+    # Back closes the app, unconditionally -- so it has to be last, and what
+    # follows it is the proof that it really did. There is no state left for it
+    # to consult: the whole point of handing the lock to the OS is that Pacer has
+    # nothing to restore before leaving.
+    Check "back exits"     { Inject @{ Action='press'; Target='esc' } }              'onBack from lower button -> app exits'
 
     $script:checks++
     Start-Sleep -Seconds 2

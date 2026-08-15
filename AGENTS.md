@@ -161,35 +161,45 @@ Three traps, each of which produced a wrong implementation before being measured
    button both raise `onBack`. **A behaviour event alone cannot tell touch from
    button.**
 
-**The primary gate:** `pacerView.onShow()` disables touch globally through
-`TouchControl`. This is mandatory: covering much of the screen with skin can
-trigger a platform-level exit that never reaches the delegate, and only
-`WatchUi.configureTouchEvents({ :enabled => false })` suppresses it. The API is
-5.2.0 and supported on the vívoactive 5. **Do not remove this mechanism.**
+## Palm safety belongs to the watch, not to Pacer
 
-The disabled setting can survive Pacer exiting and leave the whole watch
-without touch until reboot. Restoring with `:enabled => true` is also fallible:
-the simulator repeatedly returns `false`, even when called before navigation.
+**Never call `WatchUi.configureTouchEvents`.** Pacer used to, and it is the only
+thing this project ever did that could damage the watch.
 
-**The exit rule is one line: Back exits only when the app is unlocked.** The lock
-flag already carries the fact that matters, because `setTouchLocked` records a
-lock *only* after `TouchControl` confirms the setting really changed, and nothing
-else in the app ever disables touch. So "unlocked" and "safe to leave" are the
-same condition. Locked, Back unlocks and stays put; if that unlock is rejected,
-Pacer stays open and stays locked — the safe failure.
+The problem is real: covering much of the screen with skin triggers a
+platform-level exit that never reaches the delegate, which would end a session
+silently. `configureTouchEvents({ :enabled => false })` suppresses it. But that
+setting is **watch-global and outlives the app**, restoring it is fallible — the
+simulator rejects `:enabled => true` every single time — and a leak leaves the
+whole watch untouchable until it is rebooted. That happened repeatedly on the
+wrist, and Pacer could not even repair it, because relaunching Pacer to run the
+restore requires touch to reach the app list.
 
-An earlier version derived this with a four-second confirmation window, an
-`armed`/`requested`/`restored` triple and two timers — about a hundred lines to
-recompute something one boolean already knew. It also had a hidden cost: because
-the simulator always rejects the restore, the app could never reach its own exit
-under test, so the exit path shipped unverified. `just input-test` now launches a
-second throwaway instance and asserts the process is actually gone.
+The vívoactive 5 already ships the feature: **hold the upper button → controls →
+Lock Screen.** Confirmed on the wrist, and better than the app's version in every
+respect:
 
-The two-press protection that window provided is not lost. A session runs locked,
-and locked means the first Back unlocks rather than exits.
+- It works inside a running app, Pacer included.
+- It locks the **buttons as well as the touchscreen**, so a stray lower-button
+  press cannot end a session either — protection the app-level lock never had.
+- The OS owns the state and restores it, so there is nothing to leak and no
+  reboot to recover from. Worst case is now a lost session, not a bricked watch.
 
-`onHide()`, `onInactive()` and `onStop()` remain best-effort restoration
-fallbacks, not permission to exit with an unverified touch state.
+So Pacer holds no touch state at all. What that deleted: `TouchControl.mc`,
+`_touchLocked`, `isTouchLocked`, `setTouchLocked`, `applyTouchLock`, the dimmed
+rendering of the controls, the lock branches in `onSelect` and `onTap`, and three
+lifecycle callbacks that existed only to restore touch — `pacerView.onShow`,
+`pacerView.onHide` and `pacerApp.onInactive`.
+
+**The exit rule is now one line with no condition: Back exits.** It was
+conditional only because Pacer had a global setting to restore first. Two earlier
+versions derived that condition the hard way — a four-second two-press
+confirmation with an `armed`/`requested`/`restored` triple and two timers, then a
+single check of the lock flag. Both are gone with the thing that required them.
+
+The upper button lost its only job and now does nothing; it is still consumed so
+a press cannot fall through. Holding it opens the controls menu, which never
+reaches the app and is where Lock Screen lives.
 
 **The fallback discriminator:** `onKeyPressed` fires for physical buttons and
 *never* for gestures, always immediately before the behaviour. `pacerDelegate`
@@ -201,16 +211,16 @@ Gesture thresholds live in the device config: swipeRight only counts as Back
 when it starts within `maxDistToEdge` (81px) of the edge, travels more than
 `minSwipeDeltaX` (78px), and finishes inside `maxSwipeDuration` (250ms).
 
-`just input-test` confirms that touch is suppressed or safely consumed on the
-main screen, that physical buttons still work, that a rejected touch restoration
-leaves Pacer open and locked rather than stranded, and — in a second throwaway
-instance — that Back really does exit when unlocked. It is separate from
-`just test` because it needs a simulator window and synthesises system-wide mouse
-events (it steals the pointer for ~40s).
+`just input-test` confirms that taps reach the right control, that swipes and the
+upper button are swallowed, and that the lower button really does close the app —
+it asserts the process is gone afterwards, not just that a trace line appeared.
+It is separate from `just test` because it needs a simulator window and
+synthesises system-wide mouse events (it steals the pointer for ~40s).
 
-Order matters in that script: the simulator accepts `:enabled => false` but
-rejects `:enabled => true`, so once a run locks touch it stays locked. Every
-check that needs touch has to come before the lock check.
+Order matters in that script for one reason now: **Back closes the app, so its
+check must be last** and nothing may follow it but the process check. The script
+used to need a second throwaway instance for that, because the app-level lock had
+to survive the earlier checks; with the lock gone, one launch does the whole run.
 
 ## Round screen: the bounding box is not the screen
 

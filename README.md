@@ -70,27 +70,30 @@ range hides:
 None of that is verifiable from a computer: `Attention.vibrate` does nothing
 observable in the simulator. Sweep it on your own wrist.
 
-**Upper button — touch lock.** Pressing the upper physical button toggles a
-global touch lock. Locked, the `−`/`+` controls dim and taps do nothing; that
-dimming is the whole of the state display, and the screen no longer says so in
-words as well. This exists because a sleeve or a palm across the screen can
-trigger a platform-level exit that never reaches the app at all. Lock it before a
-session; the upper button still unlocks.
+**Locking the screen is the watch's job, not Pacer's.** Hold the upper button →
+controls → **Lock Screen**. It works inside a running app, and it locks the
+buttons as well as the touchscreen, so nothing — a sleeve, a palm, a knock
+against a doorframe — can reach Pacer while you breathe. Unlock the same way.
 
-**Lower button — Back.** Unlocked, Back exits. Locked, Back unlocks and stays
-put, so during a session — when you are locked anyway — it takes two presses to
-leave, and the first one visibly brightens the controls.
+Do that before a session. Without it, a palm across the screen can trigger a
+platform-level exit that Pacer never sees and cannot prevent.
 
-Pacer will not exit while the touch lock is engaged, because
-`configureTouchEvents({ :enabled => false })` is a *watch-global* setting that
-can outlive the app and leave the whole watch untouchable until it is rebooted.
-Being unlocked is exactly the condition that makes leaving safe, so that one flag
-is the entire guard — no confirmation window, no timers. If unlocking is
-rejected, Pacer stays open and stays locked.
+Pacer had its own touch lock once, built on
+`configureTouchEvents({ :enabled => false })`. It worked, but that setting is
+*watch-global* and outlives the app: when restoring it failed, the whole watch
+was left without touch until it was rebooted — and Pacer could not repair it,
+because relaunching Pacer needs touch to reach the app list. The watch's own lock
+has none of that failure mode, because the OS owns the state and restores it.
 
-A right swipe is the same event as the lower button as far as the API is
-concerned, so it is swallowed rather than treated as Back — see the input notes
-in `AGENTS.md`.
+**Upper button — nothing.** It used to toggle Pacer's lock. Held, it opens the
+controls menu, which is where Lock Screen lives.
+
+**Lower button — Back. It exits, immediately.** There is no confirmation, because
+there is nothing left to clean up before leaving. Lock the screen during a
+session and the button cannot reach Pacer anyway.
+
+A right swipe arrives as the same event as the lower button, so Pacer tells them
+apart and swallows the swipe — see the input notes in `AGENTS.md`.
 
 **The version on screen is the point.** A sideload to this watch goes over MTP
 and *cannot* be verified from the host — see the deploy section of `AGENTS.md`.
@@ -155,9 +158,8 @@ running app, a graphics context or a simulator window.
 | --- | --- |
 | `source/pacerApp.mc` | Settings, storage, the cue timer, app lifecycle |
 | `source/pacerView.mc` | The only screen — draws, decides nothing |
-| `source/pacerDelegate.mc` | Input, the touch lock, and when Back may exit |
+| `source/pacerDelegate.mc` | Input — telling a button press from a touch |
 | `source/MainInputGate.mc` | Tells a physical button from a touch gesture |
-| `source/TouchControl.mc` | The watch-global touch switch, and its failure modes |
 | `source/Layout.mc` | Every coordinate, including round-screen chord maths |
 | `source/Display.mc` | Every string the screen draws |
 | `source/PacerMath.mc` | Pace arithmetic, clamping and value formatting |
