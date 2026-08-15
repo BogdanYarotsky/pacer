@@ -27,11 +27,14 @@ module PacerMath {
     // Milliseconds between vibration cues.
     //
     // Each breath gets two cues, one at each turn-around, so a cue interval is
-    // half a breath. The two cues are identical on purpose: with an equal I:E
-    // ratio the boundaries are interchangeable, so this is a metronome at twice
-    // the breath rate and carries no phase. See AGENTS.md before "improving" it.
+    // half a breath:
     //     60000 / (paceHundredths / 100) / 2  ==  3000000 / paceHundredths
     // The + 0.5 rounds to nearest rather than truncating.
+    //
+    // The two cues are identical on purpose. With an equal I:E ratio the
+    // boundaries are interchangeable, so what the wrist feels is a metronome at
+    // twice the breath rate, carrying no phase at all -- which is exactly what
+    // lets you rejoin on any pulse. Read AGENTS.md before "improving" that.
     function intervalMillis(paceHundredths as Number) as Number {
         return ((3000000.0 / paceHundredths) + 0.5).toNumber();
     }
@@ -39,9 +42,9 @@ module PacerMath {
     // Render an integer number of hundredths as "N.NN".
     // 571 -> "5.71", 600 -> "6.00", 605 -> "6.05".
     //
-    // Number / Number is integer division, and format("%02d") is the same
-    // zero-padding ClockText uses -- the hand-rolled "if under ten, prepend a
-    // zero" it replaces was a second idiom for one job.
+    // Number / Number is integer division, and format("%02d") does the padding.
+    // The hand-rolled "if under ten, prepend a zero" this replaced was a second
+    // idiom for a job the Lang built-in already did.
     function formatHundredths(value as Number) as String {
         return (value / 100).toString() + "." + (value % 100).format("%02d");
     }

@@ -3,8 +3,10 @@ import Toybox.Lang;
 import Toybox.System;
 import Toybox.WatchUi;
 
-// The one and only screen: a clock, a status line, three tap-editable settings
-// and a footer hint.
+// The one and only screen: the time, three tap-editable settings and the build
+// version. The cue is haptic, so nothing here paces you and nothing animates --
+// the clock is the only thing on the screen that moves, and it moves once a
+// minute.
 //
 // Every coordinate comes from Layout and every string from Display. Neither a
 // pixel offset nor a literal caption belongs in this file -- both are covered by
@@ -19,20 +21,22 @@ class pacerView extends WatchUi.View {
     private var _centerX as Number = 0;
     private var _controlLeftX as Number = 0;
     private var _controlRightX as Number = 0;
-    private var _footerY as Number = 0;
+    private var _clockY as Number = 0;
+    private var _versionY as Number = 0;
 
     function initialize() {
         View.initialize();
     }
 
-    // The entry point for the View, called before it is first shown. The footer
-    // anchor depends on a measured font height, which needs a Dc.
+    // The entry point for the View, called before it is first shown. The clock
+    // and version anchors depend on measured font heights, which need a Dc.
     function onLayout(dc as Dc) as Void {
         var width = dc.getWidth();
         _centerX = Layout.centerX(width);
         _controlLeftX = Layout.editorControlX(width, false);
         _controlRightX = Layout.editorControlX(width, true);
-        _footerY = Layout.footerY(dc.getHeight(), dc.getFontHeight(FONT_TEXT));
+        _clockY = Layout.clockY(dc.getFontHeight(FONT_CLOCK));
+        _versionY = Layout.versionY(dc.getHeight(), dc.getFontHeight(FONT_TEXT));
     }
 
     // Touch locking is opt-in. Returning to this sole View reapplies the user's
@@ -51,20 +55,17 @@ class pacerView extends WatchUi.View {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
 
         drawCentered(
-            dc, Layout.CLOCK_Y, FONT_CLOCK,
+            dc, _clockY, FONT_CLOCK,
             ClockText.formatTime(now.hour, now.min, System.getDeviceSettings().is24Hour));
-        drawCentered(
-            dc, Layout.STATUS_Y, FONT_TEXT,
-            Display.status(app.APP_VERSION, locked));
 
         drawEditorRow(dc, 0, Display.LABEL_PACE, app.getPaceText(), locked);
         drawEditorRow(dc, 1, Display.LABEL_STRENGTH, app.getStrengthText(), locked);
         drawEditorRow(dc, 2, Display.LABEL_LENGTH, app.getDurationText(), locked);
 
-        // The rows leave the pen dimmed while locked. The footer is the line
-        // that says how to unlock, so it is never the dim one.
+        // The rows leave the pen dimmed while locked. The version says nothing
+        // about the lock, so it takes the pen back.
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        drawCentered(dc, _footerY, FONT_TEXT, Display.footer(locked));
+        drawCentered(dc, _versionY, FONT_TEXT, Display.version(app.APP_VERSION));
     }
 
     // Best-effort lifecycle restoration. Controlled navigation and exit paths

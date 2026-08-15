@@ -17,9 +17,6 @@ module Layout {
 
     const DISPLAY_WIDTH = 390;
 
-    const CLOCK_Y = 12;
-    const STATUS_Y = 65;
-
     const EDITOR_FIRST_ROW_TOP = 96;
     const EDITOR_ROW_HEIGHT = 72;
     const EDITOR_ROW_COUNT = 3;
@@ -30,16 +27,16 @@ module Layout {
     const CONTROL_RADIUS = 24;
     const CONTROL_HIT_EDGE = 110;
 
-    // Clearance from the bottom edge for the footer line. The footer is
-    // positioned from its measured font height rather than a fixed offset: the
-    // original code used offsets of 74/46/24 from the bottom, i.e. gaps of 28
-    // and 22 px, while the fonts are 48-54 px tall. Every line overlapped the
-    // one above it and all three were clipped by the curve of the display.
-    const FOOTER_BOTTOM_MARGIN = 34;
+    // Clearance from the bottom edge for the version line, which is positioned
+    // from its measured font height rather than a fixed offset: the original
+    // code used offsets of 74/46/24 from the bottom, i.e. gaps of 28 and 22 px,
+    // while the fonts are 48-54 px tall. Every line overlapped the one above it
+    // and all three were clipped by the curve of the display.
+    const VERSION_BOTTOM_MARGIN = 34;
 
     // editorActionAt encodes its result as (row * 2) + direction, so these must
     // stay contiguous and in this order, decrease before increase. All six are
-    // pinned by tests/EditorLayoutTest.mc.
+    // pinned by the tap-hit-mapping tests in tests/LayoutTest.mc.
     const ACTION_NONE = 0;
     const ACTION_PACE_DOWN = 1;
     const ACTION_PACE_UP = 2;
@@ -53,6 +50,18 @@ module Layout {
 
     function centerX(width as Number) as Number {
         return width / 2;
+    }
+
+    // Top edge of the clock line, given the height of the font it will be drawn
+    // in. The clock has the whole band above the first editor row to itself and
+    // sits centred in it, so a taller font grows away from both neighbours
+    // instead of walking into the row below.
+    //
+    // Centred, and not pinned near the top edge: this is a round screen, and the
+    // usable chord at y=12 is only ~134 px against ~176 px at y=21. The clock is
+    // set in the largest font on the screen, so it wants the wider line.
+    function clockY(fontHeight as Number) as Number {
+        return (EDITOR_FIRST_ROW_TOP - fontHeight) / 2;
     }
 
     function editorRowTop(index as Number) as Number {
@@ -75,11 +84,11 @@ module Layout {
         return increase ? width - CONTROL_INSET : CONTROL_INSET;
     }
 
-    // Top edge of the bottom-anchored footer line, given the height of the font
+    // Top edge of the bottom-anchored version line, given the height of the font
     // it will be drawn in. Taking the measured height is what keeps the line
     // clear of the bottom edge whatever font the device ships.
-    function footerY(height as Number, fontHeight as Number) as Number {
-        return height - FOOTER_BOTTOM_MARGIN - fontHeight;
+    function versionY(height as Number, fontHeight as Number) as Number {
+        return height - VERSION_BOTTOM_MARGIN - fontHeight;
     }
 
     // Map only the large edge hit zones to an action. The centre text is not

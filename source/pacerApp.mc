@@ -93,6 +93,15 @@ class pacerApp extends Application.AppBase {
         startTimer();
     }
 
+    // Buzz, and carry the clock. The cue is the only thing already ticking, so
+    // it doubles as the clock's refresh rather than a second timer running
+    // alongside it -- which also keeps the displayed minute at most one cue
+    // interval (~5 s) stale, where a free-running 60 s timer would drift up to a
+    // full minute behind the wall clock.
+    //
+    // No mute branch: the strength floor is 1%, not 0%. The weakest setting
+    // still asks the hardware for a cue, and whether one arrives is the
+    // hardware's answer to give.
     function timerCallback() as Void {
         var minute = System.getClockTime().min;
         if (minute != _lastRedrawMinute) {
@@ -100,14 +109,9 @@ class pacerApp extends Application.AppBase {
             WatchUi.requestUpdate();
         }
 
-        // No mute branch: the strength floor is 1%, not 0%. The weakest setting
-        // still asks the hardware for a cue, and whether one arrives is the
-        // hardware's answer to give.
-        if (!(Attention has :vibrate)) {
-            return;
+        if (Attention has :vibrate) {
+            Attention.vibrate(vibeProfiles());
         }
-
-        Attention.vibrate(vibeProfiles());
     }
 
     private function vibeProfiles() as Array<Attention.VibeProfile> {

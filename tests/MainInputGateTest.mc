@@ -71,3 +71,21 @@ function mainDelegateSwallowsBackWithoutPhysicalKey(logger as Test.Logger) as Bo
     );
     return true;
 }
+
+// A fresh app instance must never opt into the touch lock. This is a safety
+// invariant, not a default: pacerView.onShow calls applyTouchLock, so an
+// unlocked start makes every launch assert touch-ON, and onBack exits only when
+// unlocked, so a fresh launch can always be left. Starting locked would invert
+// both -- every launch would disable touch, and a rejected unlock would leave
+// nothing able to re-enable it.
+//
+// The platform state itself is covered by tests/input-behaviour.ps1; the test
+// runner rejects configureTouchEvents(true) even from the foreground View.
+(:test)
+function editorStartsLogicallyUnlocked(logger as Test.Logger) as Boolean {
+    Test.assertMessage(
+        !getApp().isTouchLocked(),
+        "a fresh editor must not opt into touch lock"
+    );
+    return true;
+}

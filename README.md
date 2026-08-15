@@ -24,12 +24,11 @@ nudging a known value, not by sweeping it.
 
 ## Using it
 
-The single screen shows the time, the running build, three editable settings and
-a hint line:
+The single screen shows the time, three editable settings and the running build.
+Nothing on it changes on its own except the clock, once a minute:
 
 ```
                     07:42
-                  v0.22  EDIT
 
         ( − )      PACE            ( + )
                    5.71 BPM / 5.25s
@@ -40,7 +39,7 @@ a hint line:
         ( − )      LENGTH          ( + )
                    170 ms
 
-                  TOP: LOCK
+                    v0.22
 ```
 
 | Setting | Default | Range | Step per tap |
@@ -72,9 +71,10 @@ None of that is verifiable from a computer: `Attention.vibrate` does nothing
 observable in the simulator. Sweep it on your own wrist.
 
 **Upper button — touch lock.** Pressing the upper physical button toggles a
-global touch lock. Locked, the controls dim, taps do nothing, and the hint reads
-`TOP: EDIT`. This exists because a sleeve or a palm across the screen can trigger
-a platform-level exit that never reaches the app at all. Lock it before a
+global touch lock. Locked, the `−`/`+` controls dim and taps do nothing; that
+dimming is the whole of the state display, and the screen no longer says so in
+words as well. This exists because a sleeve or a palm across the screen can
+trigger a platform-level exit that never reaches the app at all. Lock it before a
 session; the upper button still unlocks.
 
 **Lower button — Back.** Unlocked, Back exits. Locked, Back unlocks and stays
@@ -160,7 +160,7 @@ running app, a graphics context or a simulator window.
 | `source/TouchControl.mc` | The watch-global touch switch, and its failure modes |
 | `source/Layout.mc` | Every coordinate, including round-screen chord maths |
 | `source/Display.mc` | Every string the screen draws |
-| `source/PacerMath.mc` | Pace arithmetic and value formatting |
+| `source/PacerMath.mc` | Pace arithmetic, clamping and value formatting |
 | `source/ClockText.mc` | Clock rendering, 12- and 24-hour |
 
 `Layout` and `Display` exist so the tests measure the real coordinates and the

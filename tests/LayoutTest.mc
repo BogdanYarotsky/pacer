@@ -42,18 +42,30 @@ function layoutDisplayWidthMatchesTheDevice(logger as Test.Logger) as Boolean {
     return true;
 }
 
+// The clock is anchored off the first editor row by the height of the font it
+// will be drawn in, so it cannot fall off the top edge or grow down into the
+// row below whatever that font turns out to be.
 (:test)
 function layoutAnchorsAreOnScreen(logger as Test.Logger) as Boolean {
     var h = LayoutTestConst.VA5_H;
+    var heights = [20, 26, 35, 48, 54];
 
-    Test.assertMessage(Layout.CLOCK_Y >= 0, "clock is above the top edge");
+    for (var i = 0; i < heights.size(); i += 1) {
+        var fontHeight = heights[i] as Number;
+        var y = Layout.clockY(fontHeight);
+        logger.debug("font " + fontHeight + "px -> clock y=" + y + " bottom=" + (y + fontHeight));
+
+        Test.assertMessage(y >= 0, "clock for a " + fontHeight + "px font is off the top: " + y);
+        Test.assertMessage(
+            y + fontHeight <= Layout.editorRowTop(0),
+            "clock for a " + fontHeight + "px font runs into the first editor row"
+        );
+    }
+
+    // A taller font must grow the clock upwards, never down into the rows.
     Test.assertMessage(
-        Layout.STATUS_Y > Layout.CLOCK_Y,
-        "the status line must sit below the clock"
-    );
-    Test.assertMessage(
-        Layout.editorRowTop(0) > Layout.STATUS_Y,
-        "the first editor row must sit below the status line"
+        Layout.clockY(54) < Layout.clockY(20),
+        "a taller font must raise the clock anchor"
     );
     Test.assertMessage(
         Layout.editorRowTop(2) + Layout.EDITOR_ROW_HEIGHT < h,
@@ -62,37 +74,37 @@ function layoutAnchorsAreOnScreen(logger as Test.Logger) as Boolean {
     return true;
 }
 
-// The footer is anchored off the bottom edge by the height of the font it will
-// actually be drawn in, so it cannot run off the screen whatever that font is.
-// Fixed per-line offsets are the exact defect that shipped in the original
+// The version line is anchored off the bottom edge by the height of the font it
+// will actually be drawn in, so it cannot run off the screen whatever that font
+// is. Fixed per-line offsets are the exact defect that shipped in the original
 // layout: 74/46/24 px from the bottom for fonts 48-54 px tall, so every line
 // overlapped the one above it.
 (:test)
-function layoutFooterClearsTheBottomEdgeForAnyFont(logger as Test.Logger) as Boolean {
+function layoutVersionClearsTheBottomEdgeForAnyFont(logger as Test.Logger) as Boolean {
     var h = LayoutTestConst.VA5_H;
     var heights = [20, 26, 35, 48, 54];
 
     for (var i = 0; i < heights.size(); i += 1) {
         var fontHeight = heights[i] as Number;
-        var y = Layout.footerY(h, fontHeight);
+        var y = Layout.versionY(h, fontHeight);
         var bottom = y + fontHeight;
-        logger.debug("font " + fontHeight + "px -> footer y=" + y + " bottom=" + bottom);
+        logger.debug("font " + fontHeight + "px -> version y=" + y + " bottom=" + bottom);
 
-        Test.assertMessage(y >= 0, "footer for a " + fontHeight + "px font is off the top: " + y);
+        Test.assertMessage(y >= 0, "version for a " + fontHeight + "px font is off the top: " + y);
         Test.assertMessage(
             bottom <= h,
-            "footer for a " + fontHeight + "px font runs off the bottom: " + bottom + " > " + h
+            "version for a " + fontHeight + "px font runs off the bottom: " + bottom + " > " + h
         );
         Test.assertMessage(
-            bottom <= h - Layout.FOOTER_BOTTOM_MARGIN,
-            "footer for a " + fontHeight + "px font eats into the bottom margin"
+            bottom <= h - Layout.VERSION_BOTTOM_MARGIN,
+            "version for a " + fontHeight + "px font eats into the bottom margin"
         );
     }
 
     // A taller font must move the line up, never push it down into the edge.
     Test.assertMessage(
-        Layout.footerY(h, 54) < Layout.footerY(h, 20),
-        "a taller font must raise the footer anchor"
+        Layout.versionY(h, 54) < Layout.versionY(h, 20),
+        "a taller font must raise the version anchor"
     );
     return true;
 }
@@ -216,13 +228,14 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
 
     var clockFont = Graphics.FONT_MEDIUM;
     var textFont = Graphics.FONT_XTINY;
-    var version = getApp().APP_VERSION;
+    var clockHeight = dc.getFontHeight(clockFont);
+    var textHeight = dc.getFontHeight(textFont);
+    logger.debug("measured font heights: clock " + clockHeight + "px, text " + textHeight + "px");
 
     // 24-hour is the wider of the two clock formats, and 23:59 the widest hour.
-    assertLineFits(dc, Layout.CLOCK_Y, ClockText.formatTime(23, 59, true), clockFont, "clock");
-
-    assertLineFits(dc, Layout.STATUS_Y, Display.status(version, true), textFont, "status locked");
-    assertLineFits(dc, Layout.STATUS_Y, Display.status(version, false), textFont, "status unlocked");
+    // layoutEveryClockMinuteFits is the exhaustive version of this line.
+    assertLineFits(
+        dc, Layout.clockY(clockHeight), ClockText.formatTime(23, 59, true), clockFont, "clock");
 
     var labels = [ Display.LABEL_PACE, Display.LABEL_STRENGTH, Display.LABEL_LENGTH ];
     for (var i = 0; i < labels.size(); i += 1) {
@@ -242,12 +255,51 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
         );
     }
 
-    var footers = [ Display.footer(true), Display.footer(false) ];
-    var footerY = Layout.footerY(h, dc.getFontHeight(textFont));
-    for (var i = 0; i < footers.size(); i += 1) {
-        assertLineFits(dc, footerY, footers[i] as String, textFont, "footer " + i);
-    }
+    var versionY = Layout.versionY(h, textHeight);
+    assertLineFits(dc, versionY, Display.version(getApp().APP_VERSION), textFont, "version");
 
+    // The other end of the same question layoutAnchorsAreOnScreen asks at the
+    // top: the version line is anchored to the bottom edge and the last row's
+    // value to the row grid, so nothing but a measured font height stands
+    // between them. Both are XTINY, and only what is drawn is compared -- a
+    // font box is taller than its glyphs, so touching boxes are not a collision.
+    var lastValueBottom = Layout.editorValueY(2) + textHeight;
+    Test.assertMessage(
+        versionY >= lastValueBottom,
+        "the version line overlaps the last editor value: version at " + versionY +
+            ", the value ends at " + lastValueBottom
+    );
+
+    return true;
+}
+
+// Every minute of the day, in both clock formats. The clock is set in the
+// largest font on the screen and sits nearest the top edge, where the round
+// chord is tightest, so "23:59 fits" is worth proving rather than assuming.
+(:test)
+function layoutEveryClockMinuteFits(logger as Test.Logger) as Boolean {
+    var w = LayoutTestConst.VA5_W;
+    var h = LayoutTestConst.VA5_H;
+
+    var ref = Graphics.createBufferedBitmap({:width => w, :height => h});
+    var bmp = ref.get();
+    Test.assertMessage(bmp != null, "could not create a buffered bitmap to measure text with");
+    var dc = (bmp as Graphics.BufferedBitmap).getDc();
+
+    var clockFont = Graphics.FONT_MEDIUM;
+    var y = Layout.clockY(dc.getFontHeight(clockFont));
+    var formats = [ true, false ];
+
+    for (var f = 0; f < formats.size(); f += 1) {
+        var is24Hour = formats[f] as Boolean;
+        for (var hour = 0; hour < 24; hour += 1) {
+            for (var minute = 0; minute < 60; minute += 1) {
+                assertLineFits(
+                    dc, y, ClockText.formatTime(hour, minute, is24Hour), clockFont,
+                    "clock " + hour + ":" + minute + (is24Hour ? " 24h" : " 12h"));
+            }
+        }
+    }
     return true;
 }
 
@@ -281,5 +333,31 @@ function layoutEveryReachableValueFits(logger as Test.Logger) as Boolean {
         assertLineFits(
             dc, Layout.editorValueY(2), PacerMath.formatDuration(v), textFont, "duration " + v);
     }
+    return true;
+}
+
+// --- tap hit mapping --------------------------------------------------------
+//
+// editorActionAt encodes its result as (row * 2) + direction, so these six cases
+// are what pins the ACTION_ constants to staying contiguous and in order.
+
+(:test)
+function editorLayoutMapsEveryControl(logger as Test.Logger) as Boolean {
+    var w = 390;
+    Test.assertEqualMessage(Layout.editorActionAt(55, 130, w), Layout.ACTION_PACE_DOWN, "pace -");
+    Test.assertEqualMessage(Layout.editorActionAt(335, 130, w), Layout.ACTION_PACE_UP, "pace +");
+    Test.assertEqualMessage(Layout.editorActionAt(55, 202, w), Layout.ACTION_STRENGTH_DOWN, "strength -");
+    Test.assertEqualMessage(Layout.editorActionAt(335, 202, w), Layout.ACTION_STRENGTH_UP, "strength +");
+    Test.assertEqualMessage(Layout.editorActionAt(55, 274, w), Layout.ACTION_DURATION_DOWN, "duration -");
+    Test.assertEqualMessage(Layout.editorActionAt(335, 274, w), Layout.ACTION_DURATION_UP, "duration +");
+    return true;
+}
+
+(:test)
+function editorLayoutRejectsLabelsAndOutsideRows(logger as Test.Logger) as Boolean {
+    var w = 390;
+    Test.assertEqualMessage(Layout.editorActionAt(195, 130, w), Layout.ACTION_NONE, "pace label");
+    Test.assertEqualMessage(Layout.editorActionAt(55, 90, w), Layout.ACTION_NONE, "above rows");
+    Test.assertEqualMessage(Layout.editorActionAt(335, 312, w), Layout.ACTION_NONE, "below rows");
     return true;
 }

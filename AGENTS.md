@@ -11,8 +11,23 @@ resonance-frequency breathing. Single target device.
 animated arc, no pulsing ring, no phase readout. The app exists to pace breathing
 *without* looking at the watch, so a visual cue would invite exactly the
 attention it is meant to free. A screen that does not change between pulses is
-the intended design, not a gap. This is also why the cue timer only requests a
-redraw when the displayed minute changes.
+the intended design, not a gap.
+
+The clock at the top is not an exception to that rule — it tracks the wall clock,
+not the breath. It is the only thing on screen that changes on its own, and the
+only reason `timerCallback` requests a redraw at all: it requests one *only* when
+the displayed minute changes, so a session repaints about once a minute rather
+than eleven times. Every other change requests its own update.
+
+That gating is also why the cue timer carries the clock instead of a second timer
+running beside it. A free-running 60 s timer would drift up to a full minute
+behind the wall clock; hanging the check on the cue keeps the displayed minute at
+most one cue interval (~5 s) stale for no extra timer at all.
+
+Deleting the clock has been proposed once already, on the argument that it does
+no job the app needs and costs a repaint a minute for nothing. Reading the time
+without breaking off a breathing session *is* the job, and one repaint a minute
+is what it costs. It stays.
 
 **2. The two cues per breath are identical, and carry no phase information.**
 What the wrist feels is a metronome at twice the breath rate; nothing in it
@@ -201,7 +216,10 @@ check that needs touch has to come before the lock check.
 
 The display is a **circle**. Text that fits within 390 px of width still gets
 clipped near the top and bottom, where the usable chord is far narrower. At the
-hint line (y≈366) the usable width is only ~190 px, not 390.
+bottom of the version line's glyph box (y≈353) the usable width is ~228 px, not
+390; another 13 px lower it is ~190 px. This is why the clock is centred in the
+band above the first row instead of pinned near the top edge — at y=12 it would
+have had ~134 px for the largest font on the screen, against ~176 px at y=21.
 
 `source/Layout.mc` models this with `halfChordAt()` and `fitsOnRoundScreen()`.
 **All layout coordinates must come from `Layout`.** Do not put literal pixel
@@ -211,11 +229,15 @@ offsets in `pacerView.mc` — that is exactly the bug the tests exist to catch.
 only be trusted if it measures the string the view actually draws. The layout
 test spent several commits asserting that `"v0.22  UNLOCKED"` fit, on a screen
 that had been drawing `"v0.22  EDIT"` the whole time — green, and measuring
-nothing. `Display` holds the captions and `PacerMath.format*` holds the value
-strings; `pacerView` and `LayoutTest` both read from there, so the two cannot
-diverge. `layoutEveryReachableValueFits` then sweeps **every** value the tap
-controls can reach (all 201 paces, 21 strengths, 96 lengths) rather than a
-hand-picked worst case, and `layoutDisplayWidthMatchesTheDevice` pins
+nothing. Both of those strings are gone now — the lock state was being spelled
+out in words on two lines while the row controls were already showing it by
+dimming — but the rule they cost is permanent. `Display` holds the captions and
+`PacerMath.format*`/`ClockText.formatTime` hold the value strings; `pacerView`
+and `LayoutTest` both read from there, so the two cannot diverge.
+`layoutEveryReachableValueFits` then sweeps **every** value the tap controls can
+reach (all 251 paces, 100 strengths, 981 lengths) and `layoutEveryClockMinuteFits`
+every minute of the day in both clock formats, rather than a hand-picked worst
+case, and `layoutDisplayWidthMatchesTheDevice` pins
 `Layout.DISPLAY_WIDTH` — which `pacerDelegate` maps taps with — to
 `System.getDeviceSettings().screenWidth`, which is what `pacerView` draws with.
 
@@ -363,7 +385,13 @@ be answered by a pure function in `Layout.mc`, write the test instead.
 
 Tests live in `tests/`, wired via `base.sourcePath = source;tests` in
 `monkey.jungle`. They are compiled in only with `-t`, so they cost nothing in a
-normal build (115.8 KB vs 125.3 KB).
+normal build (106.5 KB vs 132.3 KB).
+
+One file per thing under test, and no more: `LayoutTest` (geometry, round-screen
+fit, and tap hit mapping), `PacerMathTest` (clamping, pace arithmetic,
+formatting), `ClockTextTest` (both clock formats), `MainInputGateTest`
+(button-vs-touch, and the unlocked-start invariant), `SettingsTest`,
+`input-behaviour.ps1`.
 
 - Mark tests `(:test)`; they take a `Test.Logger` and return `Boolean`.
 - Non-global test methods must be **static**.
@@ -372,6 +400,12 @@ normal build (115.8 KB vs 125.3 KB).
   (The SDK's own prose table for these is garbled — the method list is correct.)
 - Put logic in pure modules (`Layout`, `PacerMath`) so it is testable without a
   running app instance.
+- **Exactly one test writes to Storage** —
+  `settingsStepsWalkEveryRangeEndToEnd`, because walking the real setters is the
+  only way to prove they clamp. It restores from a `finally`, not from the end of
+  the happy path: an assertion throws, and a restore that only runs on success
+  strands whatever value the test died on in the simulator for every run after
+  it. That is not hypothetical; it happened. Keep new tests pure.
 
 **Do not weaken a test to make the loop green.** A failing test that reflects
 reality is the tool working.
@@ -384,9 +418,14 @@ reality is the tool working.
 
 ## What cannot be tested from here — needs your wrist
 
-- Menu/picker interaction and whether values commit.
 - **`Attention.vibrate` does nothing observable in the simulator.** Whether the
   pulses land at the right interval and strength is only verifiable on-device.
-- Timer drift over minutes; whether 5.71 breaths/min actually feels right.
-- Real memory pressure, battery cost, sleep/activity interaction.
+- **Where the cue stops being felt.** The strength floor is 1% and the length
+  floor 20 ms, both deliberately below what a body registers, so the bottom of
+  each scale is findable rather than hidden. Only a wrist can say where it is.
+- Whether 5.71 breaths/min actually feels right.
+- Real memory pressure and battery cost.
 - Whether a deploy landed (see above).
+
+Confirmed on-wrist, so stop re-litigating it: the cue timer keeps running
+correctly through a full session with the screen off and the arm down.
