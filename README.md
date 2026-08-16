@@ -16,11 +16,12 @@ Making the two cues distinguishable would destroy that to solve a problem
 symmetric breathing does not have.
 
 The pace range is 4.50–7.00 breaths/min, the band standard resonance-frequency
-assessment protocols sweep. The default of 5.71 is a personally measured
-resonance frequency, not a generic value; re-measure and adjust it on the watch
-rather than in code. The 0.01 step is finer than any published protocol resolves
-to — they use 0.5 steps, 0.2 in refined variants — because the range is walked by
-nudging a known value, not by sweeping it.
+assessment protocols sweep. It starts at **6.00** — 0.1 Hz, the population
+average the literature converges on — because that is where to start looking, not
+an answer. Resonance frequency is individual: measure your own and dial it in on
+the watch rather than in code. The 0.01 step is finer than any published protocol
+resolves to — they use 0.5 steps, 0.2 in refined variants — because the range is
+walked by nudging a known value, not by sweeping it.
 
 ## Using it
 
@@ -34,7 +35,7 @@ Nothing on it changes on its own except the clock, once a minute:
                    20%
 
         ( − )      PACE            ( + )
-                   5.71bpm | 5.25s
+                   6bpm | 5s
 
         ( − )      BUZZ            ( + )
                    100 ms
@@ -45,7 +46,7 @@ Nothing on it changes on its own except the clock, once a minute:
 | Setting | Default | Range | Step per tap |
 | --- | ---: | ---: | ---: |
 | Vibration strength — the `POWER` row | 20% | 2–100% | 2% |
-| Breathing pace — the `PACE` row | 5.71 breaths/min | 4.50–7.00 | 0.01 |
+| Breathing pace — the `PACE` row | 6.00 breaths/min | 4.50–7.00 | 0.01 |
 | Vibration length — the `BUZZ` row | 100 ms | 10–250 ms | 10 ms |
 
 `PACE` leads with breaths per minute — the number a tap moves, and the one
@@ -114,6 +115,11 @@ session and the button cannot reach Pacer anyway.
 
 A right swipe arrives as the same event as the lower button, so Pacer tells them
 apart and swallows the swipe — see the input notes in `AGENTS.md`.
+
+**If the bottom line reads `VIBE OFF`, the watch cannot vibrate** — either the
+system vibration setting is off or the device has no motor. Pacer will run a
+flawless session and you will feel nothing, so it says so rather than leaving you
+to tell that apart from a dead app. It is the only warning on the screen.
 
 **The version on screen is the point.** A sideload to this watch goes over MTP
 and *cannot* be verified from the host — see the deploy section of `AGENTS.md`.

@@ -13,8 +13,15 @@ animated arc, no pulsing ring, no phase readout. The app exists to pace breathin
 attention it is meant to free. A screen that does not change between pulses is
 the intended design, not a gap.
 
-The clock at the top is not an exception to that rule — it tracks the wall clock,
-not the breath. It is the only thing on screen that changes on its own, and the
+There is exactly one other thing on the screen that reacts to state, and it is
+not a cue either: the bottom line appends `VIBE OFF` when the watch cannot
+vibrate. That reports whether the app can do its job at all, in the same slot the
+build version occupies — it does not change between pulses, carries no phase and
+says nothing about breathing. It is the only warning that belongs there. A future
+agent will read rule 1 and want to delete it; do not.
+
+The clock at the top is not an exception to that rule either — it tracks the wall
+clock, not the breath. It is the only thing on screen that changes on its own, and the
 only reason `timerCallback` requests a redraw at all: it requests one *only* when
 the displayed minute changes, so a session repaints about once a minute rather
 than eleven times. Every other change requests its own update.
@@ -515,11 +522,12 @@ reality is the tool working.
   which can be up to ~6.7 s later, so a tap will not alter a buzz already in
   flight.
 
-- **A watch with vibration switched off feels identical to a broken app.**
-  `System.getDeviceSettings().vibrateOn` reports it, and Pacer deliberately does
-  not check it: the only thing it could do with the answer is draw something, and
-  the screen is not a cue surface. If nothing is felt on the wrist, rule this out
-  before reading any code.
+- **A watch with vibration switched off feels identical to a broken app.** This
+  is the one failure mode the app can see, so as of v0.23 it says so: the bottom
+  line reads `v0.23  VIBE OFF` when `Attention has :vibrate` is false or
+  `System.getDeviceSettings().vibrateOn` is off. If nothing is felt on the wrist
+  and that warning is absent, the fault is below the app and no amount of reading
+  this code will find it.
 - **Where the cue stops being felt.** The strength floor is 2% and the length
   floor 10 ms, both deliberately below what a body registers, so the bottom of
   each scale is findable rather than hidden. Only a wrist can say where it is.

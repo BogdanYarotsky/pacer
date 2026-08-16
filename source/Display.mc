@@ -37,7 +37,22 @@ module Display {
     // The bottom line. The version is on screen because reading it off the watch
     // is the only proof of which build a sideload installed -- see the deploy
     // notes in AGENTS.md.
-    function version(appVersion as String) as String {
-        return "v" + appVersion;
+    //
+    // It carries one warning, and only one: that no cue is going to arrive. A
+    // watch with vibration switched off runs a flawless session and delivers
+    // nothing, which is indistinguishable from a dead motor, a bad sideload or a
+    // bug -- the app's single failure mode that the app itself could see and,
+    // until now, said nothing about.
+    //
+    // This is not the visual cue AGENTS.md forbids, and the distinction is worth
+    // stating because the line is easy to grow: it does not change between
+    // pulses, carries no phase, and says nothing about breathing. It reports
+    // whether the app can do its job at all, which is the same slot the version
+    // occupies. Nothing else belongs here.
+    function bottomLine(appVersion as String, willVibrate as Boolean) as String {
+        if (willVibrate) {
+            return "v" + appVersion;
+        }
+        return "v" + appVersion + "  VIBE OFF";
     }
 }

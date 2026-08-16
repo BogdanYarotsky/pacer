@@ -278,8 +278,15 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
         );
     }
 
+    // Both forms of the bottom line, because the warning form is the longer one
+    // and it sits where the round screen is at its tightest -- the chord under
+    // this anchor is roughly half the display width. A warning nobody can read
+    // because it is clipped at both ends is worse than no warning.
     var versionY = Layout.versionY(h, textHeight);
-    assertLineFits(dc, versionY, Display.version(getApp().APP_VERSION), textFont, "version");
+    var appVersion = getApp().APP_VERSION;
+    assertLineFits(dc, versionY, Display.bottomLine(appVersion, true), textFont, "version");
+    assertLineFits(
+        dc, versionY, Display.bottomLine(appVersion, false), textFont, "version + vibe warning");
 
     // The other end of the same question layoutAnchorsAreOnScreen asks at the
     // top: the version line is anchored to the bottom edge and the last row's

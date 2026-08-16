@@ -80,15 +80,26 @@ function pacerMathClampHoldsAcrossEveryRealRange(logger as Test.Logger) as Boole
 
 // --- pace arithmetic --------------------------------------------------------
 
-// The default pace of 5.71 breaths/min is a personally measured resonance
-// frequency. 3000000 / 571 = 5253.94..., which must round to 5254 rather than
-// truncate to 5253 -- at ~11 cues a minute a 1ms truncation is harmless, but the
+// 3000000 / 571 = 5253.94..., which must round to 5254 rather than truncate to
+// 5253. At ~11 cues a minute a 1 ms truncation is harmless in itself, but the
 // rounding is the part that is easy to break silently during a refactor.
+//
+// 571 is here because it is an awkward divisor, not because it is the default.
+// It was the default once, being a measured resonance frequency; the shipped
+// default is now the generic 6.00, which divides exactly and would exercise none
+// of this. Both are asserted so neither case can rot.
 (:test)
-function pacerMathIntervalAtDefaultPace(logger as Test.Logger) as Boolean {
-    var ms = PacerMath.intervalMillis(571);
-    logger.debug("intervalMillis(571) = " + ms);
-    Test.assertEqualMessage(ms, 5254, "571 hundredths should give 5254 ms");
+function pacerMathIntervalRoundsToNearest(logger as Test.Logger) as Boolean {
+    var awkward = PacerMath.intervalMillis(571);
+    logger.debug("intervalMillis(571) = " + awkward);
+    Test.assertEqualMessage(awkward, 5254, "571 hundredths should round up to 5254 ms");
+
+    var app = getApp();
+    var fromDefault = PacerMath.intervalMillis(app.DEFAULT_PACE_HUNDREDTHS);
+    logger.debug("intervalMillis(default " + app.DEFAULT_PACE_HUNDREDTHS + ") = " + fromDefault);
+    Test.assertEqualMessage(
+        fromDefault, 5000,
+        "the default pace should be one cue every 5000 ms exactly, not " + fromDefault);
     return true;
 }
 

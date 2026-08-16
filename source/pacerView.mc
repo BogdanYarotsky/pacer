@@ -1,3 +1,4 @@
+import Toybox.Attention;
 import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.System;
@@ -46,6 +47,7 @@ class pacerView extends WatchUi.View {
     function onUpdate(dc as Dc) as Void {
         var app = getApp();
         var now = System.getClockTime();
+        var settings = System.getDeviceSettings();
 
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
@@ -53,7 +55,7 @@ class pacerView extends WatchUi.View {
 
         drawCentered(
             dc, _clockY, FONT_CLOCK,
-            ClockText.formatTime(now.hour, now.min, System.getDeviceSettings().is24Hour));
+            ClockText.formatTime(now.hour, now.min, settings.is24Hour));
 
         // POWER, PACE, BUZZ -- the same order as the ACTION_ constants in
         // Layout, which is what maps a tap to the row under it.
@@ -61,7 +63,12 @@ class pacerView extends WatchUi.View {
         drawEditorRow(dc, 1, Display.LABEL_PACE, app.getPaceText());
         drawEditorRow(dc, 2, Display.LABEL_BUZZ, app.getDurationText());
 
-        drawCentered(dc, _versionY, FONT_TEXT, Display.version(app.APP_VERSION));
+        // The same two conditions timerCallback needs for a cue to happen at
+        // all. The cue path itself is left untouched: it still asks the OS to
+        // vibrate and lets the OS decide, so this only reports, never gates.
+        var willVibrate = (Attention has :vibrate) && settings.vibrateOn;
+        drawCentered(
+            dc, _versionY, FONT_TEXT, Display.bottomLine(app.APP_VERSION, willVibrate));
     }
 
     private function drawCentered(

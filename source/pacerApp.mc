@@ -11,7 +11,18 @@ class pacerApp extends Application.AppBase {
     // identifiable at a glance. Bump on every sideload.
     const APP_VERSION = "0.22";
 
-    const DEFAULT_PACE_HUNDREDTHS = 571;
+    // 6.00 breaths/min -- 0.1 Hz, the value the resonance-frequency literature
+    // converges on as a population average.
+    //
+    // It is deliberately NOT a measured value. A default is what a watch that
+    // has never been configured starts at, and one person's resonance frequency
+    // dressed as a default would be a wrong number wearing a right number's
+    // clothes. Whoever installs this should measure their own and dial it in;
+    // 6.00 is the place to start looking, not an answer.
+    //
+    // It is also the roundest pace on the scale: one cue every 5.00 s exactly,
+    // which the row displays as "6bpm | 5s".
+    const DEFAULT_PACE_HUNDREDTHS = 600;
 
     // Both vibe defaults sit on their own ladders -- settingsRangesAndStepsAre
     // Coherent proves it -- and both are starting points for a wrist to move
@@ -29,9 +40,10 @@ class pacerApp extends Application.AppBase {
     // was 6.5 for a while and simply could not express the top of that band.
     //
     // The 0.01 step is finer than any published protocol resolves to -- they use
-    // 0.5 steps, 0.2 in refined variants -- because the default here came from an
-    // individual measurement at that resolution, and the range is walked by
-    // nudging a known value rather than sweeping it. The precision is real all
+    // 0.5 steps, 0.2 in refined variants -- because the range is walked by
+    // nudging a known value rather than sweeping it, and the value being nudged
+    // toward is an individual measurement at that resolution. The shipped
+    // default is generic; what a wearer settles on is not. The precision is real all
     // the way down: all 251 values map to distinct timer periods, the closest
     // pair 6 ms apart, so no two paces silently collapse to the same cue.
     const MIN_PACE_HUNDREDTHS = 450;
