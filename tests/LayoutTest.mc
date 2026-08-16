@@ -278,15 +278,32 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
         );
     }
 
-    // Both forms of the bottom line, because the warning form is the longer one
-    // and it sits where the round screen is at its tightest -- the chord under
-    // this anchor is roughly half the display width. A warning nobody can read
-    // because it is clipped at both ends is worse than no warning.
+    // All four forms of the bottom line, because it sits where the round screen
+    // is at its tightest -- the chord under this anchor is roughly half the
+    // display width -- and a warning nobody can read because it is clipped at
+    // both ends is worse than no warning.
+    //
+    // Both showVersion states are passed explicitly rather than through
+    // Display.showsBuildVersion(), which always answers true here: tests compile
+    // with -t and that is a debug build. Passing the flag is what keeps the
+    // release strings measured by something.
     var versionY = Layout.versionY(h, textHeight);
     var appVersion = getApp().APP_VERSION;
-    assertLineFits(dc, versionY, Display.bottomLine(appVersion, true), textFont, "version");
-    assertLineFits(
-        dc, versionY, Display.bottomLine(appVersion, false), textFont, "version + vibe warning");
+    var shows = [ true, false ];
+    var vibes = [ true, false ];
+    for (var s = 0; s < shows.size(); s += 1) {
+        for (var v = 0; v < vibes.size(); v += 1) {
+            var showVersion = shows[s] as Boolean;
+            var willVibrate = vibes[v] as Boolean;
+            var line = Display.bottomLine(appVersion, showVersion, willVibrate);
+            logger.debug(
+                "bottom line: version=" + showVersion + " vibrate=" + willVibrate +
+                " -> \"" + line + "\"");
+            assertLineFits(
+                dc, versionY, line, textFont,
+                "bottom line (version=" + showVersion + ", vibrate=" + willVibrate + ")");
+        }
+    }
 
     // The other end of the same question layoutAnchorsAreOnScreen asks at the
     // top: the version line is anchored to the bottom edge and the last row's

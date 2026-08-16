@@ -121,10 +121,15 @@ system vibration setting is off or the device has no motor. Pacer will run a
 flawless session and you will feel nothing, so it says so rather than leaving you
 to tell that apart from a dead app. It is the only warning on the screen.
 
-**The version on screen is the point.** A sideload to this watch goes over MTP
-and *cannot* be verified from the host — see the deploy section of `AGENTS.md`.
-Reading the version off the watch is the only proof of which build is running,
-which is why `just deploy` bumps it before every build.
+**The version on screen is the point — on a sideload.** A sideload to this watch
+goes over MTP and *cannot* be verified from the host — see the deploy section of
+`AGENTS.md`. Reading the version off the watch is the only proof of which build
+is running, which is why `just deploy` bumps it before every build.
+
+A Store install has no such problem: the Connect IQ app reports the installed
+version. So the version line is drawn in **debug builds only**, which is every
+sideload. In a release build the bottom of the screen is empty unless something
+is wrong — the only thing that can appear there is `VIBE OFF`.
 
 ## Build and run
 
@@ -136,6 +141,7 @@ just build      # compile for vivoactive5 at strict typecheck (-w -l 3)
 just test       # build with -t, run the unit tests in the simulator, fail loudly
 just sim        # launch the simulator and load the app
 just shot       # capture the simulator window to shots/vivoactive5.png
+just shot-release # same, of the release build -- the only way to see (:release) code
 just deploy     # bump the on-screen version, build, push to the watch over MTP
 just input-test # drive real taps and button presses into the simulator (~40s)
 ```

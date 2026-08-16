@@ -14,7 +14,7 @@ attention it is meant to free. A screen that does not change between pulses is
 the intended design, not a gap.
 
 There is exactly one other thing on the screen that reacts to state, and it is
-not a cue either: the bottom line appends `VIBE OFF` when the watch cannot
+not a cue either: the bottom line reads `VIBE OFF` when the watch cannot
 vibrate. That reports whether the app can do its job at all, in the same slot the
 build version occupies — it does not change between pulses, carries no phase and
 says nothing about breathing. It is the only warning that belongs there. A future
@@ -372,6 +372,7 @@ name). They have not caused a problem so far.
 | `just test test_name=foo` | Run a single test |
 | `just sim` | Launch simulator and load the app |
 | `just shot` | Run in sim, capture window → `shots/vivoactive5.png` |
+| `just shot-release` | Same, but of the **release** build (`-r`) — the only way to see `(:release)` code |
 | `just deploy` | Bump version, build, push to watch over MTP |
 | `just deploy-nobump` | Same without bumping |
 | `just link-docs` | Re-point `sdk-docs`/`sdk-samples` after an SDK change |
@@ -445,6 +446,21 @@ proof a deploy landed: launch Pacer on the watch and read the version off the
 main screen. That is why `just deploy` bumps `APP_VERSION` in
 `source/pacerApp.mc` before every build. If the watch shows an older version, it
 is still running the old build.
+
+**The version is drawn in debug builds only**, behind `Display.showsBuildVersion`
+— a Store install has the Connect IQ app to report its version, so drawing it
+there is the duplication the delegation rule rejects. This is safe precisely
+because `deploy.ps1` calls `build.ps1` **without** `-Release`: every sideload is
+a debug build, so the one workflow that cannot verify itself is the one that
+keeps the version. If a release flag is ever added to the deploy path, this
+verification loop dies silently — the watch would simply stop showing a version
+and every deploy would look identical.
+
+Unit tests compile with `-t`, which is a debug build, so **tests cannot see
+`(:release)` code at all**. That is why `bottomLine` takes the flag as an
+argument and only a one-line predicate is annotated, and why `just shot-release`
+exists. Verified both ways: the release build draws no version, the debug build
+draws `v0.22`.
 
 A differently-signed build with the same app id must be uninstalled from the
 watch first — and that wipes its stored pace/strength/duration settings.

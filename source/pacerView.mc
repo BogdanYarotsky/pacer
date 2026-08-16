@@ -68,7 +68,8 @@ class pacerView extends WatchUi.View {
         // vibrate and lets the OS decide, so this only reports, never gates.
         var willVibrate = (Attention has :vibrate) && settings.vibrateOn;
         drawCentered(
-            dc, _versionY, FONT_TEXT, Display.bottomLine(app.APP_VERSION, willVibrate));
+            dc, _versionY, FONT_TEXT,
+            Display.bottomLine(app.APP_VERSION, Display.showsBuildVersion(), willVibrate));
     }
 
     private function drawCentered(

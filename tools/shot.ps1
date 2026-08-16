@@ -18,7 +18,12 @@ param(
     [string]$Device = "vivoactive5",
     [ValidateRange(0, 3)][int]$Typecheck = 3,
     [int]$SettleSec = 6,
-    [switch]$KeepSim
+    [switch]$KeepSim,
+    # Shoot the RELEASE build (monkeyc -r). Anything behind a (:release)
+    # annotation is invisible in every other way we have: unit tests compile
+    # with -t, which is a debug build, so this is the only way to see what a
+    # Store install actually draws.
+    [switch]$Release
 )
 
 . "$PSScriptRoot\env.ps1"
@@ -39,7 +44,7 @@ public class Win32ShotApi {
 }
 
 # --- build + launch -----------------------------------------------------------
-& "$PSScriptRoot\build.ps1" -Device $Device -Typecheck $Typecheck
+& "$PSScriptRoot\build.ps1" -Device $Device -Typecheck $Typecheck -Release:$Release
 if ($LASTEXITCODE -ne 0) { throw "shot: build failed" }
 
 $prg = Join-Path $RepoRoot "bin\pacer-$Device.prg"

@@ -51,6 +51,12 @@ shot device=device typecheck=typecheck:
 shot-keep device=device typecheck=typecheck:
     pwsh -NoProfile -File tools/shot.ps1 -Device {{device}} -Typecheck {{typecheck}} -KeepSim
 
+# Capture the RELEASE build (monkeyc -r). The only way to see what a Store
+# install draws: unit tests compile with -t, so (:release) code is invisible to
+# them. This is what proves the build version really is gone.
+shot-release device=device typecheck=typecheck:
+    pwsh -NoProfile -File tools/shot.ps1 -Device {{device}} -Typecheck {{typecheck}} -Release
+
 # Re-point ./sdk-docs and ./sdk-samples at the currently active SDK
 link-docs:
     pwsh -NoProfile -File tools/link-docs.ps1

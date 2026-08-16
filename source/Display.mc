@@ -49,10 +49,43 @@ module Display {
     // pulses, carries no phase, and says nothing about breathing. It reports
     // whether the app can do its job at all, which is the same slot the version
     // occupies. Nothing else belongs here.
-    function bottomLine(appVersion as String, willVibrate as Boolean) as String {
+    // The build version is a development instrument, not a feature, so it ships
+    // only in the builds that need it.
+    //
+    // A sideload cannot be verified from the host at all -- MTP exposes no sizes
+    // and the directory listing lies in both directions -- so on a sideload the
+    // on-screen version is the only proof of which build is running, and every
+    // `just deploy` bumps it for exactly that reason. A Store install has no such
+    // problem: the Connect IQ app reports the installed version, which makes
+    // drawing it here the same duplication the delegation rule rejects
+    // everywhere else in this app.
+    //
+    // Every sideload is already a debug build -- deploy.ps1 calls build.ps1
+    // without -Release -- so the annotation falls exactly on that line.
+    //
+    // The predicate is annotated rather than bottomLine itself, and that is not
+    // a style choice. Unit tests compile with -t, which is a debug build, so an
+    // annotated bottomLine would leave the release string measured by nothing
+    // and shipped to the only audience that cannot report it clipped.
+    (:debug)
+    function showsBuildVersion() as Boolean {
+        return true;
+    }
+
+    (:release)
+    function showsBuildVersion() as Boolean {
+        return false;
+    }
+
+    // Empty in a release build with the watch in order, which is the point: the
+    // bottom of the screen carries no ink unless something needs attention.
+    function bottomLine(
+        appVersion as String, showVersion as Boolean, willVibrate as Boolean
+    ) as String {
+        var version = showVersion ? "v" + appVersion : "";
         if (willVibrate) {
-            return "v" + appVersion;
+            return version;
         }
-        return "v" + appVersion + "  VIBE OFF";
+        return showVersion ? version + "  VIBE OFF" : "VIBE OFF";
     }
 }
