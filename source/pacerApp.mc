@@ -9,7 +9,7 @@ import Toybox.Timer;
 class pacerApp extends Application.AppBase {
     // Shown on the main screen so the build running on the watch is
     // identifiable at a glance. Bump on every sideload.
-    const APP_VERSION = "0.22";
+    const APP_VERSION = "0.23";
 
     // 6.00 breaths/min -- 0.1 Hz, the value the resonance-frequency literature
     // converges on as a population average.
