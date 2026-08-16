@@ -99,6 +99,9 @@ class pacerApp extends Application.AppBase {
     // for the entire length of a session.
     private var _vibeProfiles as Array<Attention.VibeProfile>? = null;
 
+    // What startTimer last started the cue at. See getTimerPeriodMillis.
+    private var _timerPeriodMillis as Number = 0;
+
     // The clock is the only thing on screen the cue timer can change, and it
     // changes once a minute. Redrawing on every cue would repaint the whole
     // display ~11 times a minute to show the same pixels. Every other change
@@ -120,7 +123,7 @@ class pacerApp extends Application.AppBase {
     // interval (~5 s) stale, where a free-running 60 s timer would drift up to a
     // full minute behind the wall clock.
     //
-    // No mute branch: the strength floor is 1%, not 0%. The weakest setting
+    // No mute branch: the strength floor is 2%, not 0%. The weakest setting
     // still asks the hardware for a cue, and whether one arrives is the
     // hardware's answer to give.
     function timerCallback() as Void {
@@ -135,7 +138,14 @@ class pacerApp extends Application.AppBase {
         }
     }
 
-    private function vibeProfiles() as Array<Attention.VibeProfile> {
+    // The cue itself, exactly as timerCallback hands it to Attention.vibrate.
+    //
+    // Public rather than private so a test can read the profile the wrist will
+    // feel, instead of the two numbers it was built from. Those numbers are
+    // already covered everywhere; the cache between them and the motor is not,
+    // and a cache that stopped being invalidated would leave the screen showing
+    // a new value while the wrist kept feeling the old one.
+    function vibeProfiles() as Array<Attention.VibeProfile> {
         var profiles = _vibeProfiles;
         if (profiles == null) {
             profiles = [
@@ -161,9 +171,11 @@ class pacerApp extends Application.AppBase {
     // testable without an application instance -- see tests/PacerMathTest.mc.
     function startTimer() as Void {
         stopTimer();
+        var period = PacerMath.intervalMillis(_paceHundredths);
         var timer = new Timer.Timer();
-        timer.start(method(:timerCallback), PacerMath.intervalMillis(_paceHundredths), true);
+        timer.start(method(:timerCallback), period, true);
         _timer = timer;
+        _timerPeriodMillis = period;
     }
 
     function stopTimer() as Void {
@@ -172,6 +184,17 @@ class pacerApp extends Application.AppBase {
             timer.stop();
             _timer = null;
         }
+        _timerPeriodMillis = 0;
+    }
+
+    // The period the running timer was started with, 0 when none is running.
+    //
+    // Timer.Timer does not report its own period, so without this there is no
+    // way to assert the one thing a pace change has to do: restart the cue at
+    // the new cadence. Only startTimer writes it, so a non-zero value here is
+    // proof that startTimer ran -- see settingsVibeProfileTracksSettingChanges.
+    function getTimerPeriodMillis() as Number {
+        return _timerPeriodMillis;
     }
 
     function getInitialView() as [Views] or [Views, InputDelegates] {

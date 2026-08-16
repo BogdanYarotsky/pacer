@@ -9,6 +9,105 @@ import Toybox.Test;
 // therefore the only one that does, and it restores from a `finally` so a failed
 // assertion cannot leave the simulator holding the value it died on.
 
+// The cue the wrist will actually feel, read through the same accessor
+// timerCallback hands to Attention.vibrate.
+//
+// Every other test here checks the numbers a setting holds. This one checks the
+// two things that stand between those numbers and the motor, neither of which
+// any other test can see:
+//
+//   * The VibeProfile is cached so it is not reallocated ~11 times a minute, and
+//     both vibe setters invalidate that cache. If one ever stopped, the screen
+//     would show the new value while the wrist kept feeling the old one.
+//   * The cue timer is restarted on a pace change. Timer.Timer does not report
+//     its period, so pacerApp records what it started, and only startTimer
+//     writes it.
+//
+// Attention.vibrate does nothing observable in the simulator, so this is as far
+// as verification goes from here: it proves the right profile reaches the call,
+// not that the motor obeys it.
+(:test)
+function settingsVibeProfileTracksSettingChanges(logger as Test.Logger) as Boolean {
+    var app = getApp();
+    var savedPace = app.getPaceHundredths();
+    var savedStrength = app.getVibrationStrength();
+    var savedDuration = app.getVibrationDuration();
+
+    try {
+        app.setVibrationStrength(40);
+        app.setVibrationDuration(120);
+
+        var profiles = app.vibeProfiles();
+        Test.assertEqualMessage(
+            profiles.size(), 1, "one cue per callback, not " + profiles.size());
+        Test.assertEqualMessage(
+            profiles[0].dutyCycle, 40, "the profile did not start at the set strength");
+        Test.assertEqualMessage(
+            profiles[0].length, 120, "the profile did not start at the set length");
+
+        // Strength moves; length must not.
+        app.setVibrationStrength(80);
+        profiles = app.vibeProfiles();
+        Test.assertEqualMessage(
+            profiles[0].dutyCycle, 80,
+            "a strength change never reached the cue -- the profile cache was not invalidated");
+        Test.assertEqualMessage(
+            profiles[0].length, 120, "a strength change disturbed the length");
+
+        // Length moves; strength must not.
+        app.setVibrationDuration(200);
+        profiles = app.vibeProfiles();
+        Test.assertEqualMessage(
+            profiles[0].length, 200,
+            "a length change never reached the cue -- the profile cache was not invalidated");
+        Test.assertEqualMessage(
+            profiles[0].dutyCycle, 80, "a length change disturbed the strength");
+
+        // Walking to a bound and back, the way a thumb does, must still land on
+        // the profile: the setters early-return when a value is unchanged, and
+        // that guard must not swallow a real change.
+        app.setVibrationStrength(app.MAX_VIBE_STRENGTH);
+        app.setVibrationStrength(app.MAX_VIBE_STRENGTH);
+        Test.assertEqualMessage(
+            app.vibeProfiles()[0].dutyCycle, app.MAX_VIBE_STRENGTH,
+            "the cue did not follow the strength to its ceiling");
+        app.setVibrationStrength(app.MIN_VIBE_STRENGTH);
+        Test.assertEqualMessage(
+            app.vibeProfiles()[0].dutyCycle, app.MIN_VIBE_STRENGTH,
+            "the cue did not follow the strength back to its floor");
+
+        // The cue timer must follow the pace while it is running.
+        app.startTimer();
+        Test.assertEqualMessage(
+            app.getTimerPeriodMillis(), PacerMath.intervalMillis(app.getPaceHundredths()),
+            "the timer did not start at the current pace");
+
+        app.setPaceHundredths(600);
+        Test.assertEqualMessage(
+            app.getTimerPeriodMillis(), PacerMath.intervalMillis(600),
+            "a pace change did not restart the cue timer -- the cadence would not change");
+        app.setPaceHundredths(450);
+        Test.assertEqualMessage(
+            app.getTimerPeriodMillis(), PacerMath.intervalMillis(450),
+            "the cue timer kept the previous pace");
+        logger.debug(
+            "600 -> " + PacerMath.intervalMillis(600) + " ms, 450 -> " +
+            PacerMath.intervalMillis(450) + " ms");
+
+        // A stopped timer reports no period, so a non-zero reading above cannot
+        // be a leftover from an earlier start.
+        app.stopTimer();
+        Test.assertEqualMessage(
+            app.getTimerPeriodMillis(), 0, "a stopped timer still reports a period");
+    } finally {
+        app.setPaceHundredths(savedPace);
+        app.setVibrationStrength(savedStrength);
+        app.setVibrationDuration(savedDuration);
+        app.startTimer();
+    }
+    return true;
+}
+
 // Range and step declarations must be coherent before any of them is walked.
 // Reads constants only -- nothing here writes.
 (:test)

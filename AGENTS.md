@@ -482,12 +482,14 @@ formatting), `ClockTextTest` (both clock formats), `MainInputGateTest`
   (The SDK's own prose table for these is garbled — the method list is correct.)
 - Put logic in pure modules (`Layout`, `PacerMath`) so it is testable without a
   running app instance.
-- **Exactly one test writes to Storage** —
+- **Two tests write to Storage, and nothing else may** —
   `settingsStepsWalkEveryRangeEndToEnd`, because walking the real setters is the
-  only way to prove they clamp. It restores from a `finally`, not from the end of
-  the happy path: an assertion throws, and a restore that only runs on success
-  strands whatever value the test died on in the simulator for every run after
-  it. That is not hypothetical; it happened. Keep new tests pure.
+  only way to prove they clamp, and `settingsVibeProfileTracksSettingChanges`,
+  because the `VibeProfile` the motor is handed can only be reached through those
+  same setters. Both restore from a `finally`, not from the end of the happy
+  path: an assertion throws, and a restore that only runs on success strands
+  whatever value the test died on in the simulator for every run after it. That
+  is not hypothetical; it happened. Keep new tests pure.
 
 **Do not weaken a test to make the loop green.** A failing test that reflects
 reality is the tool working.
@@ -500,8 +502,24 @@ reality is the tool working.
 
 ## What cannot be tested from here — needs your wrist
 
-- **`Attention.vibrate` does nothing observable in the simulator.** Whether the
-  pulses land at the right interval and strength is only verifiable on-device.
+- **`Attention.vibrate` does nothing observable in the simulator.** Verification
+  stops at the call: `settingsVibeProfileTracksSettingChanges` proves the right
+  `VibeProfile` and the right timer period reach it after every setting change,
+  and that both mechanisms fail loudly when broken — the cache invalidation and
+  the pace restart were each deleted in turn and the test caught both. What the
+  motor then does with that profile is only verifiable on a wrist.
+
+  Two consequences worth knowing there. A **pace** change restarts the timer, so
+  the next cue is a full new interval away and the phase resets — one breath, by
+  design. A **strength or length** change does not: it lands on the next cue,
+  which can be up to ~6.7 s later, so a tap will not alter a buzz already in
+  flight.
+
+- **A watch with vibration switched off feels identical to a broken app.**
+  `System.getDeviceSettings().vibrateOn` reports it, and Pacer deliberately does
+  not check it: the only thing it could do with the answer is draw something, and
+  the screen is not a cue surface. If nothing is felt on the wrist, rule this out
+  before reading any code.
 - **Where the cue stops being felt.** The strength floor is 2% and the length
   floor 10 ms, both deliberately below what a body registers, so the bottom of
   each scale is findable rather than hidden. Only a wrist can say where it is.
