@@ -38,7 +38,7 @@ Nothing on it changes on its own except the clock, once a minute:
                    6bpm | 5s
 
         ( − )      BUZZ            ( + )
-                   100 ms
+                   100ms
 
                     v0.22
 ```

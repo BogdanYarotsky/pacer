@@ -199,6 +199,26 @@ function pacerMathFormatsEveryPaceInRange(logger as Test.Logger) as Boolean {
     return true;
 }
 
+// Units sit tight against their numbers -- one spacing rule for all three rows.
+// "100 ms" shipped with a space for a while and was the only string on the
+// screen with one; nothing pinned it, so nothing said so. These pins close that
+// gap for both remaining formatters.
+(:test)
+function pacerMathFormatsDuration(logger as Test.Logger) as Boolean {
+    Test.assertEqualMessage(PacerMath.formatDuration(10), "10ms", "the duration floor");
+    Test.assertEqualMessage(PacerMath.formatDuration(100), "100ms", "the default duration");
+    Test.assertEqualMessage(PacerMath.formatDuration(250), "250ms", "the duration ceiling");
+    return true;
+}
+
+(:test)
+function pacerMathFormatsStrength(logger as Test.Logger) as Boolean {
+    Test.assertEqualMessage(PacerMath.formatStrength(2), "2%", "the strength floor");
+    Test.assertEqualMessage(PacerMath.formatStrength(20), "20%", "the default strength");
+    Test.assertEqualMessage(PacerMath.formatStrength(100), "100%", "the strength ceiling");
+    return true;
+}
+
 // The pace leads and its cue interval follows past a divider. Both halves are
 // pinned as one string, spacing included, because the row is read as one: a
 // refactor that keeps the numbers right and moves a space, a unit or the divider

@@ -96,11 +96,14 @@ module PacerMath {
             + "s";
     }
 
+    // Units sit tight against their numbers on every row -- "20%", "5s",
+    // "100ms". The percent sign never takes a space in common usage, and one
+    // rule for all three rows beats a per-row exception.
     function formatStrength(percent as Number) as String {
         return percent.toString() + "%";
     }
 
     function formatDuration(milliseconds as Number) as String {
-        return milliseconds.toString() + " ms";
+        return milliseconds.toString() + "ms";
     }
 }
