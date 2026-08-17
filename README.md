@@ -1,4 +1,7 @@
-# Candle for vívoactive 5
+# Candle
+
+**Candle: Haptic Resonance Breathing Frequency Pacer**, for the Garmin
+vívoactive 5. Free and open source under the [MIT license](LICENSE).
 
 Candle is a resonance-frequency breathing pacer. It vibrates twice per breathing
 cycle — once at each turn-around — and does nothing else. There is one screen and
@@ -18,9 +21,15 @@ symmetric breathing does not have.
 The setting is the bare interval between cues, in seconds. It starts at
 **5.00 s** — 10 s per breath, 0.1 Hz, the Lehrer resonance protocol's canonical
 frequency and the population average the literature converges on — because that
-is where to start looking, not an answer. Resonance frequency is individual:
-measure your own and dial it in on the watch rather than in code. Whoever thinks
-in breaths per minute converts once — 60 / bpm / 2 — and dials in the result.
+is where to start looking, not an answer.
+
+## Finding your own frequency
+
+Resonance frequency is individual: measure your own and dial it in on the watch
+rather than in code. Tools built for exactly that measurement include
+**Yudemon** and **Elite HRV** — run an assessment there, take the breathing
+rate it settles on, and convert it once: seconds between cues = 60 / bpm / 2.
+A measured 5.5 breaths/min, for example, dials in as `EVERY 5.45s`.
 
 ## Using it
 
@@ -123,8 +132,9 @@ is running, which is why `just deploy` bumps it before every build.
 
 A Store install has no such problem: the Connect IQ app reports the installed
 version. So the version line is drawn in **debug builds only**, which is every
-sideload. In a release build the bottom of the screen is empty unless something
-is wrong — the only thing that can appear there is `VIBE OFF`.
+sideload. In a release build the slot carries the small candle mark instead —
+static, always the same pixels — unless something is wrong, in which case
+`VIBE OFF` takes it. Text always beats the mark.
 
 ## Build and run
 
@@ -189,8 +199,9 @@ running app, a graphics context or a simulator window.
 | `source/MainInputGate.mc` | Tells a physical button from a touch gesture |
 | `source/Layout.mc` | Every coordinate, including round-screen chord maths |
 | `source/Display.mc` | Every string the screen draws |
-| `source/CandleMath.mc` | Pace arithmetic, clamping and value formatting |
+| `source/CandleMath.mc` | Cue arithmetic, the POWER ladder, clamping, formatting |
 | `source/ClockText.mc` | Clock rendering, 12- and 24-hour |
+| `source/ExitForensics.mc` | Debug-only exit breadcrumb for the phantom-swipe diagnosis |
 
 `Layout` and `Display` exist so the tests measure the real coordinates and the
 real strings. A literal pixel offset or caption in `candleView.mc` puts it beyond
