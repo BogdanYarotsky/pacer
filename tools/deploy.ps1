@@ -9,7 +9,7 @@
 #
 # VERIFICATION CAVEAT: current firmware hides .prg files after install, so the
 # file cannot be read back to prove the copy landed. The ONLY proof is launching
-# Pacer on the watch and reading the version off the main screen. That is why
+# Candle on the watch and reading the version off the main screen. That is why
 # this script bumps the version before every build.
 
 param(
@@ -53,7 +53,7 @@ if ($nextVersion -ne $currentVersion) {
 & "$PSScriptRoot\build.ps1" -Device $Device -Typecheck 3
 if ($LASTEXITCODE -ne 0) { throw "deploy: build failed, nothing was sent to the watch" }
 
-$prg = Join-Path $RepoRoot "bin\pacer-$Device.prg"
+$prg = Join-Path $RepoRoot "bin\candle-$Device.prg"
 
 # --- find the watch over MTP --------------------------------------------------
 $shell = New-Object -ComObject Shell.Application
@@ -106,10 +106,10 @@ if ($null -eq $apps) { throw "deploy: could not find GARMIN\APPS on $($watch.Nam
 # --- copy ---------------------------------------------------------------------
 # MTP needs the file to already have its destination name, so stage a correctly
 # named copy in TEMP first.
-$staged = Join-Path $env:TEMP "pacer.prg"
+$staged = Join-Path $env:TEMP "candle.prg"
 Copy-Item $prg $staged -Force
 
-Write-Host "==> copying pacer.prg to GARMIN\APPS over MTP" -ForegroundColor Cyan
+Write-Host "==> copying candle.prg to GARMIN\APPS over MTP" -ForegroundColor Cyan
 # 16 = respond "Yes to All" to any overwrite prompt.
 $apps.CopyHere($staged, 16)
 
@@ -119,7 +119,7 @@ $deadline = (Get-Date).AddSeconds(30)
 $seen = $false
 do {
     Start-Sleep -Milliseconds 700
-    foreach ($i in $apps.Items()) { if ($i.Name -match '^pacer(\.prg)?$') { $seen = $true; break } }
+    foreach ($i in $apps.Items()) { if ($i.Name -match '^candle(\.prg)?$') { $seen = $true; break } }
 } while (-not $seen -and (Get-Date) -lt $deadline)
 
 Write-Host ""
@@ -128,13 +128,13 @@ if ($seen) {
     # means an entry exists -- the shell reports Size=0 for every item over MTP
     # (OUT.BIN reads 0 too), so it says nothing about whether the bytes landed
     # intact. Once the watch installs the app the entry goes away again.
-    Write-Host "copied   pacer.prg -> $($watch.Name) GARMIN\APPS" -ForegroundColor Green
+    Write-Host "copied   candle.prg -> $($watch.Name) GARMIN\APPS" -ForegroundColor Green
 } else {
-    Write-Host "pacer.prg is not visible in GARMIN\APPS after the copy." -ForegroundColor Yellow
+    Write-Host "candle.prg is not visible in GARMIN\APPS after the copy." -ForegroundColor Yellow
     Write-Host "That happens once the firmware has installed it, and is not evidence either way." -ForegroundColor Yellow
 }
 
 Write-Host ""
 Write-Host "THE COPY CANNOT BE VERIFIED FROM HERE." -ForegroundColor Yellow
-Write-Host "Disconnect the watch, open Pacer, and confirm the main screen reads v$nextVersion." -ForegroundColor Yellow
+Write-Host "Disconnect the watch, open Candle, and confirm the main screen reads v$nextVersion." -ForegroundColor Yellow
 Write-Host "If it shows an older version, the watch is still running the previous build." -ForegroundColor Yellow

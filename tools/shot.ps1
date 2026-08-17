@@ -47,7 +47,7 @@ public class Win32ShotApi {
 & "$PSScriptRoot\build.ps1" -Device $Device -Typecheck $Typecheck -Release:$Release
 if ($LASTEXITCODE -ne 0) { throw "shot: build failed" }
 
-$prg = Join-Path $RepoRoot "bin\pacer-$Device.prg"
+$prg = Join-Path $RepoRoot "bin\candle-$Device.prg"
 
 Start-SimulatorIfNeeded | Out-Null
 
@@ -58,8 +58,8 @@ Write-Host "==> monkeydo $(Split-Path -Leaf $prg) $Device" -ForegroundColor Cyan
 # the caller (just) hangs forever even though the capture already succeeded.
 $doProc = Start-Process -FilePath $MonkeyDo -ArgumentList @($prg, $Device) `
     -PassThru -WindowStyle Hidden `
-    -RedirectStandardOutput (Join-Path $env:TEMP "pacer-shot-out.txt") `
-    -RedirectStandardError  (Join-Path $env:TEMP "pacer-shot-err.txt")
+    -RedirectStandardOutput (Join-Path $env:TEMP "candle-shot-out.txt") `
+    -RedirectStandardError  (Join-Path $env:TEMP "candle-shot-err.txt")
 Start-Sleep -Seconds $SettleSec
 
 # --- capture ------------------------------------------------------------------

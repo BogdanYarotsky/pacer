@@ -21,7 +21,7 @@ param(
 & "$PSScriptRoot\build.ps1" -Device $Device -Typecheck $Typecheck -UnitTest
 if ($LASTEXITCODE -ne 0) { Write-Host "test: build failed, not running tests" -ForegroundColor Red; exit 1 }
 
-$prg = Join-Path $RepoRoot "bin\pacer-$Device-test.prg"
+$prg = Join-Path $RepoRoot "bin\candle-$Device-test.prg"
 if (-not (Test-Path $prg)) { throw "test: expected PRG not found at $prg" }
 
 # --- simulator ----------------------------------------------------------------
@@ -33,8 +33,8 @@ if ($TestName -ne "") { $monkeydoArgs += $TestName }
 
 Write-Host "==> monkeydo $(Split-Path -Leaf $prg) $Device /t $TestName" -ForegroundColor Cyan
 
-$stdout = Join-Path $env:TEMP "pacer-test-out.txt"
-$stderr = Join-Path $env:TEMP "pacer-test-err.txt"
+$stdout = Join-Path $env:TEMP "candle-test-out.txt"
+$stderr = Join-Path $env:TEMP "candle-test-err.txt"
 $proc = Start-Process -FilePath $MonkeyDo -ArgumentList $monkeydoArgs `
     -NoNewWindow -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
 

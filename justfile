@@ -1,4 +1,4 @@
-# Pacer build/verify loop.
+# Candle build/verify loop.
 #
 # Every recipe delegates to tools/*.ps1 so the logic is readable and debuggable
 # outside just. All monkeyc/monkeydo flags were verified against `--help` on

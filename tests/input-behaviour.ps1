@@ -17,8 +17,8 @@ param(
 
 . "$PSScriptRoot\..\tools\env.ps1"
 
-$trace = Join-Path $env:TEMP "pacer-input-behaviour.txt"
-$errLog = Join-Path $env:TEMP "pacer-input-behaviour-err.txt"
+$trace = Join-Path $env:TEMP "candle-input-behaviour.txt"
+$errLog = Join-Path $env:TEMP "candle-input-behaviour-err.txt"
 
 # --- build + launch -----------------------------------------------------------
 & "$PSScriptRoot\..\tools\build.ps1" -Device $Device -Typecheck 3
@@ -29,7 +29,7 @@ Stop-Simulator
 Start-Sleep -Seconds 1
 Start-SimulatorIfNeeded | Out-Null
 
-$prg = Join-Path $RepoRoot "bin\pacer-$Device.prg"
+$prg = Join-Path $RepoRoot "bin\candle-$Device.prg"
 
 # Back closes the app, so the exit check runs last and nothing may follow it.
 function Start-App {
@@ -151,7 +151,7 @@ try {
 
     # Back closes the app, unconditionally -- so it has to be last, and what
     # follows it is the proof that it really did. There is no state left for it
-    # to consult: the whole point of handing the lock to the OS is that Pacer has
+    # to consult: the whole point of handing the lock to the OS is that Candle has
     # nothing to restore before leaving.
     Check "back exits"     { Inject @{ Action='press'; Target='esc' } }              'onBack from lower button -> app exits'
 

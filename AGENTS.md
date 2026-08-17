@@ -1,6 +1,6 @@
-# AGENTS.md — Pacer (Garmin Connect IQ, vívoactive 5)
+# AGENTS.md — Candle (Garmin Connect IQ, vívoactive 5)
 
-Pacer is a Monkey C **watch-app** that vibrates twice per breathing cycle to pace
+Candle is a Monkey C **watch-app** that vibrates twice per breathing cycle to pace
 resonance-frequency breathing. Single target device.
 
 ---
@@ -58,9 +58,9 @@ would trade the self-healing property away to fix a problem that only exists
 under an asymmetric ratio this app does not use. If the I:E ratio ever stops
 being 1:1, revisit this; until then the identical cue is load-bearing.
 
-**3. Pacer builds nothing the watch or another app already does.** It is a
+**3. Candle builds nothing the watch or another app already does.** It is a
 metronome for the wrist and nothing else. Where a capability already exists
-outside the app, Pacer delegates to it rather than growing its own copy.
+outside the app, Candle delegates to it rather than growing its own copy.
 
 Two things follow from that, both of which read as missing features:
 
@@ -68,7 +68,7 @@ Two things follow from that, both of which read as missing features:
   the section below for what reimplementing it cost.
 - **There is no session timer.** No duration setting, no elapsed-time display, no
   auto-stop, no start button. Someone who wants a time-bound session runs a timer
-  app alongside Pacer, which the watch does perfectly well already.
+  app alongside Candle, which the watch does perfectly well already.
 
 The test for any proposed feature is: does the watch, or an app the user can run
 in parallel, already do this? If yes, it does not belong here. Adding it would
@@ -188,9 +188,9 @@ Three traps, each of which produced a wrong implementation before being measured
    button both raise `onBack`. **A behaviour event alone cannot tell touch from
    button.**
 
-## Palm safety belongs to the watch, not to Pacer
+## Palm safety belongs to the watch, not to Candle
 
-**Never call `WatchUi.configureTouchEvents`.** Pacer used to, and it is the only
+**Never call `WatchUi.configureTouchEvents`.** Candle used to, and it is the only
 thing this project ever did that could damage the watch.
 
 The problem is real: covering much of the screen with skin triggers a
@@ -199,27 +199,27 @@ silently. `configureTouchEvents({ :enabled => false })` suppresses it. But that
 setting is **watch-global and outlives the app**, restoring it is fallible — the
 simulator rejects `:enabled => true` every single time — and a leak leaves the
 whole watch untouchable until it is rebooted. That happened repeatedly on the
-wrist, and Pacer could not even repair it, because relaunching Pacer to run the
+wrist, and Candle could not even repair it, because relaunching Candle to run the
 restore requires touch to reach the app list.
 
 The vívoactive 5 already ships the feature: **hold the upper button → controls →
 Lock Screen.** Confirmed on the wrist, and better than the app's version in every
 respect:
 
-- It works inside a running app, Pacer included.
+- It works inside a running app, Candle included.
 - It locks the **buttons as well as the touchscreen**, so a stray lower-button
   press cannot end a session either — protection the app-level lock never had.
 - The OS owns the state and restores it, so there is nothing to leak and no
   reboot to recover from. Worst case is now a lost session, not a bricked watch.
 
-So Pacer holds no touch state at all. What that deleted: `TouchControl.mc`,
+So Candle holds no touch state at all. What that deleted: `TouchControl.mc`,
 `_touchLocked`, `isTouchLocked`, `setTouchLocked`, `applyTouchLock`, the dimmed
 rendering of the controls, the lock branches in `onSelect` and `onTap`, and three
-lifecycle callbacks that existed only to restore touch — `pacerView.onShow`,
-`pacerView.onHide` and `pacerApp.onInactive`.
+lifecycle callbacks that existed only to restore touch — `candleView.onShow`,
+`candleView.onHide` and `candleApp.onInactive`.
 
 **The exit rule is now one line with no condition: Back exits.** It was
-conditional only because Pacer had a global setting to restore first. Two earlier
+conditional only because Candle had a global setting to restore first. Two earlier
 versions derived that condition the hard way — a four-second two-press
 confirmation with an `armed`/`requested`/`restored` triple and two timers, then a
 single check of the lock flag. Both are gone with the thing that required them.
@@ -229,7 +229,7 @@ a press cannot fall through. Holding it opens the controls menu, which never
 reaches the app and is where Lock Screen lives.
 
 **The fallback discriminator:** `onKeyPressed` fires for physical buttons and
-*never* for gestures, always immediately before the behaviour. `pacerDelegate`
+*never* for gestures, always immediately before the behaviour. `candleDelegate`
 latches the last key press and consumes it inside the behaviour handler. This
 preserves lower-button Back if touch configuration ever fails. Do not replace
 this with `onTap` filtering.
@@ -260,7 +260,7 @@ have had ~134 px for the largest font on the screen, against ~176 px at y=21.
 
 `source/Layout.mc` models this with `halfChordAt()` and `fitsOnRoundScreen()`.
 **All layout coordinates must come from `Layout`.** Do not put literal pixel
-offsets in `pacerView.mc` — that is exactly the bug the tests exist to catch.
+offsets in `candleView.mc` — that is exactly the bug the tests exist to catch.
 
 **The same rule applies to strings, via `source/Display.mc`.** A fit test can
 only be trusted if it measures the string the view actually draws. The layout
@@ -269,7 +269,7 @@ that had been drawing `"v0.22  EDIT"` the whole time — green, and measuring
 nothing. Both of those strings are gone now — the lock state was being spelled
 out in words on two lines while the row controls were already showing it by
 dimming — but the rule they cost is permanent. `Display` holds the captions and
-`PacerMath.format*`/`ClockText.formatTime` hold the value strings; `pacerView`
+`CandleMath.format*`/`ClockText.formatTime` hold the value strings; `candleView`
 and `LayoutTest` both read from there, so the two cannot diverge.
 
 **Captions are display strings and nothing else, and two of the three do not
@@ -297,9 +297,9 @@ built in. That order is written down twice:
 
 - the `ACTION_` constants in `Layout.mc`, because `editorActionAt` encodes its
   result as `(row * 2) + direction`, and
-- the three `drawEditorRow` calls in `pacerView.mc`.
+- the three `drawEditorRow` calls in `candleView.mc`.
 
-`pacerDelegate` dispatches on the constants **by name**, so it needs no edit when
+`candleDelegate` dispatches on the constants **by name**, so it needs no edit when
 the order changes — which is exactly what makes this dangerous. If the two lists
 disagree, everything still compiles, every test that does not check the mapping
 still passes, and every tap silently edits a different setting than the one under
@@ -331,8 +331,8 @@ Coverage is exhaustive rather than sampled. That same sweep walks **every** valu
 the tap controls can reach (all 1496 intervals, 100 strengths, 241 lengths) and
 `layoutEveryClockMinuteFits` every minute of the day in both clock formats,
 rather than a hand-picked worst case. `layoutDisplayWidthMatchesTheDevice` pins
-`Layout.DISPLAY_WIDTH` — which `pacerDelegate` maps taps with — to
-`System.getDeviceSettings().screenWidth`, which is what `pacerView` draws with.
+`Layout.DISPLAY_WIDTH` — which `candleDelegate` maps taps with — to
+`System.getDeviceSettings().screenWidth`, which is what `candleView` draws with.
 
 ---
 
@@ -388,8 +388,8 @@ silently passes the whole string `test_name=foo` as the *device* and fails with
 
 ```
 just build vivoactive5 1                    # device, typecheck
-just test  vivoactive5 3 pacerMathIntervalIsTenTimesTheValue
-pwsh -File tools/test.ps1 -TestName pacerMathIntervalIsTenTimesTheValue   # clearer
+just test  vivoactive5 3 candleMathIntervalIsTenTimesTheValue
+pwsh -File tools/test.ps1 -TestName candleMathIntervalIsTenTimesTheValue   # clearer
 ```
 
 ### A live simulator blocks the calling shell
@@ -437,8 +437,8 @@ uses the `Shell.Application` COM namespace instead.
 What was actually observed on a real deploy (v0.14):
 
 - Before the copy, `GARMIN\APPS` held only `TEMP LOGS DATA SETTINGS MAIL OUT.BIN`
-  — **no `.prg` at all**, despite Pacer being installed on the watch.
-- Straight after `CopyHere`, `pacer.prg` **does** appear in the listing.
+  — **no `.prg` at all**, despite Candle being installed on the watch.
+- Straight after `CopyHere`, `candle.prg` **does** appear in the listing.
 - The shell reports `Size=0` for it — but it reports `Size=0` for `OUT.BIN` too,
   so sizes are simply not exposed over MTP. A visible name proves an entry
   exists and nothing about whether the bytes arrived intact.
@@ -446,9 +446,9 @@ What was actually observed on a real deploy (v0.14):
   the directory looks empty between deploys.
 
 So the listing is worthless as verification in both directions. The **only**
-proof a deploy landed: launch Pacer on the watch and read the version off the
+proof a deploy landed: launch Candle on the watch and read the version off the
 main screen. That is why `just deploy` bumps `APP_VERSION` in
-`source/pacerApp.mc` before every build. If the watch shows an older version, it
+`source/candleApp.mc` before every build. If the watch shows an older version, it
 is still running the old build.
 
 **The version is drawn in debug builds only**, behind `Display.showsBuildVersion`
@@ -497,7 +497,7 @@ Tests live in `tests/`, wired via `base.sourcePath = source;tests` in
 normal build (106.5 KB vs 132.3 KB).
 
 One file per thing under test, and no more: `LayoutTest` (geometry, round-screen
-fit, and tap hit mapping), `PacerMathTest` (clamping, pace arithmetic,
+fit, and tap hit mapping), `CandleMathTest` (clamping, pace arithmetic,
 formatting), `ClockTextTest` (both clock formats), `MainInputGateTest`
 (button-vs-touch, and the unlocked-start invariant), `SettingsTest`,
 `input-behaviour.ps1`.
@@ -507,7 +507,7 @@ formatting), `ClockTextTest` (both clock formats), `MainInputGateTest`
 - Asserts available: `assert`, `assertMessage`, `assertEqual`,
   `assertEqualMessage`, `assertNotEqual`, `assertNotEqualMessage`.
   (The SDK's own prose table for these is garbled — the method list is correct.)
-- Put logic in pure modules (`Layout`, `PacerMath`) so it is testable without a
+- Put logic in pure modules (`Layout`, `CandleMath`) so it is testable without a
   running app instance.
 - **Three tests write to Storage, and nothing else may** —
   `settingsStepsWalkEveryRangeEndToEnd`, because walking the real setters is the

@@ -1,4 +1,4 @@
-# Compile pacer for one or all target devices.
+# Compile candle for one or all target devices.
 #
 #   -Device      device id, or "all" to build every product in manifest.xml
 #   -Typecheck   0=off 1=gradual 2=informative 3=strict   (monkeyc -l)
@@ -30,7 +30,7 @@ New-Item -ItemType Directory -Path $outDir -Force | Out-Null
 $failed = @()
 foreach ($t in $targets) {
     $suffix = if ($UnitTest) { "-test" } else { "" }
-    $out = Join-Path $outDir "pacer-$t$suffix.prg"
+    $out = Join-Path $outDir "candle-$t$suffix.prg"
 
     $monkeycArgs = @(
         "-d", $t

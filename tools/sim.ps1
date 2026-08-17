@@ -10,7 +10,7 @@ param(
 & "$PSScriptRoot\build.ps1" -Device $Device -Typecheck $Typecheck
 if ($LASTEXITCODE -ne 0) { throw "sim: build failed" }
 
-$prg = Join-Path $RepoRoot "bin\pacer-$Device.prg"
+$prg = Join-Path $RepoRoot "bin\candle-$Device.prg"
 
 Start-SimulatorIfNeeded | Out-Null
 

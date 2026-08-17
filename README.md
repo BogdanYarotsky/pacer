@@ -1,6 +1,6 @@
-# Pacer for vívoactive 5
+# Candle for vívoactive 5
 
-Pacer is a resonance-frequency breathing pacer. It vibrates twice per breathing
+Candle is a resonance-frequency breathing pacer. It vibrates twice per breathing
 cycle — once at each turn-around — and does nothing else. There is one screen and
 no menus. The cue is haptic and always will be; there is no visual pacing
 element, because the point is to pace your breathing without looking at a watch.
@@ -86,33 +86,33 @@ range hides:
 None of that is verifiable from a computer: `Attention.vibrate` does nothing
 observable in the simulator. Sweep it on your own wrist.
 
-**Locking the screen is the watch's job, not Pacer's.** Hold the upper button →
+**Locking the screen is the watch's job, not Candle's.** Hold the upper button →
 controls → **Lock Screen**. It works inside a running app, and it locks the
 buttons as well as the touchscreen, so nothing — a sleeve, a palm, a knock
-against a doorframe — can reach Pacer while you breathe. Unlock the same way.
+against a doorframe — can reach Candle while you breathe. Unlock the same way.
 
 Do that before a session. Without it, a palm across the screen can trigger a
-platform-level exit that Pacer never sees and cannot prevent.
+platform-level exit that Candle never sees and cannot prevent.
 
-Pacer had its own touch lock once, built on
+Candle had its own touch lock once, built on
 `configureTouchEvents({ :enabled => false })`. It worked, but that setting is
 *watch-global* and outlives the app: when restoring it failed, the whole watch
-was left without touch until it was rebooted — and Pacer could not repair it,
-because relaunching Pacer needs touch to reach the app list. The watch's own lock
+was left without touch until it was rebooted — and Candle could not repair it,
+because relaunching Candle needs touch to reach the app list. The watch's own lock
 has none of that failure mode, because the OS owns the state and restores it.
 
-**Upper button — nothing.** It used to toggle Pacer's lock. Held, it opens the
+**Upper button — nothing.** It used to toggle Candle's lock. Held, it opens the
 controls menu, which is where Lock Screen lives.
 
 **Lower button — Back. It exits, immediately.** There is no confirmation, because
 there is nothing left to clean up before leaving. Lock the screen during a
-session and the button cannot reach Pacer anyway.
+session and the button cannot reach Candle anyway.
 
-A right swipe arrives as the same event as the lower button, so Pacer tells them
+A right swipe arrives as the same event as the lower button, so Candle tells them
 apart and swallows the swipe — see the input notes in `AGENTS.md`.
 
 **If the bottom line reads `VIBE OFF`, the watch cannot vibrate** — either the
-system vibration setting is off or the device has no motor. Pacer will run a
+system vibration setting is off or the device has no motor. Candle will run a
 flawless session and you will feel nothing, so it says so rather than leaving you
 to tell that apart from a dead app. It is the only warning on the screen.
 
@@ -169,7 +169,7 @@ Garmin's own setup guides:
 ### Installing on the watch
 
 `just deploy` bumps `APP_VERSION`, builds, and copies the PRG to `GARMIN\APPS`
-over MTP. Then launch Pacer on the watch and check the version on screen against
+over MTP. Then launch Candle on the watch and check the version on screen against
 what the script printed. If it shows an older version, the watch is still running
 the old build.
 
@@ -183,17 +183,17 @@ running app, a graphics context or a simulator window.
 
 | File | Responsibility |
 | --- | --- |
-| `source/pacerApp.mc` | Settings, storage, the cue timer, app lifecycle |
-| `source/pacerView.mc` | The only screen — draws, decides nothing |
-| `source/pacerDelegate.mc` | Input — telling a button press from a touch |
+| `source/candleApp.mc` | Settings, storage, the cue timer, app lifecycle |
+| `source/candleView.mc` | The only screen — draws, decides nothing |
+| `source/candleDelegate.mc` | Input — telling a button press from a touch |
 | `source/MainInputGate.mc` | Tells a physical button from a touch gesture |
 | `source/Layout.mc` | Every coordinate, including round-screen chord maths |
 | `source/Display.mc` | Every string the screen draws |
-| `source/PacerMath.mc` | Pace arithmetic, clamping and value formatting |
+| `source/CandleMath.mc` | Pace arithmetic, clamping and value formatting |
 | `source/ClockText.mc` | Clock rendering, 12- and 24-hour |
 
 `Layout` and `Display` exist so the tests measure the real coordinates and the
-real strings. A literal pixel offset or caption in `pacerView.mc` puts it beyond
+real strings. A literal pixel offset or caption in `candleView.mc` puts it beyond
 the reach of the test that is supposed to cover it — both classes of drift have
 shipped here before.
 
