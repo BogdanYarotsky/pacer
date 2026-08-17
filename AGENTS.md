@@ -86,6 +86,60 @@ reboot.
 
 ---
 
+## Repo map — where each concern lives
+
+Orientation only — deliberately no numbers, labels, coordinates, defaults or
+pinned strings, because those go out of sync fast and their authoritative
+record already exists: the constants in code and the tests that pin them.
+**When prose and a test disagree, the test is right** — which is why this map
+cites none of them. It also does not repeat what the rest of this file covers
+(the three rules above, the toolchain, deploy, testing sections below); it
+says where to look.
+
+One screen, and each concern has exactly one home:
+
+- **Geometry** — the `Layout` module. Pure functions, never touches a `Dc`, so
+  all of it runs under the unit test runner. The round-screen chord maths
+  lives here; "fits the bounding box" is not "fits the glass", and that
+  distinction is the module's reason to exist.
+- **Drawn strings** — the `Display` module. Every string the view draws comes
+  from here so the layout tests measure the strings actually drawn
+  (measure-what-you-draw). Captions are display words only, deliberately
+  decoupled from storage keys.
+- **State, persistence, the cue timer** — the app class (`candleApp`).
+  Settings are integer hundredths in `Application.Storage`, written on
+  change. The timer period IS the cue interval; each tick fires exactly one
+  cue, and all cues are identical (rule 2).
+- **Cue arithmetic, ladders, formatting** — the `CandleMath` module, pure for
+  the same reason `Layout` is.
+- **Input** — the delegate maps taps and keys to `Layout` actions; the input
+  gate (`MainInputGate`) is the only discriminator between a physical key and
+  a gesture, and is what makes "only the lower button exits" true. The
+  measured event chain is in its own section below — do not re-derive it.
+- **Exit diagnostics** — `ExitForensics`, a debug-only breadcrumb, removable
+  once the phantom swipe-exit is understood.
+- **Build/verify** — everything goes through `just` → `tools/*.ps1`. Test
+  builds are debug builds, so release-only rendering is verifiable only via
+  the release screenshot recipe. Debug/release forks hang on build-mode
+  annotations applied to tiny leaf functions, never to rendering functions,
+  so the tests can still measure both outputs.
+
+### Couplings that break silently
+
+- **Storage keys are on-disk API**: renaming one silently resets that setting
+  on every installed watch. Changing a setting's UNIT is not a rename — it is
+  a NEW key plus a one-time migration; never reuse a key for a new meaning.
+- **The manifest id is the store identity**: never regenerate it. The
+  manifest `entry` attribute must track the app class name in lockstep.
+- **ACTION_ constant order == on-screen row order == view draw order**; edit
+  them together or every tap edits the wrong setting and nothing on screen
+  says so.
+- **The jungle `sourcePath` stays the literal `source;tests`** — the
+  self-referencing form drags the SDK junctions into the build.
+- **The deploy script greps the app source file for the version constant and
+  matches the staged `.prg` by name** — a rename must update it in the same
+  commit.
+
 ## THE MANDATORY LOOP
 
 ```
