@@ -1,9 +1,9 @@
 import Toybox.Lang;
 
-// Pure cue arithmetic and value formatting, kept out of pacerApp so it is
+// Pure cue arithmetic and value formatting, kept out of candleApp so it is
 // testable without a running application instance -- and so the layout tests
 // measure the same strings the view draws rather than a second copy of them.
-module PacerMath {
+module CandleMath {
 
     // Constrain a value to an inclusive range.
     //
@@ -18,7 +18,7 @@ module PacerMath {
     // functions snapping in the tap's own direction, are what let such a value
     // walk back onto the ladder rather than stall beside an endpoint.
     //
-    // It lives here, and not as a private helper on pacerApp, so the arithmetic
+    // It lives here, and not as a private helper on candleApp, so the arithmetic
     // can be tested exhaustively without writing a single value to Storage.
     function clamp(value as Number, minimum as Number, maximum as Number) as Number {
         if (value < minimum) {
@@ -54,7 +54,7 @@ module PacerMath {
     // hundredths:
     //     (3000000 / paceHundredths) ms / 10  ==  300000 / paceHundredths
     // The + 0.5 rounds to nearest. Kept pure so the conversion table is
-    // testable without touching Storage; pacerApp owns when it runs.
+    // testable without touching Storage; candleApp owns when it runs.
     function legacyPaceToEvery(paceHundredths as Number) as Number {
         return ((300000.0 / paceHundredths) + 0.5).toNumber();
     }

@@ -54,7 +54,7 @@ function mainInputGateConsumesMismatchedKey(logger as Test.Logger) as Boolean {
 
 (:test)
 function mainDelegateDefersTapToOnTap(logger as Test.Logger) as Boolean {
-    var delegate = new pacerDelegate();
+    var delegate = new candleDelegate();
     Test.assertMessage(
         !delegate.onSelect(),
         "Select without KEY_ENTER must defer to the coordinate-bearing onTap"
@@ -64,7 +64,7 @@ function mainDelegateDefersTapToOnTap(logger as Test.Logger) as Boolean {
 
 (:test)
 function mainDelegateSwallowsBackWithoutPhysicalKey(logger as Test.Logger) as Boolean {
-    var delegate = new pacerDelegate();
+    var delegate = new candleDelegate();
     Test.assertMessage(
         delegate.onBack(),
         "Back without KEY_ESC must be consumed as touch"
@@ -78,7 +78,7 @@ function mainDelegateSwallowsBackWithoutPhysicalKey(logger as Test.Logger) as Bo
 // with a real touch-hold in tests/input-behaviour.ps1.
 (:test)
 function mainDelegateRepeatArmsAndDisarms(logger as Test.Logger) as Boolean {
-    var delegate = new pacerDelegate();
+    var delegate = new candleDelegate();
     try {
         delegate.startRepeat(Layout.ACTION_EVERY_UP);
         Test.assertMessage(delegate.isRepeating(), "startRepeat must arm the repeat");
@@ -101,7 +101,7 @@ function mainDelegateRepeatArmsAndDisarms(logger as Test.Logger) as Boolean {
 // or a button can actually take mid-hold.
 (:test)
 function mainDelegateAnyInputStopsTheRepeat(logger as Test.Logger) as Boolean {
-    var delegate = new pacerDelegate();
+    var delegate = new candleDelegate();
     try {
         delegate.startRepeat(Layout.ACTION_EVERY_UP);
         delegate.onBack();      // swipe-back arrives with no key latched

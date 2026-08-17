@@ -3,7 +3,7 @@ import Toybox.Timer;
 import Toybox.WatchUi;
 import Toybox.System;
 
-// Input for Pacer's only screen.
+// Input for Candle's only screen.
 //
 // THE PROBLEM: a behaviour event on its own cannot tell a physical button from
 // a touch. Measured on a vivoactive 5 by driving real input into the simulator
@@ -34,9 +34,9 @@ import Toybox.System;
 // right-swipe and the lower button arrive as the same onBack, and only one of
 // them may close the app.
 //
-// Palm safety is the watch's own Lock Screen, not Pacer's job. Nothing here
+// Palm safety is the watch's own Lock Screen, not Candle's job. Nothing here
 // touches WatchUi.configureTouchEvents -- see AGENTS.md for why that matters.
-class pacerDelegate extends WatchUi.BehaviorDelegate {
+class candleDelegate extends WatchUi.BehaviorDelegate {
 
     // One repeat step every 200 ms while a control is held -- five steps a
     // second, fast enough that the 299-tap EVERY range crosses in a minute
@@ -139,7 +139,7 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
         return false;
     }
 
-    // The upper button has no job left -- it used to toggle Pacer's own touch
+    // The upper button has no job left -- it used to toggle Candle's own touch
     // lock. It is still consumed rather than declined, so a press cannot fall
     // through to anything else. Held, it opens the watch's controls menu, which
     // never reaches the app at all and is where the Lock Screen lives.
@@ -174,10 +174,10 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
 
     // Back exits. That is the whole rule.
     //
-    // It used to be conditional, because Pacer disabled the watch-global touch
+    // It used to be conditional, because Candle disabled the watch-global touch
     // setting itself and must never have left it that way -- first a four-second
     // two-press confirmation with two timers, then a single check of its own lock
-    // flag. The watch's built-in Lock Screen now owns palm safety, so Pacer
+    // flag. The watch's built-in Lock Screen now owns palm safety, so Candle
     // disables nothing and has nothing to restore before leaving.
     //
     // The swipe check stays, and is now the only conditional in this file. A
@@ -203,7 +203,7 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // Vertical swipes are page behaviours here. Pacer has a single screen, so
+    // Vertical swipes are page behaviours here. Candle has a single screen, so
     // they are swallowed rather than allowed to page away mid-session.
     function onNextPage() as Boolean {
         stopRepeat();
@@ -237,10 +237,10 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
             app.setVibrationDuration(app.getVibrationDuration() + app.DURATION_STEP);
             trace("tap pulse +");
         } else if (action == Layout.ACTION_POWER_DOWN) {
-            app.setVibrationStrength(PacerMath.strengthDown(app.getVibrationStrength()));
+            app.setVibrationStrength(CandleMath.strengthDown(app.getVibrationStrength()));
             trace("tap power -");
         } else if (action == Layout.ACTION_POWER_UP) {
-            app.setVibrationStrength(PacerMath.strengthUp(app.getVibrationStrength()));
+            app.setVibrationStrength(CandleMath.strengthUp(app.getVibrationStrength()));
             trace("tap power +");
         } else {
             trace("tap outside controls -> ignored");

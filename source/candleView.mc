@@ -18,7 +18,7 @@ import Toybox.WatchUi;
 // Every coordinate comes from Layout and every string from Display. Neither a
 // pixel offset nor a literal caption belongs in this file -- both are covered by
 // unit tests that can only test what they can also see.
-class pacerView extends WatchUi.View {
+class candleView extends WatchUi.View {
 
     const FONT_CLOCK = Graphics.FONT_MEDIUM;
     const FONT_TEXT = Graphics.FONT_XTINY;

@@ -23,7 +23,7 @@ function layoutCenterXIsHalfWidth(logger as Test.Logger) as Boolean {
     return true;
 }
 
-// pacerDelegate maps taps with Layout.DISPLAY_WIDTH while pacerView draws with
+// candleDelegate maps taps with Layout.DISPLAY_WIDTH while candleView draws with
 // dc.getWidth(). If those two ever disagree, the hit zones drift away from the
 // controls they are drawn under and every tap lands on the wrong thing. The
 // device itself is the arbiter.
@@ -266,11 +266,11 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     var app = getApp();
     var rows = [
         Display.rowText(Display.LABEL_EVERY,
-            PacerMath.formatEvery(app.MAX_EVERY_HUNDREDTHS - app.EVERY_STEP)),
+            CandleMath.formatEvery(app.MAX_EVERY_HUNDREDTHS - app.EVERY_STEP)),
         Display.rowText(Display.LABEL_PULSE,
-            PacerMath.formatDuration(app.MAX_VIBE_DURATION)),
+            CandleMath.formatDuration(app.MAX_VIBE_DURATION)),
         Display.rowText(Display.LABEL_POWER,
-            PacerMath.formatStrength(app.MAX_VIBE_STRENGTH))
+            CandleMath.formatStrength(app.MAX_VIBE_STRENGTH))
     ];
     for (var i = 0; i < rows.size(); i += 1) {
         var line = rows[i] as String;
@@ -401,19 +401,19 @@ function layoutEveryReachableValueFits(logger as Test.Logger) as Boolean {
     // the wrong chord.
     var textHeight = dc.getFontHeight(textFont);
     for (var v = app.MIN_EVERY_HUNDREDTHS; v <= app.MAX_EVERY_HUNDREDTHS; v += 1) {
-        var line = Display.rowText(Display.LABEL_EVERY, PacerMath.formatEvery(v));
+        var line = Display.rowText(Display.LABEL_EVERY, CandleMath.formatEvery(v));
         assertLineFits(
             dc, Layout.editorRowCenter(0) - (textHeight / 2), line, textFont, "every " + v);
         assertClearsControls(dc, line, textFont, "every " + v);
     }
     for (var v = app.MIN_VIBE_DURATION; v <= app.MAX_VIBE_DURATION; v += 1) {
-        var line = Display.rowText(Display.LABEL_PULSE, PacerMath.formatDuration(v));
+        var line = Display.rowText(Display.LABEL_PULSE, CandleMath.formatDuration(v));
         assertLineFits(
             dc, Layout.editorRowCenter(1) - (textHeight / 2), line, textFont, "duration " + v);
         assertClearsControls(dc, line, textFont, "duration " + v);
     }
     for (var v = app.MIN_VIBE_STRENGTH; v <= app.MAX_VIBE_STRENGTH; v += 1) {
-        var line = Display.rowText(Display.LABEL_POWER, PacerMath.formatStrength(v));
+        var line = Display.rowText(Display.LABEL_POWER, CandleMath.formatStrength(v));
         assertLineFits(
             dc, Layout.editorRowCenter(2) - (textHeight / 2), line, textFont, "strength " + v);
         assertClearsControls(dc, line, textFont, "strength " + v);
@@ -480,7 +480,7 @@ function layoutHitZonesClearRealisticText(logger as Test.Logger) as Boolean {
 
     var widest = Display.rowText(
         Display.LABEL_EVERY,
-        PacerMath.formatEvery(app.MAX_EVERY_HUNDREDTHS - app.EVERY_STEP));
+        CandleMath.formatEvery(app.MAX_EVERY_HUNDREDTHS - app.EVERY_STEP));
     var width = dc.getTextWidthInPixels(widest, Graphics.FONT_XTINY);
     var textLeft = (w / 2) - (width / 2);
     logger.debug(

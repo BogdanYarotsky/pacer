@@ -1,7 +1,7 @@
 import Toybox.Lang;
 import Toybox.Math;
 
-// Pure layout maths for the main Pacer screen.
+// Pure layout maths for the main Candle screen.
 //
 // Every function takes screen dimensions and font metrics as arguments and
 // returns coordinates or a yes/no fit answer. Nothing here touches a Dc, so all
@@ -60,8 +60,8 @@ module Layout {
     // **The order of this block IS the order of the rows on screen**, which is
     // EVERY, PULSE, POWER -- the interval leads because it is the setting, the
     // cue's shape follows. The names are the on-screen captions, not the code's
-    // setting names: pacerDelegate is where PULSE maps to duration and POWER to
-    // strength. pacerView draws in this same order and pacerDelegate dispatches
+    // setting names: candleDelegate is where PULSE maps to duration and POWER to
+    // strength. candleView draws in this same order and candleDelegate dispatches
     // by name, so re-ordering the screen means editing this block and the draw
     // calls together. If they ever disagree, every tap edits the wrong setting
     // and nothing on screen says so.

@@ -5,7 +5,7 @@ import Toybox.Test;
 // Settings behaviour that can only be observed through the real setters -- or,
 // for the migration, through Storage itself.
 //
-// The clamping arithmetic is tested purely in PacerMathTest; it does not belong
+// The clamping arithmetic is tested purely in CandleMathTest; it does not belong
 // here, because a test that writes to Storage can strand a value there. The
 // three tests in this file that do write (the profile tracker, the range walk,
 // and the migration) all restore from a `finally` so a failed assertion cannot
@@ -22,7 +22,7 @@ import Toybox.Test;
 //     both vibe setters invalidate that cache. If one ever stopped, the screen
 //     would show the new value while the wrist kept feeling the old one.
 //   * The cue timer is restarted on a pace change. Timer.Timer does not report
-//     its period, so pacerApp records what it started, and only startTimer
+//     its period, so candleApp records what it started, and only startTimer
 //     writes it.
 //
 // Attention.vibrate does nothing observable in the simulator, so this is as far
@@ -81,20 +81,20 @@ function settingsVibeProfileTracksSettingChanges(logger as Test.Logger) as Boole
         // The cue timer must follow the interval while it is running.
         app.startTimer();
         Test.assertEqualMessage(
-            app.getTimerPeriodMillis(), PacerMath.intervalMillis(app.getEveryHundredths()),
+            app.getTimerPeriodMillis(), CandleMath.intervalMillis(app.getEveryHundredths()),
             "the timer did not start at the current interval");
 
         app.setEveryHundredths(600);
         Test.assertEqualMessage(
-            app.getTimerPeriodMillis(), PacerMath.intervalMillis(600),
+            app.getTimerPeriodMillis(), CandleMath.intervalMillis(600),
             "an interval change did not restart the cue timer -- the cadence would not change");
         app.setEveryHundredths(450);
         Test.assertEqualMessage(
-            app.getTimerPeriodMillis(), PacerMath.intervalMillis(450),
+            app.getTimerPeriodMillis(), CandleMath.intervalMillis(450),
             "the cue timer kept the previous interval");
         logger.debug(
-            "600 -> " + PacerMath.intervalMillis(600) + " ms, 450 -> " +
-            PacerMath.intervalMillis(450) + " ms");
+            "600 -> " + CandleMath.intervalMillis(600) + " ms, 450 -> " +
+            CandleMath.intervalMillis(450) + " ms");
 
         // A stopped timer reports no period, so a non-zero reading above cannot
         // be a leftover from an earlier start.
@@ -131,21 +131,21 @@ function settingsRangesAndStepsAreCoherent(logger as Test.Logger) as Boolean {
     // the floor by single percents, and the zones meet at the fine limit with
     // no gap in either direction.
     Test.assertEqualMessage(
-        app.MAX_VIBE_STRENGTH % PacerMath.STRENGTH_COARSE_STEP, 0,
+        app.MAX_VIBE_STRENGTH % CandleMath.STRENGTH_COARSE_STEP, 0,
         "the strength ceiling is off the coarse ladder");
     Test.assertEqualMessage(
-        app.DEFAULT_VIBE_STRENGTH % PacerMath.STRENGTH_COARSE_STEP, 0,
+        app.DEFAULT_VIBE_STRENGTH % CandleMath.STRENGTH_COARSE_STEP, 0,
         "the default strength is off the coarse ladder");
     Test.assertEqualMessage(
-        PacerMath.strengthDown(app.MIN_VIBE_STRENGTH + 1), app.MIN_VIBE_STRENGTH,
+        CandleMath.strengthDown(app.MIN_VIBE_STRENGTH + 1), app.MIN_VIBE_STRENGTH,
         "the fine zone must reach the floor by single percents");
     Test.assertEqualMessage(
-        PacerMath.strengthUp(PacerMath.STRENGTH_FINE_LIMIT),
-        2 * PacerMath.STRENGTH_COARSE_STEP,
+        CandleMath.strengthUp(CandleMath.STRENGTH_FINE_LIMIT),
+        2 * CandleMath.STRENGTH_COARSE_STEP,
         "one tap up from the fine limit must land on the next coarse rung");
     Test.assertEqualMessage(
-        PacerMath.strengthDown(2 * PacerMath.STRENGTH_COARSE_STEP),
-        PacerMath.STRENGTH_FINE_LIMIT,
+        CandleMath.strengthDown(2 * CandleMath.STRENGTH_COARSE_STEP),
+        CandleMath.STRENGTH_FINE_LIMIT,
         "one tap down from that rung must land back on the fine limit");
 
     // The floor is pinned to its reason: 0.05 s exists because the platform's
@@ -153,21 +153,21 @@ function settingsRangesAndStepsAreCoherent(logger as Test.Logger) as Boolean {
     // The ceiling is a design choice and is pinned only through the same
     // conversion, so the constant itself stays free to be re-argued.
     Test.assertEqualMessage(
-        PacerMath.intervalMillis(app.MIN_EVERY_HUNDREDTHS), 50,
+        CandleMath.intervalMillis(app.MIN_EVERY_HUNDREDTHS), 50,
         "the interval floor must be exactly the 50 ms Timer minimum");
     Test.assertEqualMessage(
-        PacerMath.intervalMillis(app.MAX_EVERY_HUNDREDTHS), 15000,
+        CandleMath.intervalMillis(app.MAX_EVERY_HUNDREDTHS), 15000,
         "the interval ceiling is 15 s between cues");
 
     // A default outside its own range would be silently replaced on first run.
     Test.assertEqualMessage(
-        PacerMath.clamp(app.DEFAULT_EVERY_HUNDREDTHS, app.MIN_EVERY_HUNDREDTHS, app.MAX_EVERY_HUNDREDTHS),
+        CandleMath.clamp(app.DEFAULT_EVERY_HUNDREDTHS, app.MIN_EVERY_HUNDREDTHS, app.MAX_EVERY_HUNDREDTHS),
         app.DEFAULT_EVERY_HUNDREDTHS, "the default interval is outside the interval range");
     Test.assertEqualMessage(
-        PacerMath.clamp(app.DEFAULT_VIBE_STRENGTH, app.MIN_VIBE_STRENGTH, app.MAX_VIBE_STRENGTH),
+        CandleMath.clamp(app.DEFAULT_VIBE_STRENGTH, app.MIN_VIBE_STRENGTH, app.MAX_VIBE_STRENGTH),
         app.DEFAULT_VIBE_STRENGTH, "the default strength is outside the strength range");
     Test.assertEqualMessage(
-        PacerMath.clamp(app.DEFAULT_VIBE_DURATION, app.MIN_VIBE_DURATION, app.MAX_VIBE_DURATION),
+        CandleMath.clamp(app.DEFAULT_VIBE_DURATION, app.MIN_VIBE_DURATION, app.MAX_VIBE_DURATION),
         app.DEFAULT_VIBE_DURATION, "the default length is outside the length range");
 
     // Every range divides evenly by its own step, so a walk lands exactly on both
@@ -255,7 +255,7 @@ function settingsStepsWalkEveryRangeEndToEnd(logger as Test.Logger) as Boolean {
         app.setVibrationStrength(app.MIN_VIBE_STRENGTH);
         taps = 0;
         while (app.getVibrationStrength() < app.MAX_VIBE_STRENGTH && taps < 1000) {
-            app.setVibrationStrength(PacerMath.strengthUp(app.getVibrationStrength()));
+            app.setVibrationStrength(CandleMath.strengthUp(app.getVibrationStrength()));
             Test.assertMessage(
                 app.getVibrationStrength() <= app.MAX_VIBE_STRENGTH,
                 "stepping up overshot 100%: " + app.getVibrationStrength()
@@ -270,7 +270,7 @@ function settingsStepsWalkEveryRangeEndToEnd(logger as Test.Logger) as Boolean {
 
         taps = 0;
         while (app.getVibrationStrength() > app.MIN_VIBE_STRENGTH && taps < 1000) {
-            app.setVibrationStrength(PacerMath.strengthDown(app.getVibrationStrength()));
+            app.setVibrationStrength(CandleMath.strengthDown(app.getVibrationStrength()));
             Test.assertMessage(
                 app.getVibrationStrength() >= app.MIN_VIBE_STRENGTH,
                 "stepping down undershot the strength floor: " + app.getVibrationStrength()
@@ -289,7 +289,7 @@ function settingsStepsWalkEveryRangeEndToEnd(logger as Test.Logger) as Boolean {
         app.setVibrationStrength(14);
         taps = 0;
         while (app.getVibrationStrength() > app.MIN_VIBE_STRENGTH && taps < 1000) {
-            app.setVibrationStrength(PacerMath.strengthDown(app.getVibrationStrength()));
+            app.setVibrationStrength(CandleMath.strengthDown(app.getVibrationStrength()));
             taps += 1;
         }
         Test.assertEqualMessage(
@@ -300,7 +300,7 @@ function settingsStepsWalkEveryRangeEndToEnd(logger as Test.Logger) as Boolean {
         app.setVibrationStrength(14);
         taps = 0;
         while (app.getVibrationStrength() < app.MAX_VIBE_STRENGTH && taps < 1000) {
-            app.setVibrationStrength(PacerMath.strengthUp(app.getVibrationStrength()));
+            app.setVibrationStrength(CandleMath.strengthUp(app.getVibrationStrength()));
             taps += 1;
         }
         Test.assertEqualMessage(

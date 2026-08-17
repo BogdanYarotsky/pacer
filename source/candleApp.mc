@@ -6,7 +6,7 @@ import Toybox.WatchUi;
 import Toybox.Attention;
 import Toybox.Timer;
 
-class pacerApp extends Application.AppBase {
+class candleApp extends Application.AppBase {
     // Shown on the main screen so the build running on the watch is
     // identifiable at a glance. Bump on every sideload.
     const APP_VERSION = "0.23";
@@ -54,7 +54,7 @@ class pacerApp extends Application.AppBase {
     //
     // The taps do not walk this range evenly. POWER moves on a two-zone ladder
     // -- 5% steps over the working range, 1% steps at 5% and below (see
-    // PacerMath.strengthUp/Down) -- so the floor is 1, the weakest request the
+    // CandleMath.strengthUp/Down) -- so the floor is 1, the weakest request the
     // API can express, and the fine zone is there to find the hardware's real
     // threshold rather than step over it.
     //
@@ -87,11 +87,11 @@ class pacerApp extends Application.AppBase {
     const MAX_VIBE_DURATION = 250;
 
     // One step per tap of the corresponding edge control. These live here, not
-    // in pacerDelegate, so the range and the step that walks it are declared
+    // in candleDelegate, so the range and the step that walks it are declared
     // together -- a step that does not divide its range is how an endpoint
     // becomes unreachable. Both divide evenly, and the defaults sit on their
     // own ladders; settingsRangesAndStepsAreCoherent asserts both. POWER has no
-    // single step: its two-zone ladder lives in PacerMath.strengthUp/Down, and
+    // single step: its two-zone ladder lives in CandleMath.strengthUp/Down, and
     // the same test pins that ladder to this range's endpoints.
     const EVERY_STEP = 5;
     const DURATION_STEP = 10;
@@ -189,11 +189,11 @@ class pacerApp extends Application.AppBase {
     }
 
     // Each breath has two cues, one at each inhale/exhale boundary, so the timer
-    // period is half a breath. The arithmetic lives in PacerMath so it is
-    // testable without an application instance -- see tests/PacerMathTest.mc.
+    // period is half a breath. The arithmetic lives in CandleMath so it is
+    // testable without an application instance -- see tests/CandleMathTest.mc.
     function startTimer() as Void {
         stopTimer();
-        var period = PacerMath.intervalMillis(_everyHundredths);
+        var period = CandleMath.intervalMillis(_everyHundredths);
         var timer = new Timer.Timer();
         timer.start(method(:timerCallback), period, true);
         _timer = timer;
@@ -220,7 +220,7 @@ class pacerApp extends Application.AppBase {
     }
 
     function getInitialView() as [Views] or [Views, InputDelegates] {
-        return [ new pacerView(), new pacerDelegate() ];
+        return [ new candleView(), new candleDelegate() ];
     }
 
     function getEveryHundredths() as Number {
@@ -236,24 +236,24 @@ class pacerApp extends Application.AppBase {
     }
 
     function getEveryText() as String {
-        return PacerMath.formatEvery(_everyHundredths);
+        return CandleMath.formatEvery(_everyHundredths);
     }
 
     function getStrengthText() as String {
-        return PacerMath.formatStrength(_vibeStrength);
+        return CandleMath.formatStrength(_vibeStrength);
     }
 
     function getDurationText() as String {
-        return PacerMath.formatDuration(_vibeDuration);
+        return CandleMath.formatDuration(_vibeDuration);
     }
 
-    // The setters clamp through PacerMath.clamp rather than reject an
+    // The setters clamp through CandleMath.clamp rather than reject an
     // out-of-range value -- see the reasoning there. The unchanged guard is what
     // that clamping makes necessary: without it, every tap on "+" at the maximum
     // would rewrite Storage and restart the cue timer to no effect.
 
     function setEveryHundredths(value as Number) as Void {
-        var next = PacerMath.clamp(value, MIN_EVERY_HUNDREDTHS, MAX_EVERY_HUNDREDTHS);
+        var next = CandleMath.clamp(value, MIN_EVERY_HUNDREDTHS, MAX_EVERY_HUNDREDTHS);
         if (next == _everyHundredths) {
             return;
         }
@@ -268,7 +268,7 @@ class pacerApp extends Application.AppBase {
     }
 
     function setVibrationStrength(value as Number) as Void {
-        var next = PacerMath.clamp(value, MIN_VIBE_STRENGTH, MAX_VIBE_STRENGTH);
+        var next = CandleMath.clamp(value, MIN_VIBE_STRENGTH, MAX_VIBE_STRENGTH);
         if (next == _vibeStrength) {
             return;
         }
@@ -280,7 +280,7 @@ class pacerApp extends Application.AppBase {
     }
 
     function setVibrationDuration(value as Number) as Void {
-        var next = PacerMath.clamp(value, MIN_VIBE_DURATION, MAX_VIBE_DURATION);
+        var next = CandleMath.clamp(value, MIN_VIBE_DURATION, MAX_VIBE_DURATION);
         if (next == _vibeDuration) {
             return;
         }
@@ -320,7 +320,7 @@ class pacerApp extends Application.AppBase {
         var legacy = Storage.getValue(LEGACY_PACE_STORAGE_KEY);
         if (legacy instanceof Number
                 && legacy >= LEGACY_PACE_MIN && legacy <= LEGACY_PACE_MAX) {
-            Storage.setValue(EVERY_STORAGE_KEY, PacerMath.legacyPaceToEvery(legacy));
+            Storage.setValue(EVERY_STORAGE_KEY, CandleMath.legacyPaceToEvery(legacy));
             Storage.deleteValue(LEGACY_PACE_STORAGE_KEY);
         }
     }
@@ -344,6 +344,6 @@ class pacerApp extends Application.AppBase {
 
 }
 
-function getApp() as pacerApp {
-    return Application.getApp() as pacerApp;
+function getApp() as candleApp {
+    return Application.getApp() as candleApp;
 }

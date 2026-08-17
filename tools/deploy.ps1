@@ -20,7 +20,7 @@ param(
 
 . "$PSScriptRoot\env.ps1"
 
-$appFile = Join-Path $RepoRoot "source\pacerApp.mc"
+$appFile = Join-Path $RepoRoot "source\candleApp.mc"
 
 # --- resolve the version ------------------------------------------------------
 $content = Get-Content $appFile -Raw
