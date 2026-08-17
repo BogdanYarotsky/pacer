@@ -9,7 +9,7 @@ import Toybox.Timer;
 class candleApp extends Application.AppBase {
     // Shown on the main screen so the build running on the watch is
     // identifiable at a glance. Bump on every sideload.
-    const APP_VERSION = "0.23";
+    const APP_VERSION = "0.24";
 
     // One cue every 5.00 s -- 10 s per breath, 0.1 Hz, the Lehrer resonance
     // protocol's canonical frequency and the value the literature converges on
