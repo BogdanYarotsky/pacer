@@ -327,7 +327,7 @@ decimals and two whole digits: `"14.95s"`. Trailing-zero trimming only ever
 shortens it, so that is the worst case the sweep has to clear.
 
 Coverage is exhaustive rather than sampled. That same sweep walks **every** value
-the tap controls can reach (all 1496 intervals, 99 strengths, 241 lengths) and
+the tap controls can reach (all 1496 intervals, 100 strengths, 241 lengths) and
 `layoutEveryClockMinuteFits` every minute of the day in both clock formats,
 rather than a hand-picked worst case. `layoutDisplayWidthMatchesTheDevice` pins
 `Layout.DISPLAY_WIDTH` — which `pacerDelegate` maps taps with — to

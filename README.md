@@ -46,7 +46,7 @@ Nothing on it changes on its own except the clock, once a minute:
 | --- | ---: | ---: | ---: |
 | Seconds between cues — the `EVERY` row | 5.00 s | 0.05–15 s | 0.05 s |
 | Vibration length — the `PULSE` row | 100 ms | 10–250 ms | 10 ms |
-| Vibration strength — the `POWER` row | 20% | 2–100% | 2% |
+| Vibration strength — the `POWER` row | 20% | 1–100% | 5%, and 1% at 5% and below |
 
 `EVERY` is the number the timer runs, exposed with no translation: one buzz
 every that many seconds. It is half a breath, since there are two cues per
@@ -65,17 +65,18 @@ Tap the `−` and `+` circles to change a value. The centre text is deliberately
 inert, so reading a value can never change it. Values are written to
 `Application.Storage` immediately and survive app restarts.
 
-**There is no mute.** Strength bottoms out at 2%, not 0%, because the useful
+**There is no mute.** Strength bottoms out at 1%, not 0%, because the useful
 question at the bottom of the scale is "can I still feel this?" and silence
 cannot answer it. Both floors sit deliberately *below* what a wrist is likely to
 register, so the threshold is somewhere you can find rather than somewhere the
 range hides:
 
 - `VibeProfile.dutyCycle` is documented as 0–100%, so the scale is the entire API
-  range minus silence, walked in even steps: 2, 4, … 100. A rotating-mass
-  actuator has a duty cycle below which it does not turn at all — often quoted
-  near 30% for PWM drive — so expect a dead band at the bottom that is the
-  motor's, not the app's.
+  range minus silence. Taps walk it in 5% strides, switching to 1% at 5% and
+  below — the fine zone exists because the hardware's real threshold hides at
+  the bottom. A rotating-mass actuator has a duty cycle below which it does not
+  turn at all — often quoted near 30% for PWM drive — so expect a dead band at
+  the bottom that is the motor's, not the app's.
 - `VibeProfile.length` has **no documented bounds** in the SDK at either end;
   10–250 ms is entirely this app's choice. Published vibrotactile work puts the
   shortest perceivable pulse near 30 ms and rhythmic patterns nearer 50 ms, and

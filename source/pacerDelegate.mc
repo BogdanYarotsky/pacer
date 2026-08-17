@@ -139,10 +139,10 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
             app.setVibrationDuration(app.getVibrationDuration() + app.DURATION_STEP);
             trace("tap pulse +");
         } else if (action == Layout.ACTION_POWER_DOWN) {
-            app.setVibrationStrength(app.getVibrationStrength() - app.STRENGTH_STEP);
+            app.setVibrationStrength(PacerMath.strengthDown(app.getVibrationStrength()));
             trace("tap power -");
         } else if (action == Layout.ACTION_POWER_UP) {
-            app.setVibrationStrength(app.getVibrationStrength() + app.STRENGTH_STEP);
+            app.setVibrationStrength(PacerMath.strengthUp(app.getVibrationStrength()));
             trace("tap power +");
         } else {
             trace("tap outside controls -> ignored");

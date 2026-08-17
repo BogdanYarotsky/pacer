@@ -11,12 +11,12 @@ module PacerMath {
     // divide its range evenly still reaches the endpoint instead of stalling one
     // step short of it.
     //
-    // Every range now divides evenly by its own step, so a walk that starts on
-    // the ladder lands exactly on both endpoints -- but a stored value need not
-    // be on the ladder. Strength ran 1..100 by 2 until the floor moved to 2, so
-    // every value that build ever wrote is odd, and from an odd value the tap
-    // that should reach 100% asks for 101. Clamping is what lets such a value
-    // walk back onto the ladder rather than stall one step short of an endpoint.
+    // A walk that starts on a ladder lands exactly on both endpoints -- but a
+    // stored value need not be on today's ladder. Strength has run 1..100 by 2
+    // and 2..100 by 2 in earlier builds, so an installed watch can hold values
+    // today's taps would never write. Clamping at the ends, and the ladder
+    // functions snapping in the tap's own direction, are what let such a value
+    // walk back onto the ladder rather than stall beside an endpoint.
     //
     // It lives here, and not as a private helper on pacerApp, so the arithmetic
     // can be tested exhaustively without writing a single value to Storage.
@@ -98,6 +98,36 @@ module PacerMath {
     // -- this is not a free string to lengthen.
     function formatEvery(everyHundredths as Number) as String {
         return formatHundredths(everyHundredths) + "s";
+    }
+
+    // The POWER ladder is two zones: 5% steps over the working range, 1% steps
+    // at 5% and below. The coarse step is what makes the scale walkable -- 100%
+    // to the floor in two dozen taps -- and the fine zone exists because the
+    // bottom of the scale is where the hardware's real threshold hides, and
+    // finding it is the one job that needs single-percent resolution.
+    const STRENGTH_FINE_LIMIT = 5;
+    const STRENGTH_COARSE_STEP = 5;
+
+    // One tap up / down the ladder. Deliberately unclamped: from 100% up asks
+    // for 105 and from 1% down asks for 0, and the setter's clamp turns both
+    // into the no-op they should be -- the same division of labour every other
+    // step already uses.
+    //
+    // Integer division is what snaps an off-ladder value (a 14% stored by the
+    // old 2% build) to the nearest rung in the tap's own direction: 14 up is
+    // 15, 14 down is 10, and from then on the value is on the ladder.
+    function strengthUp(value as Number) as Number {
+        if (value < STRENGTH_FINE_LIMIT) {
+            return value + 1;
+        }
+        return ((value / STRENGTH_COARSE_STEP) + 1) * STRENGTH_COARSE_STEP;
+    }
+
+    function strengthDown(value as Number) as Number {
+        if (value <= STRENGTH_FINE_LIMIT) {
+            return value - 1;
+        }
+        return ((value - 1) / STRENGTH_COARSE_STEP) * STRENGTH_COARSE_STEP;
     }
 
     // Units sit tight against their numbers on every row -- "20%", "5s",

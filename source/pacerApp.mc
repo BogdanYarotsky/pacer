@@ -52,19 +52,19 @@ class pacerApp extends Application.AppBase {
     // less the mute. The floor is above 0 deliberately: the bottom of the scale
     // should be the weakest cue the hardware can attempt, not silence.
     //
-    // It is 2 and not the 1 it was because STRENGTH_STEP is 2. A floor of 1 put
-    // the entire scale on odd percents and left the floor standing beside its own
-    // ladder; at 2 the scale is exactly the fifty even percents, floor and
-    // ceiling included. Nothing is lost at the bottom -- 1% against 2% is not a
-    // distinction a wrist was ever going to make.
+    // The taps do not walk this range evenly. POWER moves on a two-zone ladder
+    // -- 5% steps over the working range, 1% steps at 5% and below (see
+    // PacerMath.strengthUp/Down) -- so the floor is 1, the weakest request the
+    // API can express, and the fine zone is there to find the hardware's real
+    // threshold rather than step over it.
     //
-    // Whether 2% produces anything a wrist can feel is NOT knowable from here.
+    // Whether 1% produces anything a wrist can feel is NOT knowable from here.
     // Attention.vibrate does nothing observable in the simulator, and a rotating
     // -mass actuator has a minimum duty cycle below which it does not turn at
     // all -- commonly quoted around 30% for PWM drive. Finding the real floor is
     // a job for the watch; the point of starting this low is that the scale no
     // longer hides the bottom of it.
-    const MIN_VIBE_STRENGTH = 2;
+    const MIN_VIBE_STRENGTH = 1;
     const MAX_VIBE_STRENGTH = 100;
 
     // VibeProfile.length is documented only as "milliseconds" -- the SDK states
@@ -89,10 +89,11 @@ class pacerApp extends Application.AppBase {
     // One step per tap of the corresponding edge control. These live here, not
     // in pacerDelegate, so the range and the step that walks it are declared
     // together -- a step that does not divide its range is how an endpoint
-    // becomes unreachable. All three divide evenly, and the defaults sit on their
-    // own ladders; settingsRangesAndStepsAreCoherent asserts both.
+    // becomes unreachable. Both divide evenly, and the defaults sit on their
+    // own ladders; settingsRangesAndStepsAreCoherent asserts both. POWER has no
+    // single step: its two-zone ladder lives in PacerMath.strengthUp/Down, and
+    // the same test pins that ladder to this range's endpoints.
     const EVERY_STEP = 5;
-    const STRENGTH_STEP = 2;
     const DURATION_STEP = 10;
 
     // Storage keys are on-disk API: renaming one silently resets that setting

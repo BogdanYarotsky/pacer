@@ -9,8 +9,9 @@ import Toybox.Test;
 // way an earlier deliberately-failed run left it holding 6.50 BPM at 99%.
 //
 // Coverage of the setters actually calling this lives in
-// settingsStepsWalkEveryRangeEndToEnd, which reaches 100% from 99 + 2 and can
-// only do so if the setter clamps.
+// settingsStepsWalkEveryRangeEndToEnd: the ladder's edge requests -- 0% from
+// the floor, 105% from the ceiling -- land back on the endpoints only if the
+// setter clamps.
 
 (:test)
 function pacerMathClampReturnsInRangeValuesUntouched(logger as Test.Logger) as Boolean {
@@ -215,9 +216,56 @@ function pacerMathFormatsDuration(logger as Test.Logger) as Boolean {
 
 (:test)
 function pacerMathFormatsStrength(logger as Test.Logger) as Boolean {
-    Test.assertEqualMessage(PacerMath.formatStrength(2), "2%", "the strength floor");
+    Test.assertEqualMessage(PacerMath.formatStrength(1), "1%", "the strength floor");
     Test.assertEqualMessage(PacerMath.formatStrength(20), "20%", "the default strength");
     Test.assertEqualMessage(PacerMath.formatStrength(100), "100%", "the strength ceiling");
+    return true;
+}
+
+// The POWER ladder: 5% rungs over the working range, 1% rungs at 5% and below.
+// The zone boundary and the off-ladder snaps are the branches worth pinning --
+// a wrong integer division here reads as "the + button sometimes jumps 9%" on
+// a wrist, which is nearly impossible to diagnose from up there.
+(:test)
+function pacerMathStrengthLadderStepsBothZones(logger as Test.Logger) as Boolean {
+    // Fine zone, one percent at a time, and the boundary crossing both ways.
+    Test.assertEqualMessage(PacerMath.strengthUp(1), 2, "1 steps to 2");
+    Test.assertEqualMessage(PacerMath.strengthUp(4), 5, "4 steps to the fine limit");
+    Test.assertEqualMessage(PacerMath.strengthUp(5), 10, "the fine limit steps to the first coarse rung");
+    Test.assertEqualMessage(PacerMath.strengthDown(10), 5, "the first coarse rung steps back to the fine limit");
+    Test.assertEqualMessage(PacerMath.strengthDown(5), 4, "the fine limit steps down by one");
+    Test.assertEqualMessage(PacerMath.strengthDown(2), 1, "2 steps to the floor");
+
+    // Coarse zone.
+    Test.assertEqualMessage(PacerMath.strengthUp(20), 25, "the default steps by five");
+    Test.assertEqualMessage(PacerMath.strengthDown(100), 95, "the ceiling steps down by five");
+
+    // Off-ladder values, stored by earlier builds, snap in the tap's own
+    // direction and are on the ladder from then on.
+    Test.assertEqualMessage(PacerMath.strengthUp(14), 15, "14 snaps up to 15");
+    Test.assertEqualMessage(PacerMath.strengthDown(14), 10, "14 snaps down to 10");
+    Test.assertEqualMessage(PacerMath.strengthUp(99), 100, "99 snaps up to the ceiling");
+    Test.assertEqualMessage(PacerMath.strengthDown(6), 5, "6 snaps down to the fine limit");
+
+    // The edges ask past the range and rely on the setter's clamp.
+    Test.assertEqualMessage(PacerMath.strengthUp(100), 105, "the ceiling asks past the top");
+    Test.assertEqualMessage(PacerMath.strengthDown(1), 0, "the floor asks below the bottom");
+
+    // The whole scale, both directions, exactly as a thumb walks it: 23 taps.
+    var v = 1;
+    var taps = 0;
+    while (v < 100 && taps < 1000) {
+        v = PacerMath.clamp(PacerMath.strengthUp(v), 1, 100);
+        taps += 1;
+    }
+    Test.assertEqualMessage(taps, 23, "floor to ceiling should be 23 taps");
+    taps = 0;
+    while (v > 1 && taps < 1000) {
+        v = PacerMath.clamp(PacerMath.strengthDown(v), 1, 100);
+        taps += 1;
+    }
+    Test.assertEqualMessage(taps, 23, "ceiling to floor should be 23 taps");
+    logger.debug("strength ladder: 23 taps each way");
     return true;
 }
 

@@ -124,8 +124,29 @@ function settingsRangesAndStepsAreCoherent(logger as Test.Logger) as Boolean {
         app.MIN_VIBE_DURATION < app.MAX_VIBE_DURATION, "the length range is inverted");
 
     Test.assertMessage(app.EVERY_STEP > 0, "the interval step must advance");
-    Test.assertMessage(app.STRENGTH_STEP > 0, "the strength step must advance");
     Test.assertMessage(app.DURATION_STEP > 0, "the length step must advance");
+
+    // POWER walks a two-zone ladder instead of a single step. What must hold:
+    // the ceiling and the default sit on coarse rungs, the fine zone runs into
+    // the floor by single percents, and the zones meet at the fine limit with
+    // no gap in either direction.
+    Test.assertEqualMessage(
+        app.MAX_VIBE_STRENGTH % PacerMath.STRENGTH_COARSE_STEP, 0,
+        "the strength ceiling is off the coarse ladder");
+    Test.assertEqualMessage(
+        app.DEFAULT_VIBE_STRENGTH % PacerMath.STRENGTH_COARSE_STEP, 0,
+        "the default strength is off the coarse ladder");
+    Test.assertEqualMessage(
+        PacerMath.strengthDown(app.MIN_VIBE_STRENGTH + 1), app.MIN_VIBE_STRENGTH,
+        "the fine zone must reach the floor by single percents");
+    Test.assertEqualMessage(
+        PacerMath.strengthUp(PacerMath.STRENGTH_FINE_LIMIT),
+        2 * PacerMath.STRENGTH_COARSE_STEP,
+        "one tap up from the fine limit must land on the next coarse rung");
+    Test.assertEqualMessage(
+        PacerMath.strengthDown(2 * PacerMath.STRENGTH_COARSE_STEP),
+        PacerMath.STRENGTH_FINE_LIMIT,
+        "one tap down from that rung must land back on the fine limit");
 
     // The floor is pinned to its reason: 0.05 s exists because the platform's
     // documented Timer minimum is 50 ms, and the two must never drift apart.
@@ -158,9 +179,6 @@ function settingsRangesAndStepsAreCoherent(logger as Test.Logger) as Boolean {
         (app.MAX_EVERY_HUNDREDTHS - app.MIN_EVERY_HUNDREDTHS) % app.EVERY_STEP, 0,
         "the interval step does not divide the interval range");
     Test.assertEqualMessage(
-        (app.MAX_VIBE_STRENGTH - app.MIN_VIBE_STRENGTH) % app.STRENGTH_STEP, 0,
-        "the strength step does not divide the strength range");
-    Test.assertEqualMessage(
         (app.MAX_VIBE_DURATION - app.MIN_VIBE_DURATION) % app.DURATION_STEP, 0,
         "the length step does not divide the length range");
 
@@ -170,9 +188,6 @@ function settingsRangesAndStepsAreCoherent(logger as Test.Logger) as Boolean {
     Test.assertEqualMessage(
         (app.DEFAULT_EVERY_HUNDREDTHS - app.MIN_EVERY_HUNDREDTHS) % app.EVERY_STEP, 0,
         "the default interval is off the interval ladder");
-    Test.assertEqualMessage(
-        (app.DEFAULT_VIBE_STRENGTH - app.MIN_VIBE_STRENGTH) % app.STRENGTH_STEP, 0,
-        "the default strength is off the strength ladder");
     Test.assertEqualMessage(
         (app.DEFAULT_VIBE_DURATION - app.MIN_VIBE_DURATION) % app.DURATION_STEP, 0,
         "the default length is off the length ladder");
@@ -240,7 +255,7 @@ function settingsStepsWalkEveryRangeEndToEnd(logger as Test.Logger) as Boolean {
         app.setVibrationStrength(app.MIN_VIBE_STRENGTH);
         taps = 0;
         while (app.getVibrationStrength() < app.MAX_VIBE_STRENGTH && taps < 1000) {
-            app.setVibrationStrength(app.getVibrationStrength() + app.STRENGTH_STEP);
+            app.setVibrationStrength(PacerMath.strengthUp(app.getVibrationStrength()));
             Test.assertMessage(
                 app.getVibrationStrength() <= app.MAX_VIBE_STRENGTH,
                 "stepping up overshot 100%: " + app.getVibrationStrength()
@@ -249,13 +264,13 @@ function settingsStepsWalkEveryRangeEndToEnd(logger as Test.Logger) as Boolean {
         }
         Test.assertEqualMessage(
             app.getVibrationStrength(), app.MAX_VIBE_STRENGTH,
-            "stepping up by " + app.STRENGTH_STEP + " must still reach 100%"
+            "walking the ladder up must still reach 100%"
         );
         logger.debug("strength: " + taps + " taps from floor to ceiling");
 
         taps = 0;
         while (app.getVibrationStrength() > app.MIN_VIBE_STRENGTH && taps < 1000) {
-            app.setVibrationStrength(app.getVibrationStrength() - app.STRENGTH_STEP);
+            app.setVibrationStrength(PacerMath.strengthDown(app.getVibrationStrength()));
             Test.assertMessage(
                 app.getVibrationStrength() >= app.MIN_VIBE_STRENGTH,
                 "stepping down undershot the strength floor: " + app.getVibrationStrength()
@@ -264,16 +279,17 @@ function settingsStepsWalkEveryRangeEndToEnd(logger as Test.Logger) as Boolean {
         }
         Test.assertEqualMessage(
             app.getVibrationStrength(), app.MIN_VIBE_STRENGTH,
-            "stepping down must reach the strength floor"
+            "walking the ladder down must reach the strength floor"
         );
 
-        // Off the ladder, in both directions. MIN + 1 is what a value written by
-        // the 1..100-by-2 build looks like to this one: the step will never hit
-        // an endpoint squarely from there, so only the clamp can land it.
-        app.setVibrationStrength(app.MIN_VIBE_STRENGTH + 1);
+        // Off the ladder, in both directions -- 14% is what a value written by
+        // the 2..100-by-2 build looks like to this one. The ladder functions
+        // snap it in the tap's own direction; through the real setters the walk
+        // must still land exactly on both endpoints.
+        app.setVibrationStrength(14);
         taps = 0;
         while (app.getVibrationStrength() > app.MIN_VIBE_STRENGTH && taps < 1000) {
-            app.setVibrationStrength(app.getVibrationStrength() - app.STRENGTH_STEP);
+            app.setVibrationStrength(PacerMath.strengthDown(app.getVibrationStrength()));
             taps += 1;
         }
         Test.assertEqualMessage(
@@ -281,17 +297,17 @@ function settingsStepsWalkEveryRangeEndToEnd(logger as Test.Logger) as Boolean {
             "stepping down off the ladder must land on the floor, not below or beside it"
         );
 
-        app.setVibrationStrength(app.MIN_VIBE_STRENGTH + 1);
+        app.setVibrationStrength(14);
         taps = 0;
         while (app.getVibrationStrength() < app.MAX_VIBE_STRENGTH && taps < 1000) {
-            app.setVibrationStrength(app.getVibrationStrength() + app.STRENGTH_STEP);
+            app.setVibrationStrength(PacerMath.strengthUp(app.getVibrationStrength()));
             taps += 1;
         }
         Test.assertEqualMessage(
             app.getVibrationStrength(), app.MAX_VIBE_STRENGTH,
             "stepping up off the ladder must still land exactly on 100%"
         );
-        logger.debug("strength: " + taps + " taps from one off the floor to the ceiling");
+        logger.debug("strength: " + taps + " taps from an off-ladder 14% to the ceiling");
 
         app.setVibrationDuration(app.MAX_VIBE_DURATION);
         taps = 0;
