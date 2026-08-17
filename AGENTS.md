@@ -173,6 +173,7 @@ reading the app's own trace. **Observed, not inferred:**
 | swipe left | nothing |
 | swipe up | `onNextPage`, `onSwipe(0)` |
 | swipe down | `onPreviousPage`, `onSwipe(2)` |
+| touch hold | `onHold` after the threshold, `onRelease` at lift — no `onSelect`, no `onTap` |
 
 `KEY_ENTER=4`, `KEY_ESC=5`, `KEY_MENU=7`. The lower button is **one** physical
 button: pressed it is Back, held it is Menu.

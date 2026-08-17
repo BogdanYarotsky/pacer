@@ -124,6 +124,12 @@ try {
     Check "power plus"      { Inject @{ Action='tap'; X=335; Y=276 } }              'onSelect from tap -> awaiting coordinates.*tap power \+'
     Check "tap value"       { Inject @{ Action='tap'; X=195; Y=204 } }              'onSelect from tap -> awaiting coordinates.*tap outside controls -> ignored'
 
+    # Hold-to-repeat: a held control steps immediately, keeps stepping while
+    # held (an 1800ms hold at 200ms per step must show at least two), and the
+    # release disarms it. A hold on the inert centre arms nothing.
+    Check "hold repeats"    { Inject @{ Action='touchhold'; X=335; Y=132 } }         'onHold -> step and repeat.*tap every \+.*tap every \+.*onRelease -> repeat stopped'
+    Check "hold on value"   { Inject @{ Action='touchhold'; X=195; Y=204 } }         'onHold outside controls -> ignored'
+
     # A right-swipe reaches onBack exactly as the lower button does. This is the
     # one distinction the delegate still has to make, and getting it wrong closes
     # the app on a stray swipe mid-session.

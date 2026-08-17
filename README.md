@@ -30,14 +30,11 @@ Nothing on it changes on its own except the clock, once a minute:
 ```
                     07:42
 
-        ( − )      EVERY           ( + )
-                   5s
+        (−)      EVERY 5s        (+)
 
-        ( − )      PULSE           ( + )
-                   100ms
+        (−)      PULSE 100ms     (+)
 
-        ( − )      POWER           ( + )
-                   20%
+        (−)      POWER 20%       (+)
 
                     v0.23
 ```
@@ -61,8 +58,9 @@ Trailing zeros are dropped, so 5.00 reads `5s`. The line therefore changes width
 as you tap through it, and being centred it shifts under the thumb rather than
 growing to one side.
 
-Tap the `−` and `+` circles to change a value. The centre text is deliberately
-inert, so reading a value can never change it. Values are written to
+Tap the `−` and `+` circles to change a value, or hold one to repeat at five
+steps a second until you let go. The centre text is deliberately inert, so
+reading a value can never change it. Values are written to
 `Application.Storage` immediately and survive app restarts.
 
 **There is no mute.** Strength bottoms out at 1%, not 0%, because the useful

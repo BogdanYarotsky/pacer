@@ -11,6 +11,7 @@
 # Commands:
 #   probe                    report window/geometry mapping, click nothing
 #   tap <x> <y>              tap at DISPLAY coords (0..389 for vivoactive5)
+#   touchhold <x> <y>        press and hold the screen 1800ms (drives onHold)
 #   press <enter|esc|menu>   click a physical button
 #   hold  <enter|esc|menu>   press and hold (lower button held == onMenu)
 #   swipe <right|left|up|down>
@@ -21,7 +22,7 @@
 #   inside maxSwipeDuration (250ms). Miss any of those and it is not a Back.
 
 param(
-    [Parameter(Mandatory = $true)][ValidateSet('probe','tap','press','hold','swipe')][string]$Action,
+    [Parameter(Mandatory = $true)][ValidateSet('probe','tap','touchhold','press','hold','swipe')][string]$Action,
     [string]$Target = "",
     [int]$X = -1,
     [int]$Y = -1,
@@ -124,6 +125,13 @@ switch ($Action) {
         $p = DisplayToScreen $X $Y
         Write-Host "tap display($X,$Y) -> screen $($p.X),$($p.Y)"
         Click $p
+    }
+
+    'touchhold' {
+        if ($X -lt 0 -or $Y -lt 0) { $X = [int]($disp.width / 2); $Y = [int]($disp.height / 2) }
+        $p = DisplayToScreen $X $Y
+        Write-Host "touch-hold display($X,$Y) 1800ms -> screen $($p.X),$($p.Y)"
+        Click $p 1800
     }
 
     'press' {

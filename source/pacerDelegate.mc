@@ -1,4 +1,5 @@
 import Toybox.Lang;
+import Toybox.Timer;
 import Toybox.WatchUi;
 import Toybox.System;
 
@@ -16,6 +17,9 @@ import Toybox.System;
 //   swipe left   -> nothing
 //   swipe up     -> onNextPage, onSwipe(0)
 //   swipe down   -> onPreviousPage, onSwipe(2)
+//   touch hold   -> onHold after the threshold, onRelease at lift
+//                   -- and neither onSelect nor onTap, so the tap path and
+//                   the hold path are disjoint by measurement, not hope
 //
 // Two consequences that earlier versions of this file got wrong:
 //
@@ -34,14 +38,95 @@ import Toybox.System;
 // touches WatchUi.configureTouchEvents -- see AGENTS.md for why that matters.
 class pacerDelegate extends WatchUi.BehaviorDelegate {
 
+    // One repeat step every 200 ms while a control is held -- five steps a
+    // second, fast enough that the 299-tap EVERY range crosses in a minute
+    // and slow enough to release on the value you wanted.
+    const REPEAT_STEP_MILLIS = 200;
+
     private var _inputGate as MainInputGate;
+
+    // The hold-to-repeat machinery. onHold arms it with the action under the
+    // finger, onRelease disarms it -- the SDK guarantees the pairing: an
+    // onRelease is only ever sent after an onHold. Every other input handler
+    // disarms it too, so a missed release can never leave a value running
+    // away on its own. This is the app's second and last Timer; the device
+    // allows three.
+    private var _repeatTimer as Timer.Timer? = null;
+    private var _repeatAction as Number = Layout.ACTION_NONE;
 
     function initialize() {
         BehaviorDelegate.initialize();
         _inputGate = new MainInputGate();
     }
 
+    // Arm the repeat only -- the immediate first step is onHold's job, so
+    // these stay free of Storage writes and the unit tests can exercise the
+    // arming logic without touching a stored setting.
+    function startRepeat(action as Number) as Void {
+        stopRepeat();
+        var timer = new Timer.Timer();
+        timer.start(method(:repeatCallback), REPEAT_STEP_MILLIS, true);
+        _repeatTimer = timer;
+        _repeatAction = action;
+    }
+
+    function stopRepeat() as Void {
+        var timer = _repeatTimer;
+        if (timer != null) {
+            timer.stop();
+            _repeatTimer = null;
+        }
+        _repeatAction = Layout.ACTION_NONE;
+    }
+
+    function isRepeating() as Boolean {
+        return _repeatTimer != null;
+    }
+
+    // At a range end the setter's clamp turns every tick into a no-op, so a
+    // hold parked on an endpoint costs five empty calls a second and changes
+    // nothing -- the timer still stops at release like any other.
+    function repeatCallback() as Void {
+        adjustSetting(_repeatAction);
+    }
+
+    // A touch held on a control: one step immediately -- the hold should feel
+    // like a tap that keeps going, not a pause then a burst -- and the repeat
+    // timer takes it from there until the finger lifts.
+    function onHold(clickEvent as WatchUi.ClickEvent) as Boolean {
+        var coordinates = clickEvent.getCoordinates();
+        var action = Layout.editorActionAt(
+            coordinates[0], coordinates[1], Layout.DISPLAY_WIDTH);
+        if (action == Layout.ACTION_NONE) {
+            trace("onHold outside controls -> ignored");
+            return true;
+        }
+
+        trace("onHold -> step and repeat");
+        adjustSetting(action);
+        startRepeat(action);
+        return true;
+    }
+
+    // Only ever sent after an onHold, once the hold is released.
+    function onRelease(clickEvent as WatchUi.ClickEvent) as Boolean {
+        if (isRepeating()) {
+            trace("onRelease -> repeat stopped");
+        }
+        stopRepeat();
+        return true;
+    }
+
+    // A finger that starts dragging has stopped holding a control. Declined
+    // rather than consumed: drags feed the firmware's own gesture recognition,
+    // and this handler exists only to disarm the repeat, not to eat swipes.
+    function onDrag(dragEvent as WatchUi.DragEvent) as Boolean {
+        stopRepeat();
+        return false;
+    }
+
     function onKeyPressed(keyEvent as WatchUi.KeyEvent) as Boolean {
+        stopRepeat();
         _inputGate.press(keyEvent.getKey());
         // Declined: this is only a marker, the behaviour handlers do the work.
         return false;
@@ -59,6 +144,7 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
     // through to anything else. Held, it opens the watch's controls menu, which
     // never reaches the app at all and is where the Lock Screen lives.
     function onSelect() as Boolean {
+        stopRepeat();
         if (_inputGate.consume(WatchUi.KEY_ENTER)) {
             trace("upper button -> no action");
             return true;
@@ -72,6 +158,14 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onTap(clickEvent as WatchUi.ClickEvent) as Boolean {
+        stopRepeat();
+        // Only a plain tap steps here. A hold arrives typed CLICK_TYPE_HOLD
+        // and is onHold's job; letting it fall through would double-step.
+        if (clickEvent.getType() != WatchUi.CLICK_TYPE_TAP) {
+            trace("onTap non-tap click -> ignored");
+            return true;
+        }
+
         var coordinates = clickEvent.getCoordinates();
         adjustSetting(Layout.editorActionAt(
             coordinates[0], coordinates[1], Layout.DISPLAY_WIDTH));
@@ -90,6 +184,7 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
     // right-swipe arrives as the same onBack as the lower button, so without the
     // gate a stray swipe would close the app mid-session.
     function onBack() as Boolean {
+        stopRepeat();
         if (!_inputGate.consume(WatchUi.KEY_ESC)) {
             trace("onBack from swipe -> swallowed");
             return true;
@@ -102,6 +197,7 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
     // There is no second screen. Holding the lower button is intentionally a
     // no-op and its key latch must not leak into a later Back gesture.
     function onMenu() as Boolean {
+        stopRepeat();
         trace("onMenu -> swallowed");
         _inputGate.clear();
         return true;
@@ -110,11 +206,13 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
     // Vertical swipes are page behaviours here. Pacer has a single screen, so
     // they are swallowed rather than allowed to page away mid-session.
     function onNextPage() as Boolean {
+        stopRepeat();
         trace("onNextPage -> swallowed");
         return true;
     }
 
     function onPreviousPage() as Boolean {
+        stopRepeat();
         trace("onPreviousPage -> swallowed");
         return true;
     }
