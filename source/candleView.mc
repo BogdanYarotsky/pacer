@@ -37,6 +37,12 @@ class candleView extends WatchUi.View {
     private var _clockY as Number = 0;
     private var _versionY as Number = 0;
 
+    // Release builds only: the Candle mark that takes the version's slot.
+    // Debug builds never load it -- their bottom line is never empty.
+    private var _logo as Graphics.BitmapReference? = null;
+    private var _logoX as Number = 0;
+    private var _logoY as Number = 0;
+
     function initialize() {
         View.initialize();
     }
@@ -50,6 +56,26 @@ class candleView extends WatchUi.View {
         _controlRightX = Layout.editorControlX(width, true);
         _clockY = Layout.clockY(dc.getFontHeight(FONT_CLOCK));
         _versionY = Layout.versionY(dc.getHeight(), dc.getFontHeight(FONT_TEXT));
+
+        var logo = loadLogo();
+        _logo = logo;
+        if (logo != null) {
+            _logoX = _centerX - (logo.getWidth() / 2);
+            _logoY = Layout.versionY(dc.getHeight(), logo.getHeight());
+        }
+    }
+
+    // The showsBuildVersion pattern: annotated leaves, unconditional call
+    // site. loadResource returns a Graphics.BitmapReference for bitmap
+    // resources since CIQ 4.0.0 (sdk-docs, WatchUi.loadResource).
+    (:debug)
+    private function loadLogo() as Graphics.BitmapReference? {
+        return null;
+    }
+
+    (:release)
+    private function loadLogo() as Graphics.BitmapReference? {
+        return WatchUi.loadResource(Rez.Drawables.LogoSmall) as Graphics.BitmapReference;
     }
 
     function onUpdate(dc as Dc) as Void {
@@ -84,7 +110,19 @@ class candleView extends WatchUi.View {
             // than either alone.
             bottomLine += ExitForensics.debugSuffix();
         }
-        drawCentered(dc, _versionY, FONT_TEXT, bottomLine);
+
+        // The slot's precedence: any text -- the debug version line or the
+        // VIBE OFF warning -- beats the mark. Only a healthy release build
+        // reaches the bitmap, so the warning can never be crowded out and a
+        // debug wrist always reads its version. The mark is static, drawn
+        // identically every frame: it is branding, never a breathing cue
+        // (AGENTS.md rule 1).
+        var logo = _logo;
+        if (bottomLine.length() > 0 || logo == null) {
+            drawCentered(dc, _versionY, FONT_TEXT, bottomLine);
+        } else {
+            dc.drawBitmap(_logoX, _logoY, logo);
+        }
     }
 
     private function drawCentered(

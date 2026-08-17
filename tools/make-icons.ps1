@@ -8,8 +8,10 @@
 #                                         (the store wants ~10px of padding)
 #   resources/drawables/launcher_icon.png 56x56, the vivoactive 5 launcher size
 #                                         (from the device compiler.json)
-#   resources/drawables/logo_small.png    30x30, the release build's bottom-slot
-#                                         mark on the main screen
+#   resources/drawables/logo_small.png    40x40, the release build's bottom-slot
+#                                         mark on the main screen (the slot fits
+#                                         up to 64px before it touches row 2;
+#                                         layoutLogoFitsTheBottomSlot enforces it)
 #
 # The script IS the versioned artwork: publish/ is gitignored, so regenerate
 # the store icon before a submission. Tweak the shape here, re-run, rebuild.
@@ -84,7 +86,7 @@ function Save-Scaled([System.Drawing.Bitmap]$src, [int]$canvas, [int]$pad, [stri
 
 Save-Scaled $master 500 10 (Join-Path $RepoRoot "publish\store-icon-500.png")
 Save-Scaled $master 56 0 (Join-Path $RepoRoot "resources\drawables\launcher_icon.png")
-Save-Scaled $master 30 0 (Join-Path $RepoRoot "resources\drawables\logo_small.png")
+Save-Scaled $master 40 0 (Join-Path $RepoRoot "resources\drawables\logo_small.png")
 
 $master.Dispose()
 Write-Host "done. Rebuild to compile the drawables; regenerate before a store submission." -ForegroundColor Green

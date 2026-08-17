@@ -3,6 +3,7 @@ import Toybox.Math;
 import Toybox.Test;
 import Toybox.Graphics;
 import Toybox.System;
+import Toybox.WatchUi;
 
 // Layout tests for the vivoactive 5.
 //
@@ -507,5 +508,39 @@ function editorLayoutRejectsLabelsAndOutsideRows(logger as Test.Logger) as Boole
     Test.assertEqualMessage(Layout.editorActionAt(195, 130, w), Layout.ACTION_NONE, "every label");
     Test.assertEqualMessage(Layout.editorActionAt(55, 90, w), Layout.ACTION_NONE, "above rows");
     Test.assertEqualMessage(Layout.editorActionAt(335, 312, w), Layout.ACTION_NONE, "below rows");
+    return true;
+}
+
+// The release build's bottom-slot mark: same slot as the version line, same
+// two constraints -- on the glass, and clear of the last editor row. The
+// bitmap is loaded through the same Rez id the view uses, so a regenerated
+// PNG that grows past the slot fails here, not on a wrist. (Tests compile as
+// debug, where the view never loads the mark -- this measures the resource
+// itself, which is identical in both builds.)
+(:test)
+function layoutLogoFitsTheBottomSlot(logger as Test.Logger) as Boolean {
+    var w = LayoutTestConst.VA5_W;
+    var h = LayoutTestConst.VA5_H;
+
+    var logo = WatchUi.loadResource(Rez.Drawables.LogoSmall) as Graphics.BitmapReference;
+    var logoW = logo.getWidth();
+    var logoH = logo.getHeight();
+    var y = Layout.versionY(h, logoH);
+    logger.debug("logo " + logoW + "x" + logoH + " sits at y=" + y);
+
+    Test.assertMessage(
+        Layout.fitsOnRoundScreen(y, logoW, logoH, w, h),
+        "the mark must sit on the glass in the bottom slot"
+    );
+
+    var ref = Graphics.createBufferedBitmap({:width => w, :height => h});
+    var bmp = ref.get();
+    Test.assertMessage(bmp != null, "could not create a buffered bitmap to measure text with");
+    var dc = (bmp as Graphics.BufferedBitmap).getDc();
+    var textHeight = dc.getFontHeight(Graphics.FONT_XTINY);
+    Test.assertMessage(
+        y >= Layout.editorRowCenter(2) + (textHeight / 2),
+        "the mark overlaps the last editor row: mark top at " + y
+    );
     return true;
 }

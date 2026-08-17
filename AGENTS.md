@@ -20,6 +20,13 @@ build version occupies — it does not change between pulses, carries no phase a
 says nothing about breathing. It is the only warning that belongs there. A future
 agent will read rule 1 and want to delete it; do not.
 
+A healthy release build draws the Candle mark in that same slot. It is branding,
+not a cue, and it passes rule 1 for the same reason the warning does: static,
+drawn identically every frame, saying nothing about breathing. **It must never
+animate, flicker, or pulse** — a candle that flickers with the breath is exactly
+the visual cue this rule forbids, dressed as a logo. Any text in the slot beats
+the mark, so `VIBE OFF` can never be crowded out.
+
 The clock at the top is not an exception to that rule either — it tracks the wall
 clock, not the breath. It is the only thing on screen that changes on its own, and the
 only reason `timerCallback` requests a redraw at all: it requests one *only* when

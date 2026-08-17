@@ -87,8 +87,10 @@ module Display {
         return false;
     }
 
-    // Empty in a release build with the watch in order, which is the point: the
-    // bottom of the screen carries no ink unless something needs attention.
+    // Empty in a release build with the watch in order -- and that empty
+    // string is what hands the slot to the Candle mark: the view draws the
+    // bitmap only when this returns nothing, so any text here, version or
+    // warning, always wins the slot.
     function bottomLine(
         appVersion as String, showVersion as Boolean, willVibrate as Boolean
     ) as String {
