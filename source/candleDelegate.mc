@@ -103,6 +103,7 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
         }
 
         trace("onHold -> step and repeat");
+        ExitForensics.recordEvent("H");
         adjustSetting(action);
         startRepeat(action);
         return true;
@@ -113,6 +114,7 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
         if (isRepeating()) {
             trace("onRelease -> repeat stopped");
         }
+        ExitForensics.recordEvent("L");
         stopRepeat();
         return true;
     }
@@ -127,6 +129,7 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
 
     function onKeyPressed(keyEvent as WatchUi.KeyEvent) as Boolean {
         stopRepeat();
+        ExitForensics.recordEvent("P" + (keyEvent.getKey() as Number));
         _inputGate.press(keyEvent.getKey());
         // Declined: this is only a marker, the behaviour handlers do the work.
         return false;
@@ -135,6 +138,7 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
     // Clear a press that produced no behaviour. A stale KEY_ESC must never make
     // a later right-swipe look like the physical lower button.
     function onKeyReleased(keyEvent as WatchUi.KeyEvent) as Boolean {
+        ExitForensics.recordEvent("R" + (keyEvent.getKey() as Number));
         _inputGate.release(keyEvent.getKey());
         return false;
     }
@@ -159,6 +163,7 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
 
     function onTap(clickEvent as WatchUi.ClickEvent) as Boolean {
         stopRepeat();
+        ExitForensics.recordEvent("T");
         // Only a plain tap steps here. A hold arrives typed CLICK_TYPE_HOLD
         // and is onHold's job; letting it fall through would double-step.
         if (clickEvent.getType() != WatchUi.CLICK_TYPE_TAP) {
@@ -187,10 +192,12 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
         stopRepeat();
         if (!_inputGate.consume(WatchUi.KEY_ESC)) {
             trace("onBack from swipe -> swallowed");
+            ExitForensics.recordEvent("Bs");
             return true;
         }
 
         trace("onBack from lower button -> app exits");
+        ExitForensics.noteExit("B!");
         return false;
     }
 
@@ -198,6 +205,7 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
     // no-op and its key latch must not leak into a later Back gesture.
     function onMenu() as Boolean {
         stopRepeat();
+        ExitForensics.recordEvent("M");
         trace("onMenu -> swallowed");
         _inputGate.clear();
         return true;

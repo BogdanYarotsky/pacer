@@ -75,9 +75,16 @@ class candleView extends WatchUi.View {
         // all. The cue path itself is left untouched: it still asks the OS to
         // vibrate and lets the OS decide, so this only reports, never gates.
         var willVibrate = (Attention has :vibrate) && settings.vibrateOn;
-        drawCentered(
-            dc, _versionY, FONT_TEXT,
-            Display.bottomLine(app.APP_VERSION, Display.showsBuildVersion(), willVibrate));
+        var bottomLine =
+            Display.bottomLine(app.APP_VERSION, Display.showsBuildVersion(), willVibrate);
+        if (willVibrate) {
+            // The previous run's exit breadcrumb, debug builds only. The VIBE
+            // OFF warning owns the slot when it fires -- a warning nobody can
+            // read because a diagnostic crowded it off the glass is worse
+            // than either alone.
+            bottomLine += ExitForensics.debugSuffix();
+        }
+        drawCentered(dc, _versionY, FONT_TEXT, bottomLine);
     }
 
     private function drawCentered(

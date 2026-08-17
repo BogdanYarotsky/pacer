@@ -179,6 +179,11 @@ class candleApp extends Application.AppBase {
     }
 
     function onStop(state as Dictionary?) as Void {
+        // If onBack's exit path already noted "B!" this is a no-op; an "S"
+        // that survives to the breadcrumb means the app was stopped by
+        // something the delegate never saw -- which is exactly the finding
+        // the phantom-swipe diagnosis is after. Debug builds only.
+        ExitForensics.noteExit("S");
         stopTimer();
     }
 

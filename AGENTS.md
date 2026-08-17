@@ -509,12 +509,13 @@ formatting), `ClockTextTest` (both clock formats), `MainInputGateTest`
   (The SDK's own prose table for these is garbled — the method list is correct.)
 - Put logic in pure modules (`Layout`, `CandleMath`) so it is testable without a
   running app instance.
-- **Three tests write to Storage, and nothing else may** —
+- **Four tests write to Storage, and nothing else may** —
   `settingsStepsWalkEveryRangeEndToEnd`, because walking the real setters is the
   only way to prove they clamp; `settingsVibeProfileTracksSettingChanges`,
   because the `VibeProfile` the motor is handed can only be reached through those
-  same setters; and `settingsMigratesLegacyPace`, because a key-to-key migration
-  is observable nowhere else. All three restore from a `finally`, not from the
+  same setters; `settingsMigratesLegacyPace`, because a key-to-key migration
+  is observable nowhere else; and `exitForensicsChainsAndPersists`, whose
+  subject is a Storage-persisted diagnostic. All four restore from a `finally`, not from the
   end of the happy path: an assertion throws, and a restore that only runs on
   success strands whatever value the test died on in the simulator for every run
   after it. That is not hypothetical; it happened. Keep new tests pure.

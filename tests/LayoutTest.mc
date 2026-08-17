@@ -322,6 +322,13 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
         }
     }
 
+    // The debug exit breadcrumb rides the same line when vibration is on --
+    // the view keeps it off the VIBE OFF forms. Worst realistic chain: two
+    // two-character codes and the two-character exit tag.
+    assertLineFits(
+        dc, versionY, Display.bottomLine(appVersion, true, true) + " Bs.P5>B!",
+        textFont, "bottom line with the exit breadcrumb");
+
     // The other end of the same question layoutAnchorsAreOnScreen asks at the
     // top: the version line is anchored to the bottom edge and the last row's
     // line to the row grid, so nothing but a measured font height stands
