@@ -57,6 +57,15 @@ shot-keep device=device typecheck=typecheck:
 shot-release device=device typecheck=typecheck:
     pwsh -NoProfile -File tools/shot.ps1 -Device {{device}} -Typecheck {{typecheck}} -Release
 
+# Build the signed store bundle: publish/Candle.iq (release, all products).
+# The submission walk-through is docs/PUBLISHING.md.
+package:
+    pwsh -NoProfile -File tools/package.ps1
+
+# Regenerate the candle mark at every size (store icon, launcher, bottom slot)
+icons:
+    pwsh -NoProfile -File tools/make-icons.ps1
+
 # Re-point ./sdk-docs and ./sdk-samples at the currently active SDK
 link-docs:
     pwsh -NoProfile -File tools/link-docs.ps1
