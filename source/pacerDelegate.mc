@@ -119,27 +119,31 @@ class pacerDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
+    // The one place a row's caption meets the setting under it: EVERY is the
+    // cue interval, PULSE the vibration length, POWER the vibration strength.
+    // Traces name the row, so tests/input-behaviour.ps1 asserts what a thumb on
+    // that row actually edited.
     private function adjustSetting(action as Number) as Void {
         var app = getApp();
 
-        if (action == Layout.ACTION_PACE_DOWN) {
-            app.setPaceHundredths(app.getPaceHundredths() - app.PACE_STEP);
-            trace("tap pace -");
-        } else if (action == Layout.ACTION_PACE_UP) {
-            app.setPaceHundredths(app.getPaceHundredths() + app.PACE_STEP);
-            trace("tap pace +");
-        } else if (action == Layout.ACTION_STRENGTH_DOWN) {
-            app.setVibrationStrength(app.getVibrationStrength() - app.STRENGTH_STEP);
-            trace("tap strength -");
-        } else if (action == Layout.ACTION_STRENGTH_UP) {
-            app.setVibrationStrength(app.getVibrationStrength() + app.STRENGTH_STEP);
-            trace("tap strength +");
-        } else if (action == Layout.ACTION_DURATION_DOWN) {
+        if (action == Layout.ACTION_EVERY_DOWN) {
+            app.setEveryHundredths(app.getEveryHundredths() - app.EVERY_STEP);
+            trace("tap every -");
+        } else if (action == Layout.ACTION_EVERY_UP) {
+            app.setEveryHundredths(app.getEveryHundredths() + app.EVERY_STEP);
+            trace("tap every +");
+        } else if (action == Layout.ACTION_PULSE_DOWN) {
             app.setVibrationDuration(app.getVibrationDuration() - app.DURATION_STEP);
-            trace("tap length -");
-        } else if (action == Layout.ACTION_DURATION_UP) {
+            trace("tap pulse -");
+        } else if (action == Layout.ACTION_PULSE_UP) {
             app.setVibrationDuration(app.getVibrationDuration() + app.DURATION_STEP);
-            trace("tap length +");
+            trace("tap pulse +");
+        } else if (action == Layout.ACTION_POWER_DOWN) {
+            app.setVibrationStrength(app.getVibrationStrength() - app.STRENGTH_STEP);
+            trace("tap power -");
+        } else if (action == Layout.ACTION_POWER_UP) {
+            app.setVibrationStrength(app.getVibrationStrength() + app.STRENGTH_STEP);
+            trace("tap power +");
         } else {
             trace("tap outside controls -> ignored");
         }

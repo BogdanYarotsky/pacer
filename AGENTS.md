@@ -271,24 +271,27 @@ dimming — but the rule they cost is permanent. `Display` holds the captions an
 `PacerMath.format*`/`ClockText.formatTime` hold the value strings; `pacerView`
 and `LayoutTest` both read from there, so the two cannot diverge.
 
-**Captions are display strings and nothing else, and two of the three no longer
-match the code under them.** The rows read `POWER` over
-`_vibeStrength`/`vibrationStrength` and `BUZZ` over
-`_vibeDuration`/`vibrationDuration`. A caption can be re-worded in `Display.mc`
+**Captions are display strings and nothing else, and two of the three do not
+match the code under them.** The rows read `PULSE` over
+`_vibeDuration`/`vibrationDuration` and `POWER` over
+`_vibeStrength`/`vibrationStrength`. A caption can be re-worded in `Display.mc`
 alone; a **storage key cannot be re-worded at all**, because it is on the watch's
-disk and renaming it silently resets that setting on every watch running Pacer.
-The same holds for `paceHundredths` under the `PACE` row.
+disk and renaming it silently resets that setting on every watch running the app.
+When a setting's *unit* changes, that is not a re-wording either — it is a NEW
+key plus a one-time migration, which is exactly what `everyHundredths` is: the
+old `paceHundredths` held hundredths of a breath per minute, the new key holds
+hundredths of a second between cues, and `migrateLegacyPace` converts the old
+value once and deletes the old key.
 
-The `PACE` value is `5.71bpm | 5.25s` — the pace leads, being what a tap moves
-and what assessment protocols are written in, with the cue interval past the
-divider because that is the half you can check against a clock. Each number sits
-against its own unit with no space, so the line splits at the divider rather than
-at four separate gaps. Both numbers drop trailing zeros, so 6.00 renders
-`6bpm | 5s` and the line changes width as it is tapped through.
+The `EVERY` value is the bare cue interval in seconds — `5s`, `5.25s` — with no
+translation on screen: whoever thinks in breaths per minute converts once,
+outside the watch. The unit sits tight against the number on every row (`5s`,
+`100ms`, `20%`), trailing zeros drop, and the line changes width as it is tapped
+through.
 
 ## Row order lives in two places and they must agree
 
-The screen is **POWER, PACE, BUZZ**, which is not the order the settings were
+The screen is **EVERY, PULSE, POWER**, which is not the order the settings were
 built in. That order is written down twice:
 
 - the `ACTION_` constants in `Layout.mc`, because `editorActionAt` encodes its
@@ -316,15 +319,15 @@ screen and overlapped both controls, which is how `sec` became `s` and the line
 came down to 204 px.
 
 `Layout.editorTextMaxWidth()` is that budget — the gap between the controls less
-a 10 px gutter each side, 212 px on this device — and
+a 10 px gutter each side — and
 `layoutEveryReachableValueFits` now checks **both** budgets for every reachable
 value, labels included. Any new caption or value format has to clear it, and the
-`PACE` row is the one with the least room to spare, at its widest with two
-decimals in both halves: `"5.71bpm | 5.25s"`. Trailing-zero trimming only ever
+`EVERY` row is the one with the least room to spare, at its widest with two
+decimals and two whole digits: `"14.95s"`. Trailing-zero trimming only ever
 shortens it, so that is the worst case the sweep has to clear.
 
 Coverage is exhaustive rather than sampled. That same sweep walks **every** value
-the tap controls can reach (all 251 paces, 99 strengths, 241 lengths) and
+the tap controls can reach (all 1496 intervals, 99 strengths, 241 lengths) and
 `layoutEveryClockMinuteFits` every minute of the day in both clock formats,
 rather than a hand-picked worst case. `layoutDisplayWidthMatchesTheDevice` pins
 `Layout.DISPLAY_WIDTH` — which `pacerDelegate` maps taps with — to
@@ -384,8 +387,8 @@ silently passes the whole string `test_name=foo` as the *device* and fails with
 
 ```
 just build vivoactive5 1                    # device, typecheck
-just test  vivoactive5 3 pacerMathIntervalAtDefaultPace
-pwsh -File tools/test.ps1 -TestName pacerMathIntervalAtDefaultPace   # clearer
+just test  vivoactive5 3 pacerMathIntervalIsTenTimesTheValue
+pwsh -File tools/test.ps1 -TestName pacerMathIntervalIsTenTimesTheValue   # clearer
 ```
 
 ### A live simulator blocks the calling shell
@@ -505,14 +508,15 @@ formatting), `ClockTextTest` (both clock formats), `MainInputGateTest`
   (The SDK's own prose table for these is garbled — the method list is correct.)
 - Put logic in pure modules (`Layout`, `PacerMath`) so it is testable without a
   running app instance.
-- **Two tests write to Storage, and nothing else may** —
+- **Three tests write to Storage, and nothing else may** —
   `settingsStepsWalkEveryRangeEndToEnd`, because walking the real setters is the
-  only way to prove they clamp, and `settingsVibeProfileTracksSettingChanges`,
+  only way to prove they clamp; `settingsVibeProfileTracksSettingChanges`,
   because the `VibeProfile` the motor is handed can only be reached through those
-  same setters. Both restore from a `finally`, not from the end of the happy
-  path: an assertion throws, and a restore that only runs on success strands
-  whatever value the test died on in the simulator for every run after it. That
-  is not hypothetical; it happened. Keep new tests pure.
+  same setters; and `settingsMigratesLegacyPace`, because a key-to-key migration
+  is observable nowhere else. All three restore from a `finally`, not from the
+  end of the happy path: an assertion throws, and a restore that only runs on
+  success strands whatever value the test died on in the simulator for every run
+  after it. That is not hypothetical; it happened. Keep new tests pure.
 
 **Do not weaken a test to make the loop green.** A failing test that reflects
 reality is the tool working.
@@ -532,11 +536,11 @@ reality is the tool working.
   the pace restart were each deleted in turn and the test caught both. What the
   motor then does with that profile is only verifiable on a wrist.
 
-  Two consequences worth knowing there. A **pace** change restarts the timer, so
-  the next cue is a full new interval away and the phase resets — one breath, by
-  design. A **strength or length** change does not: it lands on the next cue,
-  which can be up to ~6.7 s later, so a tap will not alter a buzz already in
-  flight.
+  Two consequences worth knowing there. An **interval** (`EVERY`) change
+  restarts the timer, so the next cue is a full new interval away and the phase
+  resets — one breath, by design. A **strength or length** change does not: it
+  lands on the next cue, which can be up to 15 s later at the ceiling, so a tap
+  will not alter a buzz already in flight.
 
 - **A watch with vibration switched off feels identical to a broken app.** This
   is the one failure mode the app can see, so as of v0.23 it says so: the bottom

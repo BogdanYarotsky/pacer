@@ -49,7 +49,7 @@ function pacerMathClampHandlesASingleValueRange(logger as Test.Logger) as Boolea
 function pacerMathClampHoldsAcrossEveryRealRange(logger as Test.Logger) as Boolean {
     var app = getApp();
     var ranges = [
-        [app.MIN_PACE_HUNDREDTHS, app.MAX_PACE_HUNDREDTHS],
+        [app.MIN_EVERY_HUNDREDTHS, app.MAX_EVERY_HUNDREDTHS],
         [app.MIN_VIBE_STRENGTH, app.MAX_VIBE_STRENGTH],
         [app.MIN_VIBE_DURATION, app.MAX_VIBE_DURATION]
     ];
@@ -78,57 +78,59 @@ function pacerMathClampHoldsAcrossEveryRealRange(logger as Test.Logger) as Boole
     return true;
 }
 
-// --- pace arithmetic --------------------------------------------------------
+// --- cue arithmetic ---------------------------------------------------------
 
-// 3000000 / 571 = 5253.94..., which must round to 5254 rather than truncate to
-// 5253. At ~11 cues a minute a 1 ms truncation is harmless in itself, but the
-// rounding is the part that is easy to break silently during a refactor.
-//
-// 571 is here because it is an awkward divisor, not because it is the default.
-// It was the default once, being a measured resonance frequency; the shipped
-// default is now the generic 6.00, which divides exactly and would exercise none
-// of this. Both are asserted so neither case can rot.
+// The setting IS the interval, so the conversion is exactly ×10 -- hundredths
+// of a second to milliseconds -- with nothing to round. The endpoints matter:
+// the floor must land exactly on the platform's 50 ms Timer minimum, which is
+// the reason the floor is the value it is.
 (:test)
-function pacerMathIntervalRoundsToNearest(logger as Test.Logger) as Boolean {
-    var awkward = PacerMath.intervalMillis(571);
-    logger.debug("intervalMillis(571) = " + awkward);
-    Test.assertEqualMessage(awkward, 5254, "571 hundredths should round up to 5254 ms");
-
+function pacerMathIntervalIsTenTimesTheValue(logger as Test.Logger) as Boolean {
     var app = getApp();
-    var fromDefault = PacerMath.intervalMillis(app.DEFAULT_PACE_HUNDREDTHS);
-    logger.debug("intervalMillis(default " + app.DEFAULT_PACE_HUNDREDTHS + ") = " + fromDefault);
     Test.assertEqualMessage(
-        fromDefault, 5000,
-        "the default pace should be one cue every 5000 ms exactly, not " + fromDefault);
+        PacerMath.intervalMillis(app.MIN_EVERY_HUNDREDTHS), 50,
+        "the floor must be exactly the 50 ms Timer minimum");
+    Test.assertEqualMessage(
+        PacerMath.intervalMillis(app.DEFAULT_EVERY_HUNDREDTHS), 5000,
+        "the default should be one cue every 5000 ms exactly");
+    Test.assertEqualMessage(
+        PacerMath.intervalMillis(525), 5250, "an off-ladder migrated value converts too");
+    Test.assertEqualMessage(
+        PacerMath.intervalMillis(app.MAX_EVERY_HUNDREDTHS), 15000,
+        "the ceiling is 15 s between cues");
+    logger.debug(
+        "floor " + PacerMath.intervalMillis(app.MIN_EVERY_HUNDREDTHS) +
+        " ms, ceiling " + PacerMath.intervalMillis(app.MAX_EVERY_HUNDREDTHS) + " ms");
     return true;
 }
 
-// The supported band is 4.50-7.00 breaths/min, the range assessment protocols
-// sweep. A faster pace must mean a shorter gap between cues.
-(:test)
-function pacerMathIntervalShrinksAsPaceRises(logger as Test.Logger) as Boolean {
-    var slow = PacerMath.intervalMillis(450);
-    var fast = PacerMath.intervalMillis(700);
-    logger.debug("450 -> " + slow + " ms, 700 -> " + fast + " ms");
-    Test.assertMessage(slow > fast, "a slower pace must give a longer interval");
-    Test.assertEqualMessage(slow, 6667, "450 hundredths should give 6667 ms");
-    Test.assertEqualMessage(fast, 4286, "700 hundredths should give 4286 ms");
-    return true;
-}
-
-// Two cues per breath: the interval is half a breath, so twice the interval is
-// one full breath period.
+// Two cues per breath: the interval is half a breath, so twice the default
+// interval is one full breath -- 10 s, 6 breaths a minute, 0.1 Hz, the Lehrer
+// protocol's canonical frequency.
 (:test)
 function pacerMathTwoCuesPerBreath(logger as Test.Logger) as Boolean {
-    var breathsPerMin = 6.0;
-    var ms = PacerMath.intervalMillis(600);
-    var breathPeriodMs = 2 * ms;
-    var expected = 60000 / breathsPerMin;   // 10000 ms per breath at 6/min
-    logger.debug("breath period = " + breathPeriodMs + " ms, expected " + expected);
-    Test.assertMessage(
-        (breathPeriodMs - expected).abs() <= 1,
-        "two cue intervals should equal one breath period"
-    );
+    var app = getApp();
+    var breathPeriodMs = 2 * PacerMath.intervalMillis(app.DEFAULT_EVERY_HUNDREDTHS);
+    logger.debug("default breath period = " + breathPeriodMs + " ms");
+    Test.assertEqualMessage(
+        breathPeriodMs, 10000,
+        "two default cue intervals should be one 0.1 Hz breath");
+    return true;
+}
+
+// The bridge from the retired pace model. These are the values real watches
+// can hold: the shipped default, the measured pace that was once the default,
+// its neighbour (which rounds the other way), and both ends of the old band.
+// Migrated values land off the 0.05 s ladder on purpose -- the conversion
+// preserves the wearer's measurement, and the next tap snaps to the ladder via
+// the clamp, exactly like any other off-ladder stored value.
+(:test)
+function pacerMathMigratesLegacyPaceTable(logger as Test.Logger) as Boolean {
+    Test.assertEqualMessage(PacerMath.legacyPaceToEvery(600), 500, "6.00 bpm is a 5.00 s interval");
+    Test.assertEqualMessage(PacerMath.legacyPaceToEvery(571), 525, "5.71 bpm rounds down to 5.25 s");
+    Test.assertEqualMessage(PacerMath.legacyPaceToEvery(570), 526, "5.70 bpm rounds up to 5.26 s");
+    Test.assertEqualMessage(PacerMath.legacyPaceToEvery(450), 667, "the old floor becomes 6.67 s");
+    Test.assertEqualMessage(PacerMath.legacyPaceToEvery(700), 429, "the old ceiling becomes 4.29 s");
     return true;
 }
 
@@ -156,9 +158,9 @@ function pacerMathTrimsTrailingZeros(logger as Test.Logger) as Boolean {
     return true;
 }
 
-// Every pace the editor can reach must render as a decimal that reads back as
-// the value it came from, with no trailing zero left on it. Bounds come from the
-// app rather than being repeated here: hardcoded 450/650 meant this sweep
+// Every interval the editor can reach must render as a decimal that reads back
+// as the value it came from, with no trailing zero left on it. Bounds come from
+// the app rather than being repeated here: hardcoded 450/650 meant this sweep
 // silently stopped covering the range the moment the ceiling moved.
 //
 // The round trip is the assertion that carries the weight, and it replaces a
@@ -166,11 +168,11 @@ function pacerMathTrimsTrailingZeros(logger as Test.Logger) as Boolean {
 // Dropping trailing zeros and keeping the fraction's leading one are the same
 // branch seen from two sides, and a string that reads back as the wrong number
 // is the bug both are about: "6.5" for 605 has the right shape, no trailing
-// zero, and is a different pace.
+// zero, and is a different interval.
 (:test)
-function pacerMathFormatsEveryPaceInRange(logger as Test.Logger) as Boolean {
+function pacerMathFormatsEveryReachableInterval(logger as Test.Logger) as Boolean {
     var app = getApp();
-    for (var v = app.MIN_PACE_HUNDREDTHS; v <= app.MAX_PACE_HUNDREDTHS; v += 1) {
+    for (var v = app.MIN_EVERY_HUNDREDTHS; v <= app.MAX_EVERY_HUNDREDTHS; v += 1) {
         var s = PacerMath.formatHundredths(v);
 
         // String.toFloat is documented as Float or Null, so an unparseable
@@ -219,39 +221,26 @@ function pacerMathFormatsStrength(logger as Test.Logger) as Boolean {
     return true;
 }
 
-// The pace leads and its cue interval follows past a divider. Both halves are
-// pinned as one string, spacing included, because the row is read as one: a
-// refactor that keeps the numbers right and moves a space, a unit or the divider
-// still changes what the screen says.
+// The EVERY row is one bare number and its unit, pinned as a string because
+// the row is read as one: a refactor that keeps the number right and moves the
+// unit or reintroduces a space still changes what the screen says.
 (:test)
-function pacerMathFormatsPaceSummary(logger as Test.Logger) as Boolean {
+function pacerMathFormatsEvery(logger as Test.Logger) as Boolean {
     Test.assertEqualMessage(
-        PacerMath.formatPaceSummary(571),
-        "5.71bpm | 5.25s",
-        "the default pace should lead, with its cue interval past the divider"
-    );
+        PacerMath.formatEvery(500), "5s", "the default trims to a bare 5s");
     Test.assertEqualMessage(
-        PacerMath.formatPaceSummary(570),
-        "5.7bpm | 5.26s",
-        "the interval must be derived from the selected pace"
-    );
-    // Both ends of the range, where the interval is longest and shortest -- and
-    // both of them trim, which is where the line is at its shortest on screen.
+        PacerMath.formatEvery(510), "5.1s", "one trailing zero comes off");
     Test.assertEqualMessage(
-        PacerMath.formatPaceSummary(450),
-        "4.5bpm | 6.67s",
-        "the slowest pace should give the longest interval"
-    );
+        PacerMath.formatEvery(525), "5.25s", "a migrated measurement keeps both decimals");
     Test.assertEqualMessage(
-        PacerMath.formatPaceSummary(700),
-        "7bpm | 4.29s",
-        "the fastest pace should give the shortest interval"
-    );
-    // The one value where both halves trim away to whole numbers.
+        PacerMath.formatEvery(495), "4.95s", "one step below the default");
     Test.assertEqualMessage(
-        PacerMath.formatPaceSummary(600),
-        "6bpm | 5s",
-        "6 breaths a minute is exactly one cue every five seconds"
-    );
+        PacerMath.formatEvery(5), "0.05s", "the floor keeps its leading zero");
+    Test.assertEqualMessage(
+        PacerMath.formatEvery(1000), "10s", "two digits of whole seconds");
+    Test.assertEqualMessage(
+        PacerMath.formatEvery(1495), "14.95s", "the widest string the row can show");
+    Test.assertEqualMessage(
+        PacerMath.formatEvery(1500), "15s", "the ceiling trims clean");
     return true;
 }

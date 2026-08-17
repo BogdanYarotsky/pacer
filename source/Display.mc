@@ -17,22 +17,24 @@ import Toybox.Lang;
 // What is left is the time, the three settings and the build.
 module Display {
 
-    // Captions are display strings and nothing else. Two of the three no longer
-    // match the code underneath them -- POWER over _vibeStrength, BUZZ over
-    // _vibeDuration -- and that is deliberate: a caption can be re-worded in this
-    // file alone, while the keys those settings are saved under
+    // Captions are display strings and nothing else. Two of the three do not
+    // match the code underneath them -- PULSE over _vibeDuration, POWER over
+    // _vibeStrength -- and that is deliberate: a caption can be re-worded in
+    // this file alone, while the keys those settings are saved under
     // (vibrationStrength, vibrationDuration) are on the watch's disk and cannot
     // be re-worded at all. Renaming a key would silently reset that setting on
-    // every watch running Pacer.
+    // every watch running this app.
     //
-    // Units stay beside the values rather than moving up into the captions.
+    // All three captions are five characters, so the label column reads as a
+    // column. Units stay beside the values rather than moving up into the
+    // captions.
     //
     // The order below is the order on screen, and it is also the order of the
     // ACTION_ constants in Layout. Change one without the other and every tap
     // edits the wrong setting.
+    const LABEL_EVERY = "EVERY";
+    const LABEL_PULSE = "PULSE";
     const LABEL_POWER = "POWER";
-    const LABEL_PACE  = "PACE";
-    const LABEL_BUZZ  = "BUZZ";
 
     // The bottom line. The version is on screen because reading it off the watch
     // is the only proof of which build a sideload installed -- see the deploy

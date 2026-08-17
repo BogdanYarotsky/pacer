@@ -1,13 +1,15 @@
+import Toybox.Application.Storage;
 import Toybox.Lang;
 import Toybox.Test;
 
-// Settings behaviour that can only be observed through the real setters.
+// Settings behaviour that can only be observed through the real setters -- or,
+// for the migration, through Storage itself.
 //
-// The clamping arithmetic itself is tested purely in PacerMathTest -- it does
-// not belong here, because every test in this file writes through to Storage and
-// a test that writes to Storage can strand a value there. The one below is
-// therefore the only one that does, and it restores from a `finally` so a failed
-// assertion cannot leave the simulator holding the value it died on.
+// The clamping arithmetic is tested purely in PacerMathTest; it does not belong
+// here, because a test that writes to Storage can strand a value there. The
+// three tests in this file that do write (the profile tracker, the range walk,
+// and the migration) all restore from a `finally` so a failed assertion cannot
+// leave the simulator holding the value it died on.
 
 // The cue the wrist will actually feel, read through the same accessor
 // timerCallback hands to Attention.vibrate.
@@ -29,7 +31,7 @@ import Toybox.Test;
 (:test)
 function settingsVibeProfileTracksSettingChanges(logger as Test.Logger) as Boolean {
     var app = getApp();
-    var savedPace = app.getPaceHundredths();
+    var savedEvery = app.getEveryHundredths();
     var savedStrength = app.getVibrationStrength();
     var savedDuration = app.getVibrationDuration();
 
@@ -76,20 +78,20 @@ function settingsVibeProfileTracksSettingChanges(logger as Test.Logger) as Boole
             app.vibeProfiles()[0].dutyCycle, app.MIN_VIBE_STRENGTH,
             "the cue did not follow the strength back to its floor");
 
-        // The cue timer must follow the pace while it is running.
+        // The cue timer must follow the interval while it is running.
         app.startTimer();
         Test.assertEqualMessage(
-            app.getTimerPeriodMillis(), PacerMath.intervalMillis(app.getPaceHundredths()),
-            "the timer did not start at the current pace");
+            app.getTimerPeriodMillis(), PacerMath.intervalMillis(app.getEveryHundredths()),
+            "the timer did not start at the current interval");
 
-        app.setPaceHundredths(600);
+        app.setEveryHundredths(600);
         Test.assertEqualMessage(
             app.getTimerPeriodMillis(), PacerMath.intervalMillis(600),
-            "a pace change did not restart the cue timer -- the cadence would not change");
-        app.setPaceHundredths(450);
+            "an interval change did not restart the cue timer -- the cadence would not change");
+        app.setEveryHundredths(450);
         Test.assertEqualMessage(
             app.getTimerPeriodMillis(), PacerMath.intervalMillis(450),
-            "the cue timer kept the previous pace");
+            "the cue timer kept the previous interval");
         logger.debug(
             "600 -> " + PacerMath.intervalMillis(600) + " ms, 450 -> " +
             PacerMath.intervalMillis(450) + " ms");
@@ -100,7 +102,7 @@ function settingsVibeProfileTracksSettingChanges(logger as Test.Logger) as Boole
         Test.assertEqualMessage(
             app.getTimerPeriodMillis(), 0, "a stopped timer still reports a period");
     } finally {
-        app.setPaceHundredths(savedPace);
+        app.setEveryHundredths(savedEvery);
         app.setVibrationStrength(savedStrength);
         app.setVibrationDuration(savedDuration);
         app.startTimer();
@@ -115,20 +117,31 @@ function settingsRangesAndStepsAreCoherent(logger as Test.Logger) as Boolean {
     var app = getApp();
 
     Test.assertMessage(
-        app.MIN_PACE_HUNDREDTHS < app.MAX_PACE_HUNDREDTHS, "the pace range is inverted");
+        app.MIN_EVERY_HUNDREDTHS < app.MAX_EVERY_HUNDREDTHS, "the interval range is inverted");
     Test.assertMessage(
         app.MIN_VIBE_STRENGTH < app.MAX_VIBE_STRENGTH, "the strength range is inverted");
     Test.assertMessage(
         app.MIN_VIBE_DURATION < app.MAX_VIBE_DURATION, "the length range is inverted");
 
-    Test.assertMessage(app.PACE_STEP > 0, "the pace step must advance");
+    Test.assertMessage(app.EVERY_STEP > 0, "the interval step must advance");
     Test.assertMessage(app.STRENGTH_STEP > 0, "the strength step must advance");
     Test.assertMessage(app.DURATION_STEP > 0, "the length step must advance");
 
+    // The floor is pinned to its reason: 0.05 s exists because the platform's
+    // documented Timer minimum is 50 ms, and the two must never drift apart.
+    // The ceiling is a design choice and is pinned only through the same
+    // conversion, so the constant itself stays free to be re-argued.
+    Test.assertEqualMessage(
+        PacerMath.intervalMillis(app.MIN_EVERY_HUNDREDTHS), 50,
+        "the interval floor must be exactly the 50 ms Timer minimum");
+    Test.assertEqualMessage(
+        PacerMath.intervalMillis(app.MAX_EVERY_HUNDREDTHS), 15000,
+        "the interval ceiling is 15 s between cues");
+
     // A default outside its own range would be silently replaced on first run.
     Test.assertEqualMessage(
-        PacerMath.clamp(app.DEFAULT_PACE_HUNDREDTHS, app.MIN_PACE_HUNDREDTHS, app.MAX_PACE_HUNDREDTHS),
-        app.DEFAULT_PACE_HUNDREDTHS, "the default pace is outside the pace range");
+        PacerMath.clamp(app.DEFAULT_EVERY_HUNDREDTHS, app.MIN_EVERY_HUNDREDTHS, app.MAX_EVERY_HUNDREDTHS),
+        app.DEFAULT_EVERY_HUNDREDTHS, "the default interval is outside the interval range");
     Test.assertEqualMessage(
         PacerMath.clamp(app.DEFAULT_VIBE_STRENGTH, app.MIN_VIBE_STRENGTH, app.MAX_VIBE_STRENGTH),
         app.DEFAULT_VIBE_STRENGTH, "the default strength is outside the strength range");
@@ -142,8 +155,8 @@ function settingsRangesAndStepsAreCoherent(logger as Test.Logger) as Boolean {
     // allowed to move; the ladder is the property that must hold whatever the
     // floor is tuned to.
     Test.assertEqualMessage(
-        (app.MAX_PACE_HUNDREDTHS - app.MIN_PACE_HUNDREDTHS) % app.PACE_STEP, 0,
-        "the pace step does not divide the pace range");
+        (app.MAX_EVERY_HUNDREDTHS - app.MIN_EVERY_HUNDREDTHS) % app.EVERY_STEP, 0,
+        "the interval step does not divide the interval range");
     Test.assertEqualMessage(
         (app.MAX_VIBE_STRENGTH - app.MIN_VIBE_STRENGTH) % app.STRENGTH_STEP, 0,
         "the strength step does not divide the strength range");
@@ -155,8 +168,8 @@ function settingsRangesAndStepsAreCoherent(logger as Test.Logger) as Boolean {
     // value the taps can come back to. A default one step beside the ladder is
     // how the strength scale ran on odd percents for as long as it did.
     Test.assertEqualMessage(
-        (app.DEFAULT_PACE_HUNDREDTHS - app.MIN_PACE_HUNDREDTHS) % app.PACE_STEP, 0,
-        "the default pace is off the pace ladder");
+        (app.DEFAULT_EVERY_HUNDREDTHS - app.MIN_EVERY_HUNDREDTHS) % app.EVERY_STEP, 0,
+        "the default interval is off the interval ladder");
     Test.assertEqualMessage(
         (app.DEFAULT_VIBE_STRENGTH - app.MIN_VIBE_STRENGTH) % app.STRENGTH_STEP, 0,
         "the default strength is off the strength ladder");
@@ -187,26 +200,42 @@ function settingsRangesAndStepsAreCoherent(logger as Test.Logger) as Boolean {
 (:test)
 function settingsStepsWalkEveryRangeEndToEnd(logger as Test.Logger) as Boolean {
     var app = getApp();
-    var savedPace = app.getPaceHundredths();
+    var savedEvery = app.getEveryHundredths();
     var savedStrength = app.getVibrationStrength();
     var savedDuration = app.getVibrationDuration();
 
     try {
-        app.setPaceHundredths(app.MIN_PACE_HUNDREDTHS);
+        app.setEveryHundredths(app.MIN_EVERY_HUNDREDTHS);
         var taps = 0;
-        while (app.getPaceHundredths() < app.MAX_PACE_HUNDREDTHS && taps < 1000) {
-            app.setPaceHundredths(app.getPaceHundredths() + app.PACE_STEP);
+        while (app.getEveryHundredths() < app.MAX_EVERY_HUNDREDTHS && taps < 1000) {
+            app.setEveryHundredths(app.getEveryHundredths() + app.EVERY_STEP);
             Test.assertMessage(
-                app.getPaceHundredths() <= app.MAX_PACE_HUNDREDTHS,
-                "stepping up overshot the pace maximum: " + app.getPaceHundredths()
+                app.getEveryHundredths() <= app.MAX_EVERY_HUNDREDTHS,
+                "stepping up overshot the interval ceiling: " + app.getEveryHundredths()
             );
             taps += 1;
         }
         Test.assertEqualMessage(
-            app.getPaceHundredths(), app.MAX_PACE_HUNDREDTHS,
-            "stepping up must reach the maximum pace"
+            app.getEveryHundredths(), app.MAX_EVERY_HUNDREDTHS,
+            "stepping up must reach the interval ceiling"
         );
-        logger.debug("pace: " + taps + " taps from floor to ceiling");
+        logger.debug("interval: " + taps + " taps from floor to ceiling");
+
+        // A migrated measurement lands off the 0.05 ladder (5.71 bpm -> 5.25 s
+        // is on it, but 5.70 bpm -> 5.26 s is not). One tap down from just off
+        // the floor must land ON the floor, and a single out-of-range request
+        // must clamp in one write -- both are the setter's clamp at work.
+        app.setEveryHundredths(app.MIN_EVERY_HUNDREDTHS + 3);
+        app.setEveryHundredths(app.getEveryHundredths() - app.EVERY_STEP);
+        Test.assertEqualMessage(
+            app.getEveryHundredths(), app.MIN_EVERY_HUNDREDTHS,
+            "stepping down off the ladder must land on the floor, not below or beside it"
+        );
+        app.setEveryHundredths(app.MAX_EVERY_HUNDREDTHS + 7);
+        Test.assertEqualMessage(
+            app.getEveryHundredths(), app.MAX_EVERY_HUNDREDTHS,
+            "an out-of-range interval must clamp to the ceiling in a single write"
+        );
 
         app.setVibrationStrength(app.MIN_VIBE_STRENGTH);
         taps = 0;
@@ -280,15 +309,85 @@ function settingsStepsWalkEveryRangeEndToEnd(logger as Test.Logger) as Boolean {
         );
         logger.debug("length: " + taps + " taps from ceiling to floor");
     } finally {
-        app.setPaceHundredths(savedPace);
+        app.setEveryHundredths(savedEvery);
         app.setVibrationStrength(savedStrength);
         app.setVibrationDuration(savedDuration);
     }
 
-    Test.assertEqualMessage(app.getPaceHundredths(), savedPace, "the pace was not restored");
+    Test.assertEqualMessage(app.getEveryHundredths(), savedEvery, "the interval was not restored");
     Test.assertEqualMessage(
         app.getVibrationStrength(), savedStrength, "the strength was not restored");
     Test.assertEqualMessage(
         app.getVibrationDuration(), savedDuration, "the length was not restored");
+    return true;
+}
+
+// The unit change under the interval setting: the old key held hundredths of a
+// breath per minute, the new one holds hundredths of a second between cues.
+// Reinterpreting the old number under a new name would corrupt every installed
+// watch, so the bridge is: convert once, delete the old key, and never let the
+// old key override a value the new model has already written.
+//
+// This is provable only by staging Storage and re-running loadSettings, which
+// is why loadSettings is public and why this is the third test allowed to
+// write. The finally block writes the saved value straight back to Storage and
+// reloads, so even a failed assertion leaves the app exactly as it found it.
+(:test)
+function settingsMigratesLegacyPace(logger as Test.Logger) as Boolean {
+    var app = getApp();
+    var savedEvery = app.getEveryHundredths();
+
+    try {
+        // A plausible legacy pace, no new value yet: converted, persisted
+        // under the new key, and the legacy key removed so it cannot run twice.
+        Storage.deleteValue(app.EVERY_STORAGE_KEY);
+        Storage.setValue(app.LEGACY_PACE_STORAGE_KEY, 571);
+        app.loadSettings();
+        Test.assertEqualMessage(
+            app.getEveryHundredths(), 525, "5.71 bpm should migrate to a 5.25 s interval");
+        Test.assertEqualMessage(
+            Storage.getValue(app.EVERY_STORAGE_KEY) as Number, 525,
+            "the migrated interval must be persisted, not just held in memory");
+        Test.assertMessage(
+            Storage.getValue(app.LEGACY_PACE_STORAGE_KEY) == null,
+            "the legacy key must be deleted so the conversion cannot repeat");
+
+        // Both keys present: the new value wins and the legacy key is left
+        // exactly as it lies -- it is dead data, not an input.
+        Storage.setValue(app.EVERY_STORAGE_KEY, 700);
+        Storage.setValue(app.LEGACY_PACE_STORAGE_KEY, 600);
+        app.loadSettings();
+        Test.assertEqualMessage(
+            app.getEveryHundredths(), 700, "a valid new value must never be overridden");
+        Test.assertEqualMessage(
+            Storage.getValue(app.LEGACY_PACE_STORAGE_KEY) as Number, 600,
+            "a legacy value beside a valid new one must be left untouched");
+        Storage.deleteValue(app.LEGACY_PACE_STORAGE_KEY);
+
+        // An implausible legacy value is not a pace: fall back to the default
+        // and leave the junk where it lies rather than converting garbage.
+        Storage.deleteValue(app.EVERY_STORAGE_KEY);
+        Storage.setValue(app.LEGACY_PACE_STORAGE_KEY, 9999);
+        app.loadSettings();
+        Test.assertEqualMessage(
+            app.getEveryHundredths(), app.DEFAULT_EVERY_HUNDREDTHS,
+            "an implausible legacy value must fall back to the default");
+        Storage.deleteValue(app.LEGACY_PACE_STORAGE_KEY);
+
+        // Nothing stored at all: a fresh install starts at the default.
+        Storage.deleteValue(app.EVERY_STORAGE_KEY);
+        app.loadSettings();
+        Test.assertEqualMessage(
+            app.getEveryHundredths(), app.DEFAULT_EVERY_HUNDREDTHS,
+            "a fresh install must start at the default interval");
+    } finally {
+        // The setter early-returns on an unchanged value without writing, so
+        // restore Storage directly and reload rather than trusting it.
+        Storage.setValue(app.EVERY_STORAGE_KEY, savedEvery);
+        app.loadSettings();
+    }
+
+    Test.assertEqualMessage(
+        app.getEveryHundredths(), savedEvery, "the interval was not restored");
     return true;
 }

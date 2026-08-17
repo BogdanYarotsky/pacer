@@ -57,11 +57,11 @@ class pacerView extends WatchUi.View {
             dc, _clockY, FONT_CLOCK,
             ClockText.formatTime(now.hour, now.min, settings.is24Hour));
 
-        // POWER, PACE, BUZZ -- the same order as the ACTION_ constants in
+        // EVERY, PULSE, POWER -- the same order as the ACTION_ constants in
         // Layout, which is what maps a tap to the row under it.
-        drawEditorRow(dc, 0, Display.LABEL_POWER, app.getStrengthText());
-        drawEditorRow(dc, 1, Display.LABEL_PACE, app.getPaceText());
-        drawEditorRow(dc, 2, Display.LABEL_BUZZ, app.getDurationText());
+        drawEditorRow(dc, 0, Display.LABEL_EVERY, app.getEveryText());
+        drawEditorRow(dc, 1, Display.LABEL_PULSE, app.getDurationText());
+        drawEditorRow(dc, 2, Display.LABEL_POWER, app.getStrengthText());
 
         // The same two conditions timerCallback needs for a cue to happen at
         // all. The cue path itself is left untouched: it still asks the OS to

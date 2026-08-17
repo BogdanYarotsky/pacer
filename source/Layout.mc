@@ -43,19 +43,20 @@ module Layout {
     // pinned by the tap-hit-mapping tests in tests/LayoutTest.mc.
     //
     // **The order of this block IS the order of the rows on screen**, which is
-    // POWER, PACE, BUZZ -- so strength is row 0 and pace is row 1, and the
-    // numbering deliberately does not follow the order the settings were built
-    // in. pacerView draws in this same order and pacerDelegate dispatches by
-    // name, so re-ordering the screen means editing this block and the draw
+    // EVERY, PULSE, POWER -- the interval leads because it is the setting, the
+    // cue's shape follows. The names are the on-screen captions, not the code's
+    // setting names: pacerDelegate is where PULSE maps to duration and POWER to
+    // strength. pacerView draws in this same order and pacerDelegate dispatches
+    // by name, so re-ordering the screen means editing this block and the draw
     // calls together. If they ever disagree, every tap edits the wrong setting
     // and nothing on screen says so.
     const ACTION_NONE = 0;
-    const ACTION_STRENGTH_DOWN = 1;
-    const ACTION_STRENGTH_UP = 2;
-    const ACTION_PACE_DOWN = 3;
-    const ACTION_PACE_UP = 4;
-    const ACTION_DURATION_DOWN = 5;
-    const ACTION_DURATION_UP = 6;
+    const ACTION_EVERY_DOWN = 1;
+    const ACTION_EVERY_UP = 2;
+    const ACTION_PULSE_DOWN = 3;
+    const ACTION_PULSE_UP = 4;
+    const ACTION_POWER_DOWN = 5;
+    const ACTION_POWER_UP = 6;
 
     const DIRECTION_DECREASE = 1;
     const DIRECTION_INCREASE = 2;

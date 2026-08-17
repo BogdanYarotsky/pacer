@@ -1,6 +1,6 @@
 import Toybox.Lang;
 
-// Pure pace arithmetic and value formatting, kept out of pacerApp so it is
+// Pure cue arithmetic and value formatting, kept out of pacerApp so it is
 // testable without a running application instance -- and so the layout tests
 // measure the same strings the view draws rather than a second copy of them.
 module PacerMath {
@@ -32,27 +32,41 @@ module PacerMath {
 
     // Milliseconds between vibration cues.
     //
-    // Each breath gets two cues, one at each turn-around, so a cue interval is
-    // half a breath:
-    //     60000 / (paceHundredths / 100) / 2  ==  3000000 / paceHundredths
-    // The + 0.5 rounds to nearest rather than truncating.
+    // The setting IS the cue interval, in hundredths of a second, so this is a
+    // straight unit conversion with no rounding to go wrong. It used to be a
+    // division -- the setting was breaths per minute and the screen translated
+    // -- and retiring that translation is the point: the EVERY row shows the
+    // bare number this function is fed.
+    //
+    // Each breath still gets two cues, one at each turn-around, so the interval
+    // is half a breath: EVERY 5s is 10 s per breath, 0.1 Hz.
     //
     // The two cues are identical on purpose. With an equal I:E ratio the
     // boundaries are interchangeable, so what the wrist feels is a metronome at
     // twice the breath rate, carrying no phase at all -- which is exactly what
     // lets you rejoin on any pulse. Read AGENTS.md before "improving" that.
-    function intervalMillis(paceHundredths as Number) as Number {
-        return ((3000000.0 / paceHundredths) + 0.5).toNumber();
+    function intervalMillis(everyHundredths as Number) as Number {
+        return everyHundredths * 10;
+    }
+
+    // One-time bridge from the retired pace model, whose stored unit was
+    // hundredths of a breath per minute. Interval hundredths from bpm
+    // hundredths:
+    //     (3000000 / paceHundredths) ms / 10  ==  300000 / paceHundredths
+    // The + 0.5 rounds to nearest. Kept pure so the conversion table is
+    // testable without touching Storage; pacerApp owns when it runs.
+    function legacyPaceToEvery(paceHundredths as Number) as Number {
+        return ((300000.0 / paceHundredths) + 0.5).toNumber();
     }
 
     // Render an integer number of hundredths as a decimal, with no trailing
     // zeros: 571 -> "5.71", 570 -> "5.7", 600 -> "6", 605 -> "6.05".
     //
-    // The trailing zeros come off to cut clutter on the pace row, which is the
+    // The trailing zeros come off to cut clutter on the EVERY row, which is the
     // only line on the screen with decimals at all and the widest one on it. The
-    // cost is that the line changes width as it is tapped through -- "6bpm | 5s"
-    // is a good deal shorter than "5.71bpm | 5.25s" -- and, being centred, it
-    // shifts under the thumb rather than growing to one side.
+    // cost is that the line changes width as it is tapped through -- "5s" is a
+    // good deal shorter than "5.25s" -- and, being centred, it shifts under the
+    // thumb rather than growing to one side.
     //
     // What does NOT come off is the fraction's LEADING zero. Without it 605 would
     // render as "6.5" and read as a completely different pace, which is why the
@@ -72,28 +86,18 @@ module PacerMath {
         return whole + "." + fraction.format("%02d");
     }
 
-    // Render the pace, and the half-breath cue interval it produces, for the
-    // PACE row. Milliseconds to hundredths of a second, rounded to nearest.
-    //
-    // The pace leads: it is the number resonance-frequency protocols are written
-    // in and the one a tap actually moves. The interval follows it past a divider
-    // because it is the half of the pair you can check against a clock -- count
-    // one gap between buzzes and you know the setting is what you think it is.
-    //
-    // Each number sits against its own unit with no space, so the eye splits the
-    // line at the divider rather than at four separate gaps.
+    // The EVERY row's value: the bare cue interval in seconds. No translation,
+    // no second number -- whoever thinks in breaths per minute converts once,
+    // outside the watch, and what they dial in here is the thing the timer runs.
     //
     // Seconds are abbreviated to "s" rather than spelled "sec" for a measured
-    // reason, not a stylistic one: "5.22 sec (5.75 bpm)" is 239 px in FONT_XTINY
-    // and there are only 232 px between the "-" and "+" circles, so it drew on
-    // top of both of them. The budget is Layout.editorTextMaxWidth and the guard
-    // is layoutEveryReachableValueFits -- this is not a free string to lengthen.
-    function formatPaceSummary(paceHundredths as Number) as String {
-        var secondsHundredths = ((intervalMillis(paceHundredths) / 10.0) + 0.5).toNumber();
-        return formatHundredths(paceHundredths)
-            + "bpm | "
-            + formatHundredths(secondsHundredths)
-            + "s";
+    // reason, not a stylistic one: "5.22 sec (5.75 bpm)" was 239 px in
+    // FONT_XTINY against fewer pixels than that between the "-" and "+"
+    // circles, so it drew on top of both of them. The budget is
+    // Layout.editorTextMaxWidth and the guard is layoutEveryReachableValueFits
+    // -- this is not a free string to lengthen.
+    function formatEvery(everyHundredths as Number) as String {
+        return formatHundredths(everyHundredths) + "s";
     }
 
     // Units sit tight against their numbers on every row -- "20%", "5s",

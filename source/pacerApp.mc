@@ -11,18 +11,16 @@ class pacerApp extends Application.AppBase {
     // identifiable at a glance. Bump on every sideload.
     const APP_VERSION = "0.23";
 
-    // 6.00 breaths/min -- 0.1 Hz, the value the resonance-frequency literature
-    // converges on as a population average.
+    // One cue every 5.00 s -- 10 s per breath, 0.1 Hz, the Lehrer resonance
+    // protocol's canonical frequency and the value the literature converges on
+    // as a population average.
     //
     // It is deliberately NOT a measured value. A default is what a watch that
     // has never been configured starts at, and one person's resonance frequency
     // dressed as a default would be a wrong number wearing a right number's
     // clothes. Whoever installs this should measure their own and dial it in;
-    // 6.00 is the place to start looking, not an answer.
-    //
-    // It is also the roundest pace on the scale: one cue every 5.00 s exactly,
-    // which the row displays as "6bpm | 5s".
-    const DEFAULT_PACE_HUNDREDTHS = 600;
+    // 5.00 s is the place to start looking, not an answer.
+    const DEFAULT_EVERY_HUNDREDTHS = 500;
 
     // Both vibe defaults sit on their own ladders -- settingsRangesAndStepsAre
     // Coherent proves it -- and both are starting points for a wrist to move
@@ -35,19 +33,19 @@ class pacerApp extends Application.AppBase {
     const DEFAULT_VIBE_STRENGTH = 20;
     const DEFAULT_VIBE_DURATION = 100;
 
-    // Adult resonance frequency falls within 4.5-7.0 breaths/min, which is the
-    // band standard assessment protocols sweep (4.5, 5.0 ... 7.0). The ceiling
-    // was 6.5 for a while and simply could not express the top of that band.
+    // The interval is exposed bare, in hundredths of a second between cues, and
+    // the range is deliberately far wider than the adult resonance band
+    // (roughly 4.3-6.7 s between cues). Children pace much faster, and a bare
+    // interval is repurposable as a plain haptic metronome; where inside the
+    // range a value is useful is the wearer's judgement, not this file's.
     //
-    // The 0.01 step is finer than any published protocol resolves to -- they use
-    // 0.5 steps, 0.2 in refined variants -- because the range is walked by
-    // nudging a known value rather than sweeping it, and the value being nudged
-    // toward is an individual measurement at that resolution. The shipped
-    // default is generic; what a wearer settles on is not. The precision is real all
-    // the way down: all 251 values map to distinct timer periods, the closest
-    // pair 6 ms apart, so no two paces silently collapse to the same cue.
-    const MIN_PACE_HUNDREDTHS = 450;
-    const MAX_PACE_HUNDREDTHS = 700;
+    // The floor is technical, not a design opinion: 0.05 s is the platform's
+    // documented Timer minimum (50 ms) and also exactly one step, so the scale
+    // bottoms out where the hardware does. The ceiling IS a design choice:
+    // 15.00 s between cues -- 30 s per breath -- is comfortably past any
+    // breathing practice while keeping the row's widest string measurable.
+    const MIN_EVERY_HUNDREDTHS = 5;
+    const MAX_EVERY_HUNDREDTHS = 1500;
 
     // VibeProfile.dutyCycle is documented as 0-100%, "0 indicating no vibration
     // and 100 indicating the strongest" -- so this range IS the full API range,
@@ -93,16 +91,27 @@ class pacerApp extends Application.AppBase {
     // together -- a step that does not divide its range is how an endpoint
     // becomes unreachable. All three divide evenly, and the defaults sit on their
     // own ladders; settingsRangesAndStepsAreCoherent asserts both.
-    const PACE_STEP = 1;
+    const EVERY_STEP = 5;
     const STRENGTH_STEP = 2;
     const DURATION_STEP = 10;
 
-    const PACE_STORAGE_KEY = "paceHundredths";
+    // Storage keys are on-disk API: renaming one silently resets that setting
+    // on every installed watch. everyHundredths is deliberately NOT the old
+    // pace key re-worded -- the unit changed (hundredths of a second between
+    // cues, was hundredths of a breath per minute), so it is a NEW key, and
+    // migrateLegacyPace converts the old one exactly once.
+    const EVERY_STORAGE_KEY = "everyHundredths";
     const STRENGTH_STORAGE_KEY = "vibrationStrength";
     const DURATION_STORAGE_KEY = "vibrationDuration";
 
+    // The retired pace key and the band that build could actually write.
+    // Anything stored outside it is not a pace value and is left alone.
+    const LEGACY_PACE_STORAGE_KEY = "paceHundredths";
+    const LEGACY_PACE_MIN = 450;
+    const LEGACY_PACE_MAX = 700;
+
     private var _timer as Timer.Timer? = null;
-    private var _paceHundredths as Number = DEFAULT_PACE_HUNDREDTHS;
+    private var _everyHundredths as Number = DEFAULT_EVERY_HUNDREDTHS;
     private var _vibeStrength as Number = DEFAULT_VIBE_STRENGTH;
     private var _vibeDuration as Number = DEFAULT_VIBE_DURATION;
 
@@ -183,7 +192,7 @@ class pacerApp extends Application.AppBase {
     // testable without an application instance -- see tests/PacerMathTest.mc.
     function startTimer() as Void {
         stopTimer();
-        var period = PacerMath.intervalMillis(_paceHundredths);
+        var period = PacerMath.intervalMillis(_everyHundredths);
         var timer = new Timer.Timer();
         timer.start(method(:timerCallback), period, true);
         _timer = timer;
@@ -213,8 +222,8 @@ class pacerApp extends Application.AppBase {
         return [ new pacerView(), new pacerDelegate() ];
     }
 
-    function getPaceHundredths() as Number {
-        return _paceHundredths;
+    function getEveryHundredths() as Number {
+        return _everyHundredths;
     }
 
     function getVibrationStrength() as Number {
@@ -225,8 +234,8 @@ class pacerApp extends Application.AppBase {
         return _vibeDuration;
     }
 
-    function getPaceText() as String {
-        return PacerMath.formatPaceSummary(_paceHundredths);
+    function getEveryText() as String {
+        return PacerMath.formatEvery(_everyHundredths);
     }
 
     function getStrengthText() as String {
@@ -242,14 +251,14 @@ class pacerApp extends Application.AppBase {
     // that clamping makes necessary: without it, every tap on "+" at the maximum
     // would rewrite Storage and restart the cue timer to no effect.
 
-    function setPaceHundredths(value as Number) as Void {
-        var next = PacerMath.clamp(value, MIN_PACE_HUNDREDTHS, MAX_PACE_HUNDREDTHS);
-        if (next == _paceHundredths) {
+    function setEveryHundredths(value as Number) as Void {
+        var next = PacerMath.clamp(value, MIN_EVERY_HUNDREDTHS, MAX_EVERY_HUNDREDTHS);
+        if (next == _everyHundredths) {
             return;
         }
 
-        _paceHundredths = next;
-        Storage.setValue(PACE_STORAGE_KEY, next);
+        _everyHundredths = next;
+        Storage.setValue(EVERY_STORAGE_KEY, next);
 
         if (_timer != null) {
             startTimer();
@@ -281,13 +290,38 @@ class pacerApp extends Application.AppBase {
         WatchUi.requestUpdate();
     }
 
-    private function loadSettings() as Void {
-        _paceHundredths = readStoredNumber(
-            PACE_STORAGE_KEY, MIN_PACE_HUNDREDTHS, MAX_PACE_HUNDREDTHS, DEFAULT_PACE_HUNDREDTHS);
+    // Public rather than private for one reason: settingsMigratesLegacyPace can
+    // only prove the migration by staging Storage and re-running this.
+    function loadSettings() as Void {
+        migrateLegacyPace();
+        _everyHundredths = readStoredNumber(
+            EVERY_STORAGE_KEY, MIN_EVERY_HUNDREDTHS, MAX_EVERY_HUNDREDTHS, DEFAULT_EVERY_HUNDREDTHS);
         _vibeStrength = readStoredNumber(
             STRENGTH_STORAGE_KEY, MIN_VIBE_STRENGTH, MAX_VIBE_STRENGTH, DEFAULT_VIBE_STRENGTH);
         _vibeDuration = readStoredNumber(
             DURATION_STORAGE_KEY, MIN_VIBE_DURATION, MAX_VIBE_DURATION, DEFAULT_VIBE_DURATION);
+    }
+
+    // Carry a wearer's measured pace across the unit change, exactly once.
+    //
+    // A valid value under the new key always wins -- once it exists, whatever
+    // sits under the legacy key is dead data, never read again. Otherwise a
+    // plausible legacy pace is converted and the legacy key deleted, so the
+    // conversion cannot run twice and overwrite a later adjustment. An
+    // implausible legacy value is not a pace and is left where it lies.
+    private function migrateLegacyPace() as Void {
+        var current = Storage.getValue(EVERY_STORAGE_KEY);
+        if (current instanceof Number
+                && current >= MIN_EVERY_HUNDREDTHS && current <= MAX_EVERY_HUNDREDTHS) {
+            return;
+        }
+
+        var legacy = Storage.getValue(LEGACY_PACE_STORAGE_KEY);
+        if (legacy instanceof Number
+                && legacy >= LEGACY_PACE_MIN && legacy <= LEGACY_PACE_MAX) {
+            Storage.setValue(EVERY_STORAGE_KEY, PacerMath.legacyPaceToEvery(legacy));
+            Storage.deleteValue(LEGACY_PACE_STORAGE_KEY);
+        }
     }
 
     // Storage.getValue returns a wide poly type, so the stored value is checked

@@ -15,13 +15,12 @@ you rejoin on the very next pulse with nothing to count and no way to be wrong.
 Making the two cues distinguishable would destroy that to solve a problem
 symmetric breathing does not have.
 
-The pace range is 4.50–7.00 breaths/min, the band standard resonance-frequency
-assessment protocols sweep. It starts at **6.00** — 0.1 Hz, the population
-average the literature converges on — because that is where to start looking, not
-an answer. Resonance frequency is individual: measure your own and dial it in on
-the watch rather than in code. The 0.01 step is finer than any published protocol
-resolves to — they use 0.5 steps, 0.2 in refined variants — because the range is
-walked by nudging a known value, not by sweeping it.
+The setting is the bare interval between cues, in seconds. It starts at
+**5.00 s** — 10 s per breath, 0.1 Hz, the Lehrer resonance protocol's canonical
+frequency and the population average the literature converges on — because that
+is where to start looking, not an answer. Resonance frequency is individual:
+measure your own and dial it in on the watch rather than in code. Whoever thinks
+in breaths per minute converts once — 60 / bpm / 2 — and dials in the result.
 
 ## Using it
 
@@ -31,39 +30,36 @@ Nothing on it changes on its own except the clock, once a minute:
 ```
                     07:42
 
+        ( − )      EVERY           ( + )
+                   5s
+
+        ( − )      PULSE           ( + )
+                   100ms
+
         ( − )      POWER           ( + )
                    20%
 
-        ( − )      PACE            ( + )
-                   6bpm | 5s
-
-        ( − )      BUZZ            ( + )
-                   100ms
-
-                    v0.22
+                    v0.23
 ```
 
 | Setting | Default | Range | Step per tap |
 | --- | ---: | ---: | ---: |
+| Seconds between cues — the `EVERY` row | 5.00 s | 0.05–15 s | 0.05 s |
+| Vibration length — the `PULSE` row | 100 ms | 10–250 ms | 10 ms |
 | Vibration strength — the `POWER` row | 20% | 2–100% | 2% |
-| Breathing pace — the `PACE` row | 6.00 breaths/min | 4.50–7.00 | 0.01 |
-| Vibration length — the `BUZZ` row | 100 ms | 10–250 ms | 10 ms |
 
-`PACE` leads with breaths per minute — the number a tap moves, and the one
-resonance-frequency protocols are written in — and carries the cue interval
-beside it past a divider, because that is the half you can check against a clock:
-count one gap between buzzes and you know the setting is what you think it is.
-The interval is half a breath, since there are two cues per breath.
+`EVERY` is the number the timer runs, exposed with no translation: one buzz
+every that many seconds. It is half a breath, since there are two cues per
+breath — and you can check it against any clock by counting one gap between
+buzzes. The 0.05 s floor is the platform timer's own minimum, not a design
+opinion; the 15 s ceiling — 30 s per breath — is far past any breathing
+practice. The range is deliberately much wider than the adult resonance band:
+children pace faster, and a bare interval repurposes as a plain haptic
+metronome.
 
-Trailing zeros are dropped on both numbers to cut clutter, so 6.00 reads
-`6 bpm (5s)`. The line therefore changes width as you tap through it, and being
-centred it shifts under the thumb rather than growing to one side. Seconds are
-written `s` rather than `sec` because the spelled-out version is wider than the
-gap between the two circles and drew straight through them.
-
-`POWER` and `BUZZ` each step by their own unit, and every range divides evenly by
-its step, so both endpoints are exactly reachable: 24 taps walk the buzz length
-end to end, 49 the power scale.
+Trailing zeros are dropped, so 5.00 reads `5s`. The line therefore changes width
+as you tap through it, and being centred it shifts under the thumb rather than
+growing to one side.
 
 Tap the `−` and `+` circles to change a value. The centre text is deliberately
 inert, so reading a value can never change it. Values are written to
