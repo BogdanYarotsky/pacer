@@ -36,6 +36,14 @@ module Display {
     const LABEL_PULSE = "PULSE";
     const LABEL_POWER = "POWER";
 
+    // A row is one line: caption, one space, value -- "EVERY 5s". Composed
+    // here and nowhere else, so the view draws and the layout tests measure
+    // the identical string; a second copy of this concatenation in either
+    // place is the exact drift the module header warns about.
+    function rowText(label as String, value as String) as String {
+        return label + " " + value;
+    }
+
     // The bottom line. The version is on screen because reading it off the watch
     // is the only proof of which build a sideload installed -- see the deploy
     // notes in AGENTS.md.

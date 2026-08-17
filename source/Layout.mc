@@ -20,11 +20,26 @@ module Layout {
     const EDITOR_FIRST_ROW_TOP = 96;
     const EDITOR_ROW_HEIGHT = 72;
     const EDITOR_ROW_COUNT = 3;
-    const EDITOR_LABEL_OFFSET = 3;
-    const EDITOR_VALUE_OFFSET = 35;
 
-    const CONTROL_INSET = 55;
-    const CONTROL_RADIUS = 24;
+    // The controls are drawn as large as the glass allows. A circle at
+    // (inset, rowCenter) fits the round screen iff
+    //     sqrt((195 - inset)^2 + (rowCenter - 195)^2) + radius <= 195
+    // and the outer rows are the binding case: at inset 58, radius 32, rows 0
+    // and 2 sit 159.15 + 32 = 191.15 from centre against the 195 radius --
+    // 3.85 px of air. Radius 32 at the old inset 55 left 1.25 px, which
+    // antialiasing visibly clips; 34 needs inset 60 and starves the text
+    // budget. layoutRealLinesFitOnVivoactive5 holds this with the real
+    // circle-in-circle arithmetic, not the chord approximation it replaced.
+    const CONTROL_INSET = 58;
+    const CONTROL_RADIUS = 32;
+
+    // The tap zone reaches as far inward as the widest row line allows: the
+    // centre text must stay inert (reading a value can never change it), so
+    // the zone edge stops short of "EVERY 14.95s" -- measured at 168 px, left
+    // edge x=111, which is what pushed a hoped-for 113 back to 110.
+    // layoutHitZonesClearRealisticText is the guardrail that pins this
+    // constant to that measurement; its failure message says how far back the
+    // edge must go.
     const CONTROL_HIT_EDGE = 110;
 
     // Clearance either side of a row's centred text, between it and the "-" and
@@ -81,16 +96,10 @@ module Layout {
         return EDITOR_FIRST_ROW_TOP + (index * EDITOR_ROW_HEIGHT);
     }
 
+    // A row is one line, vertically centred here -- the caption and value sit
+    // together on it, and the "-" and "+" circles share the same centre line.
     function editorRowCenter(index as Number) as Number {
         return editorRowTop(index) + (EDITOR_ROW_HEIGHT / 2);
-    }
-
-    function editorLabelY(index as Number) as Number {
-        return editorRowTop(index) + EDITOR_LABEL_OFFSET;
-    }
-
-    function editorValueY(index as Number) as Number {
-        return editorRowTop(index) + EDITOR_VALUE_OFFSET;
     }
 
     function editorControlX(width as Number, increase as Boolean) as Number {

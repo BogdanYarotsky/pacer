@@ -9,9 +9,11 @@ import Toybox.WatchUi;
 // the clock is the only thing on the screen that moves, and it moves once a
 // minute.
 //
-// The pen is set white once and never changes, because there is no longer any
-// screen state to render. Palm safety is the watch's own Lock Screen now, so the
-// app has no lock of its own to dim the controls for -- see AGENTS.md.
+// The pen leaves white in exactly one place: inside a filled control, where
+// the glyph is drawn in black and the pen is restored before returning. There
+// is no screen state to render beyond that -- palm safety is the watch's own
+// Lock Screen, so the app has no lock of its own to dim the controls for. See
+// AGENTS.md.
 //
 // Every coordinate comes from Layout and every string from Display. Neither a
 // pixel offset nor a literal caption belongs in this file -- both are covered by
@@ -20,6 +22,12 @@ class pacerView extends WatchUi.View {
 
     const FONT_CLOCK = Graphics.FONT_MEDIUM;
     const FONT_TEXT = Graphics.FONT_XTINY;
+
+    // The "-" / "+" glyphs get a font of their own: XTINY reads as a speck in
+    // the middle of a 64 px circle. SMALL is the largest face whose glyph ink
+    // still sits comfortably inside the fill -- checked by eye on the shot,
+    // which is the only instrument that can see it.
+    const FONT_GLYPH = Graphics.FONT_SMALL;
 
     // Resolved once in onLayout. Screen size and font metrics cannot change
     // while the app runs, so recomputing them per draw would be pure waste.
@@ -84,20 +92,26 @@ class pacerView extends WatchUi.View {
         label as String,
         value as String
     ) as Void {
-        drawCentered(dc, Layout.editorLabelY(index), FONT_TEXT, label);
-        drawCentered(dc, Layout.editorValueY(index), FONT_TEXT, value);
-
-        var controlY = Layout.editorRowCenter(index);
-        drawControl(dc, _controlLeftX, controlY, "-");
-        drawControl(dc, _controlRightX, controlY, "+");
-    }
-
-    private function drawControl(dc as Dc, x as Number, y as Number, glyph as String) as Void {
-        dc.drawCircle(x, y, Layout.CONTROL_RADIUS);
+        var rowY = Layout.editorRowCenter(index);
         dc.drawText(
-            x, y, FONT_TEXT, glyph,
+            _centerX, rowY, FONT_TEXT, Display.rowText(label, value),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
         );
+        drawControl(dc, _controlLeftX, rowY, "-");
+        drawControl(dc, _controlRightX, rowY, "+");
+    }
+
+    // Filled, not outlined: the drawn face should look like the target it is.
+    // The old 1 px ring at half this radius read as decoration, and thumbs
+    // aimed at it as if the hit zone were that small.
+    private function drawControl(dc as Dc, x as Number, y as Number, glyph as String) as Void {
+        dc.fillCircle(x, y, Layout.CONTROL_RADIUS);
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(
+            x, y, FONT_GLYPH, glyph,
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
+        );
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
     }
 
 }
