@@ -88,9 +88,18 @@ function candleMathClampHoldsAcrossEveryRealRange(logger as Test.Logger) as Bool
 (:test)
 function candleMathIntervalIsTenTimesTheValue(logger as Test.Logger) as Boolean {
     var app = getApp();
-    Test.assertEqualMessage(
-        CandleMath.intervalMillis(app.MIN_EVERY_HUNDREDTHS), 50,
-        "the floor must be exactly the 50 ms Timer minimum");
+
+    // Fixed points, not the endpoints. This test is about the conversion being
+    // a clean x10 with nothing to round, so it names values whose milliseconds
+    // are worth stating on their own.
+    //
+    // It used to pin the floor at 50 ms -- the platform's Timer minimum, which
+    // the floor sat on until the PACE row moved it to 3.00 s. That assertion
+    // has not just changed value, it has moved house: what the floor must BE is
+    // a range question and belongs with the other range questions, and
+    // settingsRangesAndStepsAreCoherent now pins it as the reciprocal of the
+    // pace ceiling plus a floor-above-50 ms guard. Two copies of it is how one
+    // of them got left behind here.
     Test.assertEqualMessage(
         CandleMath.intervalMillis(app.DEFAULT_EVERY_HUNDREDTHS), 5000,
         "the default should be one cue every 5000 ms exactly");
@@ -99,6 +108,12 @@ function candleMathIntervalIsTenTimesTheValue(logger as Test.Logger) as Boolean 
     Test.assertEqualMessage(
         CandleMath.intervalMillis(app.MAX_EVERY_HUNDREDTHS), 15000,
         "the ceiling is 15 s between cues");
+
+    // The endpoints still go through it, and must still be a clean x10 -- the
+    // property, without a second opinion on what the endpoints ought to be.
+    Test.assertEqualMessage(
+        CandleMath.intervalMillis(app.MIN_EVERY_HUNDREDTHS), app.MIN_EVERY_HUNDREDTHS * 10,
+        "the floor does not convert as a clean x10");
     logger.debug(
         "floor " + CandleMath.intervalMillis(app.MIN_EVERY_HUNDREDTHS) +
         " ms, ceiling " + CandleMath.intervalMillis(app.MAX_EVERY_HUNDREDTHS) + " ms");
