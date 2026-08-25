@@ -144,5 +144,5 @@ Write-Host ""
 Write-Host "THE COPY CANNOT BE VERIFIED FROM HERE." -ForegroundColor Yellow
 Write-Host "Disconnect the watch and open Candle. The main screen shows the clock," -ForegroundColor Yellow
 Write-Host "POWER, PULSE and the battery -- no version. Press the UPPER BUTTON and" -ForegroundColor Yellow
-Write-Host "confirm the settings screen reads v$nextVersion under the EVERY row." -ForegroundColor Yellow
+Write-Host "confirm the settings screen reads v$nextVersion under the EVERY and PACE rows." -ForegroundColor Yellow
 Write-Host "If it shows an older version, the watch is still running the previous build." -ForegroundColor Yellow
