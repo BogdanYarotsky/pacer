@@ -40,13 +40,9 @@ class candleView extends WatchUi.View {
 
     const FONT_CLOCK = Graphics.FONT_MEDIUM;
     const FONT_TEXT = Graphics.FONT_XTINY;
-
-    // The "-" / "+" glyphs get a font of their own: XTINY reads as a speck in
-    // the middle of a 76 px circle. LARGE keeps the glyph ink at the same
-    // fraction of the circle it held when the circles were smaller and the face
-    // was SMALL -- checked by eye on the shot, which is the only instrument
-    // that can see it.
-    const FONT_GLYPH = Graphics.FONT_LARGE;
+    // ...and no third. The "-" and "+" had FONT_LARGE to themselves and are
+    // drawn as bars now, from Layout's own constants -- see GLYPH_LENGTH for
+    // what a font could not be held to.
 
     // Which screen this instance is, and the rows it carries. Both are fixed
     // for the life of the view; Rows.forScreen is resolved once here rather
@@ -62,7 +58,6 @@ class candleView extends WatchUi.View {
     private var _screenHeight as Number = 0;
     private var _clockY as Number = 0;
     private var _versionY as Number = 0;
-    private var _breadcrumbY as Number = 0;
 
     function initialize(screen as Number) {
         View.initialize();
@@ -88,7 +83,6 @@ class candleView extends WatchUi.View {
         _clockY = Layout.clockY(
             dc.getFontHeight(FONT_CLOCK), Layout.editorRowsTop(_rows.size(), height));
         _versionY = Layout.versionY(height, dc.getFontHeight(FONT_TEXT));
-        _breadcrumbY = Layout.breadcrumbY(height, dc.getFontHeight(FONT_TEXT));
     }
 
     // Called on every requestUpdate, and by the framework whenever this view
@@ -138,7 +132,7 @@ class candleView extends WatchUi.View {
     // which is a worse thing to hand someone than a two-second wait for a
     // warning they have already been looking at.
     //
-    // Nothing here shares a line. "BATT 100%  VIBE OFF" measures 265 px against
+    // Nothing here shares a line. "BATTERY 100%  VIBE OFF" measures 313 px against
     // a 220 px chord this near the bottom of a round screen, so a combined line
     // would be clipped at both ends, and a clipped warning is the one failure
     // this slot exists to prevent. layoutRealLinesFitOnVivoactive5 pins that.
@@ -168,24 +162,18 @@ class candleView extends WatchUi.View {
         drawCentered(dc, _versionY, FONT_TEXT, line);
     }
 
-    // The settings screen's lower half: which build this is, and above it the
-    // previous run's exit breadcrumb. Both are debug-only and both are empty in
-    // a release build, so neither line is drawn on a Store install and the
-    // screen is its one row and nothing else.
+    // The settings screen's lower half: which build this is, and nothing else.
+    // Debug-only, and empty in a release build, so the line is not drawn on a
+    // Store install and the screen is its rows and nothing else.
     //
-    // They are two lines now, not one string. The breadcrumb used to ride
-    // behind the version as a suffix and was capped at two events to keep the
-    // combined line inside the chord; on this screen it has a line of its own
-    // in an otherwise empty band, which is what let the ring grow to six.
+    // It had a second line above it until 2026-08-25 -- the previous run's exit
+    // breadcrumb, which is what caught the firmware forging KEY_ESC. That
+    // question is answered and the instrument is gone; the band above the
+    // version is empty again.
     private function drawSettingsBottomSlot(dc as Dc) as Void {
         var version = Display.buildLine(getApp().APP_VERSION, Display.showsBuildVersion());
         if (version.length() > 0) {
             drawCentered(dc, _versionY, FONT_TEXT, version);
-        }
-
-        var chain = ExitForensics.lastExitChain();
-        if (chain.length() > 0) {
-            drawCentered(dc, _breadcrumbY, FONT_TEXT, chain);
         }
     }
 
@@ -202,8 +190,8 @@ class candleView extends WatchUi.View {
             Display.rowText(row, getApp().rowValueText(row)),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
         );
-        drawControl(dc, _controlLeftX, rowY, "-");
-        drawControl(dc, _controlRightX, rowY, "+");
+        drawControl(dc, _controlLeftX, rowY, false);
+        drawControl(dc, _controlRightX, rowY, true);
     }
 
     // A white glyph on a black face inside a white ring.
@@ -217,7 +205,7 @@ class candleView extends WatchUi.View {
     //
     // The pen goes back to 1 before the glyph, because it is state on the Dc
     // and the next thing drawn is not a border.
-    private function drawControl(dc as Dc, x as Number, y as Number, glyph as String) as Void {
+    private function drawControl(dc as Dc, x as Number, y as Number, increase as Boolean) as Void {
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(x, y, Layout.CONTROL_RADIUS);
 
@@ -226,10 +214,30 @@ class candleView extends WatchUi.View {
         dc.drawCircle(x, y, Layout.CONTROL_RADIUS);
         dc.setPenWidth(1);
 
-        dc.drawText(
-            x, y, FONT_GLYPH, glyph,
-            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
-        );
+        drawGlyph(dc, x, y, increase);
+    }
+
+    // The "-" and the "+", as one horizontal bar and, for the "+", the same bar
+    // stood on end. Both are centred on the circle's own centre, which is the
+    // whole reason they are drawn rather than set in a font: a font centres the
+    // LINE BOX, and the ink inside it sat low and -- for the hyphen -- half as
+    // wide as the plus it is paired with. See Layout.GLYPH_LENGTH.
+    //
+    // It takes the same Boolean the hit encoding and candleApp.stepRow do, so
+    // the glyph a control wears and what a tap on it does are the same fact
+    // spelled the same way. A glyph string would have been a second spelling.
+    private function drawGlyph(dc as Dc, x as Number, y as Number, increase as Boolean) as Void {
+        dc.fillRectangle(
+            Layout.glyphArmStart(x, Layout.GLYPH_LENGTH),
+            Layout.glyphArmStart(y, Layout.GLYPH_THICKNESS),
+            Layout.GLYPH_LENGTH, Layout.GLYPH_THICKNESS);
+
+        if (increase) {
+            dc.fillRectangle(
+                Layout.glyphArmStart(x, Layout.GLYPH_THICKNESS),
+                Layout.glyphArmStart(y, Layout.GLYPH_LENGTH),
+                Layout.GLYPH_THICKNESS, Layout.GLYPH_LENGTH);
+        }
     }
 
 }

@@ -27,6 +27,21 @@ module Rows {
     const PULSE = 1;
     const POWER = 2;
 
+    // PACE is EVERY wearing the other unit, and it is the one place this
+    // module's "a row is one setting" rule bends.
+    //
+    // It is a row identity because rows are what the view draws and what the
+    // delegate maps taps through, and PACE needs both. It is NOT a fourth
+    // setting: nothing is stored for it, it has no key, and a tap on it ends
+    // in the interval setter like a tap on EVERY does. One setting, two rows,
+    // two units -- seconds between cues, and breaths per minute.
+    //
+    // The reason it exists is that the tools which measure a resonance
+    // frequency report bpm, and the arithmetic between the two units is a
+    // reciprocal nobody should be doing on a wrist. See candleApp's range
+    // constants for why the ranges are what they are.
+    const PACE = 3;
+
     // The two screens. MAIN is what the app opens on; SETTINGS is pushed over
     // it by the upper button and popped by Back or by the same button again.
     const SCREEN_MAIN = 0;
@@ -52,9 +67,17 @@ module Rows {
     //
     // Callers resolve this once and hold the result: it is read on every draw
     // and on every tap, and the list never changes while a screen is alive.
+    // EVERY leads PACE for the same reason POWER leads PULSE: this line is the
+    // only place it is decided. They sit on one screen and must -- two views of
+    // one number that a wearer cannot see at the same time would be a puzzle
+    // rather than a convenience, since changing either moves the other.
+    //
+    // Their "+" controls move the stored interval in OPPOSITE directions, and
+    // that is correct rather than a bug: more breaths per minute is a shorter
+    // interval. Reciprocal units cannot agree on which way is up.
     function forScreen(screen as Number) as Array<Number> {
         if (screen == SCREEN_SETTINGS) {
-            return [EVERY] as Array<Number>;
+            return [EVERY, PACE] as Array<Number>;
         }
         return [POWER, PULSE] as Array<Number>;
     }

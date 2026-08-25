@@ -28,8 +28,8 @@ watch's state, never of where you are in a breath, and it is repainted on the
 minute or when a setting changes -- never once per cue.
 
 **What that slot holds when nothing is wrong is the battery charge**, and the
-warning takes it outright rather than sharing the line: `"BATT 100%  VIBE OFF"`
-measures 265 px against a 220 px chord this near the bottom of a round screen,
+warning takes it outright rather than sharing the line: `"BATTERY 100%  VIBE OFF"`
+measures 313 px against a 220 px chord this near the bottom of a round screen,
 and a warning clipped at both ends is the one failure this slot exists to
 prevent. `layoutRealLinesFitOnVivoactive5` pins that inequality, so if the
 strings ever shrink enough to share, the test says so instead of the glass.
@@ -189,8 +189,6 @@ home:
   from a tap. It no longer guards the exit: the firmware forges `KEY_ESC`, so
   Back is swallowed and a HELD lower button is the only way out. The measured
   event chain is in its own section below — do not re-derive it.
-- **Exit diagnostics** — `ExitForensics`, a debug-only breadcrumb, removable
-  once the phantom swipe-exit is understood.
 - **Build/verify** — everything goes through `just` → `tools/*.ps1`. Test
   builds are debug builds, so release-only rendering is verifiable only via
   the release screenshot recipe. Debug/release forks hang on build-mode
@@ -207,7 +205,10 @@ home:
 - **A setting reachable from no screen is still a live setting.** `Rows` is the
   only place that says which screen a row is on; drop one from both lists and
   it keeps its stored value, keeps driving the cue, and has nothing on any
-  screen to change it by. `rowsReachEverySettingExactlyOnce` is the guard.
+  screen to change it by. `rowsReachEverySettingAtLeastOnce` is the guard. It
+  says "at least" and not "exactly" because `PACE` and `EVERY` are deliberately
+  two rows on one setting -- so it also checks the converse, that every row
+  names an identity something actually answers to.
 - **The jungle `sourcePath` stays the literal `source;tests`** — the
   self-referencing form drags the SDK junctions into the build.
 - **The deploy script greps the app source file for the version constant and
@@ -570,16 +571,42 @@ main screen and `EVERY` on the settings screen, so a constant cannot name both.
 `candleDelegate` names a single setting.
 
 Three tests hold the line: `editorLayoutMapsEveryControlOnEveryScreen` walks
-every control of every screen, `rowsReachEverySettingExactlyOnce` catches a
-setting dropped from both lists or listed on both, and
+every control of every screen, `rowsReachEverySettingAtLeastOnce` catches a
+setting dropped from every list or a row naming nothing, and
 `tests/input-behaviour.ps1` proves it against real taps on a real simulator.
 
 **Which rows sit where is a design decision, not an arbitrary one.** The main
 screen carries `POWER` over `PULSE` — the two settings a session reaches for — and
-the settings screen carries `EVERY`, which is measured once and then left alone.
-Moving it off is what paid for controls half again as large on the two that
-remain. It is parked, not hidden: one button press away, and still the setting the
-whole app is built around.
+the settings screen carries `EVERY` over `PACE`, which are measured once and then
+left alone. Moving them off is what paid for controls half again as large on the
+two that remain. They are parked, not hidden: one button press away, and still
+the setting the whole app is built around.
+
+**`EVERY` and `PACE` are ONE setting on two rows**, and that is the only place
+this repo's "a row is one setting" rule bends. `EVERY` is seconds between cues,
+`PACE` is breaths per minute, nothing is stored for `PACE`, and a tap on either
+ends in `setEveryHundredths`. They exist as a pair because the tools that
+measure a resonance frequency report bpm and the conversion between the units is
+a reciprocal nobody should do on a wrist.
+
+Three consequences, all of which read as bugs and are not:
+
+- **Their `+` controls move the stored interval in opposite directions.** More
+  breaths per minute is a shorter interval. Reciprocal units cannot agree on
+  which way is up, and a bpm row whose `+` lowered the bpm would be worse.
+- **`PACE` steps from the value on the GLASS, not the one in Storage.** It is
+  what makes `+` then `−` return: `everyToPace` snaps to the nearest 0.1 bpm
+  rung, and the tap moves from that rung. The two ladders line up only at
+  7.75 bpm, so an `EVERY` tap leaves the stored value between rungs constantly.
+- **In the band you actually breathe in, `PACE` is the COARSE knob.** One
+  0.1 bpm tap is worth 8 `EVERY` taps at 6 bpm and 15 at 4.5. They are two
+  resolutions, not two ways to do the same thing.
+
+The ranges are one range in two units and neither is free to move alone —
+`settingsRangesAndStepsAreCoherent` pins the relationship rather than the
+constants. Why 3–15 s and 2–10 bpm specifically is argued at
+`candleApp.MIN_EVERY_HUNDREDTHS`; the short version is that a 0.1 bpm tap stops
+moving the stored interval above ~17.3 bpm, and nobody paces breathing above 10.
 
 ## The second width budget: the chord is not the only thing a row runs out of
 
@@ -765,9 +792,15 @@ older version, it is still running the old build.
 
 It is one press further away than it used to be, and that is deliberate: the
 version is a development instrument and the main screen is where you breathe. You
-read it once, right after a deploy, and never again during a session. **The
-previous run's exit breadcrumb moved with it**, for the same reason and to the
-same slot — the phantom-exit hunt now reads `relaunch → upper button → read`.
+read it once, right after a deploy, and never again during a session.
+
+The version now has that band to itself. A second debug line shared it for a
+day — `ExitForensics`, a Storage-persisted ring of the last six input events
+that the next launch drew above the version. It is what caught the firmware
+forging `KEY_ESC`, and it was **deleted on 2026-08-25** once that answered the
+question it was built for. The finding it produced is preserved above under
+"THE PHANTOM SWIPE-EXIT, SOLVED"; the instrument is not. If a future exit bug
+needs one again, rebuild it — do not go looking for it in the tree.
 
 **The version is drawn in debug builds only**, behind `Display.showsBuildVersion`
 — a Store install has the Connect IQ app to report its version, so drawing it
@@ -848,8 +881,9 @@ which reach neither.
   only way to prove they clamp; `settingsVibeProfileTracksSettingChanges`,
   because the `VibeProfile` the motor is handed can only be reached through those
   same setters; `settingsMigratesLegacyPace`, because a key-to-key migration
-  is observable nowhere else; and `exitForensicsChainsAndPersists`, whose
-  subject is a Storage-persisted diagnostic. All four restore from a `finally`, not from the
+  is observable nowhere else; and `settingsPaceStepsWalkTheirOwnLadder`,
+  because the PACE row steps through the interval setter and there is no other
+  way to see it land. All four restore from a `finally`, not from the
   end of the happy path: an assertion throws, and a restore that only runs on
   success strands whatever value the test died on in the simulator for every run
   after it. That is not hypothetical; it happened. Keep new tests pure.
@@ -884,7 +918,7 @@ reality is the tool working.
   `System.getDeviceSettings().vibrateOn` is off. If nothing is felt on the wrist
   and that warning is absent, the fault is below the app and no amount of reading
   this code will find it.
-- **Where the cue stops being felt.** The strength floor is 2% and the length
+- **Where the cue stops being felt.** The strength floor is 1% and the length
   floor 10 ms, both deliberately below what a body registers, so the bottom of
   each scale is findable rather than hidden. Only a wrist can say where it is.
 - **How hard the motor actually hits, in m/s².** Not knowable from here and not

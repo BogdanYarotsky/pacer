@@ -7,9 +7,9 @@ import Toybox.Test;
 //
 // The clamping arithmetic is tested purely in CandleMathTest; it does not belong
 // here, because a test that writes to Storage can strand a value there. The
-// three tests in this file that do write (the profile tracker, the range walk,
-// and the migration) all restore from a `finally` so a failed assertion cannot
-// leave the simulator holding the value it died on.
+// four tests in this file that do write (the profile tracker, the range walk,
+// the pace ladder and the migration) all restore from a `finally` so a failed
+// assertion cannot leave the simulator holding the value it died on.
 
 // The cue the wrist will actually feel, read through the same accessor
 // timerCallback hands to Attention.vibrate.
@@ -148,16 +148,41 @@ function settingsRangesAndStepsAreCoherent(logger as Test.Logger) as Boolean {
         CandleMath.STRENGTH_FINE_LIMIT,
         "one tap down from that rung must land back on the fine limit");
 
-    // The floor is pinned to its reason: 0.05 s exists because the platform's
-    // documented Timer minimum is 50 ms, and the two must never drift apart.
-    // The ceiling is a design choice and is pinned only through the same
-    // conversion, so the constant itself stays free to be re-argued.
+    // The interval range is pinned to its reason, and the reason CHANGED when
+    // the PACE row arrived. The floor used to be the platform's 50 ms Timer
+    // minimum -- inherited, never chosen. It is now the exact reciprocal of the
+    // pace ceiling, and that is the property the whole two-row arrangement
+    // rests on: every interval has a pace and every pace has an interval, so
+    // neither row can hold a value the other cannot show.
+    //
+    // Pin the RELATIONSHIP, not the constants, so the ranges stay free to be
+    // re-argued as long as they are re-argued together.
     Test.assertEqualMessage(
-        CandleMath.intervalMillis(app.MIN_EVERY_HUNDREDTHS), 50,
-        "the interval floor must be exactly the 50 ms Timer minimum");
+        app.MIN_EVERY_HUNDREDTHS, CandleMath.paceToEvery(app.MAX_PACE_HUNDREDTHS),
+        "the interval floor must be exactly the fastest pace's own interval");
+    Test.assertEqualMessage(
+        app.MAX_EVERY_HUNDREDTHS, CandleMath.paceToEvery(app.MIN_PACE_HUNDREDTHS),
+        "the interval ceiling must be exactly the slowest pace's own interval");
+
+    // The 50 ms minimum has not gone away, it has stopped being the binding
+    // constraint. The floor may never go under it whatever the pace ceiling is
+    // argued to.
+    Test.assertMessage(
+        CandleMath.intervalMillis(app.MIN_EVERY_HUNDREDTHS) >= 50,
+        "the interval floor is under the platform's 50 ms Timer minimum");
     Test.assertEqualMessage(
         CandleMath.intervalMillis(app.MAX_EVERY_HUNDREDTHS), 15000,
         "the interval ceiling is 15 s between cues");
+
+    // A 0.1 bpm tap only moves the stored interval while 3000/b^2 >= 1, i.e.
+    // below about 17.3 bpm. Past that, adjacent rungs round to the same
+    // hundredth and the "+" control silently does nothing -- 25.0 and 25.1 bpm
+    // both store 120. This is that bound, asserted where it actually bites
+    // rather than as a magic number: the top two rungs must differ.
+    Test.assertNotEqualMessage(
+        CandleMath.paceToEvery(app.MAX_PACE_HUNDREDTHS),
+        CandleMath.paceToEvery(app.MAX_PACE_HUNDREDTHS - app.PACE_STEP),
+        "the pace ceiling is high enough that its top tap changes nothing");
 
     // A default outside its own range would be silently replaced on first run.
     Test.assertEqualMessage(
@@ -179,6 +204,9 @@ function settingsRangesAndStepsAreCoherent(logger as Test.Logger) as Boolean {
         (app.MAX_EVERY_HUNDREDTHS - app.MIN_EVERY_HUNDREDTHS) % app.EVERY_STEP, 0,
         "the interval step does not divide the interval range");
     Test.assertEqualMessage(
+        (app.MAX_PACE_HUNDREDTHS - app.MIN_PACE_HUNDREDTHS) % app.PACE_STEP, 0,
+        "the pace step does not divide the pace range");
+    Test.assertEqualMessage(
         (app.MAX_VIBE_DURATION - app.MIN_VIBE_DURATION) % app.DURATION_STEP, 0,
         "the length step does not divide the length range");
 
@@ -188,6 +216,12 @@ function settingsRangesAndStepsAreCoherent(logger as Test.Logger) as Boolean {
     Test.assertEqualMessage(
         (app.DEFAULT_EVERY_HUNDREDTHS - app.MIN_EVERY_HUNDREDTHS) % app.EVERY_STEP, 0,
         "the default interval is off the interval ladder");
+    // ...and off the PACE row's ladder too, since the default is the one value
+    // both rows are guaranteed to show a fresh install.
+    Test.assertEqualMessage(
+        (CandleMath.everyToPace(app.DEFAULT_EVERY_HUNDREDTHS) - app.MIN_PACE_HUNDREDTHS)
+            % app.PACE_STEP, 0,
+        "the default interval reads as a pace that is off the pace ladder");
     Test.assertEqualMessage(
         (app.DEFAULT_VIBE_DURATION - app.MIN_VIBE_DURATION) % app.DURATION_STEP, 0,
         "the default length is off the length ladder");
@@ -401,6 +435,148 @@ function settingsMigratesLegacyPace(logger as Test.Logger) as Boolean {
         // restore Storage directly and reload rather than trusting it.
         Storage.setValue(app.EVERY_STORAGE_KEY, savedEvery);
         app.loadSettings();
+    }
+
+    Test.assertEqualMessage(
+        app.getEveryHundredths(), savedEvery, "the interval was not restored");
+    return true;
+}
+
+// PACE and EVERY are ONE setting in two units, and this walks every rung of the
+// bpm ladder to prove the pair holds together.
+//
+// Three properties, and a reciprocal will quietly break all three if nobody
+// looks. For every pace the row can show:
+//
+//   * it maps to an interval INSIDE the interval range, so no pace can ask for
+//     something the interval setter would clamp away underneath it;
+//   * it maps to a DISTINCT interval, so no two rungs collide -- a collision is
+//     a tap that changes the number on the glass and nothing else;
+//   * it survives the round trip back through everyToPace, so a "+" followed by
+//     a "-" lands exactly where it started.
+//
+// Then the other direction: every interval the EVERY row can reach must read as
+// a pace the PACE row can show, whether or not it happens to sit on a rung.
+// That is the half that makes the two rows genuinely two views rather than two
+// settings that mostly agree.
+//
+// All 81 rungs and all 1201 intervals, not a sample -- the failures a reciprocal
+// produces are not spread evenly, they cluster where the curve is steep, and a
+// sampled walk is exactly how you miss them. It is pure arithmetic and touches
+// no Storage: paceToEvery and everyToPace are the whole of the coupling.
+(:test)
+function settingsPaceAndEveryAreOneSettingTwoViews(logger as Test.Logger) as Boolean {
+    var app = getApp();
+    var previous = -1;
+    var rungs = 0;
+
+    for (var p = app.MIN_PACE_HUNDREDTHS; p <= app.MAX_PACE_HUNDREDTHS; p += app.PACE_STEP) {
+        var every = CandleMath.paceToEvery(p);
+
+        Test.assertMessage(
+            every >= app.MIN_EVERY_HUNDREDTHS && every <= app.MAX_EVERY_HUNDREDTHS,
+            "pace " + p + " maps to interval " + every + ", outside " +
+                app.MIN_EVERY_HUNDREDTHS + ".." + app.MAX_EVERY_HUNDREDTHS);
+
+        Test.assertMessage(
+            every != previous,
+            "pace " + p + " and the rung below it both store interval " + every +
+                " -- one of the two taps between them does nothing at all");
+        previous = every;
+
+        Test.assertEqualMessage(
+            CandleMath.everyToPace(every), p,
+            "pace " + p + " stores as interval " + every + " and reads back as " +
+                CandleMath.everyToPace(every) + ", so + then - would not return");
+        rungs += 1;
+    }
+    logger.debug("walked " + rungs + " pace rungs: all distinct, all reversible");
+
+    // The endpoints meet exactly, with nothing rounded at either end.
+    Test.assertEqualMessage(
+        CandleMath.paceToEvery(app.MAX_PACE_HUNDREDTHS), app.MIN_EVERY_HUNDREDTHS,
+        "the fastest pace must be exactly the shortest interval");
+    Test.assertEqualMessage(
+        CandleMath.paceToEvery(app.MIN_PACE_HUNDREDTHS), app.MAX_EVERY_HUNDREDTHS,
+        "the slowest pace must be exactly the longest interval");
+
+    var intervals = 0;
+    for (var e = app.MIN_EVERY_HUNDREDTHS; e <= app.MAX_EVERY_HUNDREDTHS; e += 1) {
+        var pace = CandleMath.everyToPace(e);
+        Test.assertMessage(
+            pace >= app.MIN_PACE_HUNDREDTHS && pace <= app.MAX_PACE_HUNDREDTHS,
+            "interval " + e + " reads as pace " + pace + ", which is outside " +
+                app.MIN_PACE_HUNDREDTHS + ".." + app.MAX_PACE_HUNDREDTHS +
+                " -- the PACE row would show a value its controls cannot leave");
+        intervals += 1;
+    }
+    logger.debug("checked " + intervals + " intervals: every one has a pace on the row");
+    return true;
+}
+
+// The PACE row's taps, through the real setter, exactly as a thumb drives them.
+//
+// settingsPaceAndEveryAreOneSettingTwoViews proves the arithmetic; this proves
+// the wiring on top of it -- that stepRow reads the value off the glass rather
+// than out of Storage, that a step lands on the adjacent rung, and that both
+// ends clamp instead of running past.
+//
+// Storage is written here, so it restores from a finally like the other three.
+(:test)
+function settingsPaceStepsWalkTheirOwnLadder(logger as Test.Logger) as Boolean {
+    var app = getApp();
+    var savedEvery = app.getEveryHundredths();
+
+    try {
+        // From the default, one tap each way must land on the neighbouring rung
+        // and come straight back. This is the property that fails if stepRow
+        // ever steps from the stored interval instead of the displayed pace.
+        app.setEveryHundredths(app.DEFAULT_EVERY_HUNDREDTHS);
+        var start = CandleMath.everyToPace(app.getEveryHundredths());
+
+        app.stepRow(Rows.PACE, true);
+        Test.assertEqualMessage(
+            CandleMath.everyToPace(app.getEveryHundredths()), start + app.PACE_STEP,
+            "one PACE tap up must land on the next rung");
+        app.stepRow(Rows.PACE, false);
+        Test.assertEqualMessage(
+            CandleMath.everyToPace(app.getEveryHundredths()), start,
+            "PACE up then down must return to the rung it started on");
+
+        // "+" on PACE shortens the interval, where "+" on EVERY lengthens it.
+        // Reciprocal units cannot agree on which way is up, and a bpm row whose
+        // "+" lowered the bpm would be the wrong fix for that.
+        var before = app.getEveryHundredths();
+        app.stepRow(Rows.PACE, true);
+        Test.assertMessage(
+            app.getEveryHundredths() < before,
+            "a faster pace must be a shorter interval: " + before + " -> " +
+                app.getEveryHundredths());
+
+        // Both ends clamp. Walking off either end must stop on the endpoint
+        // rather than run past it or wrap.
+        app.setPaceHundredths(app.MAX_PACE_HUNDREDTHS);
+        app.stepRow(Rows.PACE, true);
+        Test.assertEqualMessage(
+            app.getEveryHundredths(), app.MIN_EVERY_HUNDREDTHS,
+            "stepping up at the pace ceiling must stay on the interval floor");
+
+        app.setPaceHundredths(app.MIN_PACE_HUNDREDTHS);
+        app.stepRow(Rows.PACE, false);
+        Test.assertEqualMessage(
+            app.getEveryHundredths(), app.MAX_EVERY_HUNDREDTHS,
+            "stepping down at the pace floor must stay on the interval ceiling");
+
+        // An interval left BETWEEN two rungs by an EVERY tap -- which is most of
+        // them, since the two ladders line up only at 7.75 bpm. The pace tap
+        // must still land on a rung, not on the same off-ladder offset.
+        app.setEveryHundredths(526);
+        app.stepRow(Rows.PACE, true);
+        Test.assertEqualMessage(
+            CandleMath.everyToPace(app.getEveryHundredths()) % app.PACE_STEP, 0,
+            "a PACE tap from an off-rung interval must land ON a rung");
+    } finally {
+        app.setEveryHundredths(savedEvery);
     }
 
     Test.assertEqualMessage(

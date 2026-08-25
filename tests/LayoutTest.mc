@@ -29,16 +29,38 @@ function everyScreen() as Array<Number> {
 // Stepping it by 1 rather than by the control's step is deliberate: clamping
 // means an endpoint is reachable from a value that is off the ladder, so every
 // integer in the band is a value the row can end up displaying -- a migrated
-// 5.26 s is exactly such a value.
+// 5.26 s is exactly such a value. rowSweepStep below is where that stops being
+// true, for the one row it is not true of.
 function rowRange(row as Number) as Array<Number> {
     var app = getApp();
     if (row == Rows.EVERY) {
         return [app.MIN_EVERY_HUNDREDTHS, app.MAX_EVERY_HUNDREDTHS] as Array<Number>;
     }
+    if (row == Rows.PACE) {
+        return [app.MIN_PACE_HUNDREDTHS, app.MAX_PACE_HUNDREDTHS] as Array<Number>;
+    }
     if (row == Rows.PULSE) {
         return [app.MIN_VIBE_DURATION, app.MAX_VIBE_DURATION] as Array<Number>;
     }
     return [app.MIN_VIBE_STRENGTH, app.MAX_VIBE_STRENGTH] as Array<Number>;
+}
+
+// How far apart two DISPLAYABLE values of a row are, for the sweeps above.
+//
+// One is right for every row but PACE, and the reason is the note on rowRange:
+// clamping makes every integer in a band reachable, so a row can end up showing
+// any of them. PACE is the exception -- its displayed value never comes from
+// Storage directly, it comes through CandleMath.everyToPace, which snaps to the
+// nearest 0.1 bpm rung. A pace of 2.01 bpm cannot be drawn by any interval the
+// app can hold.
+//
+// Sweeping PACE by 1 would therefore measure strings the screen never draws,
+// and they are not harmless fiction: "PACE 2.01bpm" is a character wider than
+// anything real, so the sweep would be policing a budget against a string that
+// does not exist while missing nothing that does. Measure-what-you-draw cuts
+// both ways.
+function rowSweepStep(row as Number) as Number {
+    return row == Rows.PACE ? getApp().PACE_STEP : 1;
 }
 
 // The line a row draws at a given value, composed through the same two
@@ -86,16 +108,31 @@ function layoutDisplayWidthMatchesTheDevice(logger as Test.Logger) as Boolean {
     return true;
 }
 
-// Every setting is on exactly one screen, and every screen's list is non-empty.
+// Every setting is reachable from at least one row, every row is a row this
+// app knows, and every screen has rows.
 //
 // This is what replaced "the ACTION_ order must match the draw order". That
 // coupling is gone -- the view and the delegate read the same list -- but a new
 // way to lose a setting arrived with the second screen: drop it from both
 // lists and it becomes unreachable, still stored, still driving the cue, and
 // with nothing on either screen to change it by.
+//
+// **It asserted "exactly once" until PACE arrived, and could not any longer.**
+// PACE and EVERY are two rows on one setting on purpose -- the same interval in
+// the two units the measuring tools report it in -- so "exactly one row per
+// setting" is now false by design rather than by accident. What survives is the
+// half that catches the failure the assertion was written for: a setting on no
+// row at all.
+//
+// The second half is new, and it is what the weakening costs. Under "exactly
+// once" a row naming an identity no setting answers to would have shown up as a
+// count of zero somewhere; now it would not, and such a row would draw a
+// caption, take taps and edit nothing. So every row is checked against the list
+// of identities this app actually handles.
 (:test)
-function rowsReachEverySettingExactlyOnce(logger as Test.Logger) as Boolean {
+function rowsReachEverySettingAtLeastOnce(logger as Test.Logger) as Boolean {
     var settings = [Rows.EVERY, Rows.PULSE, Rows.POWER] as Array<Number>;
+    var knownRows = [Rows.EVERY, Rows.PULSE, Rows.POWER, Rows.PACE] as Array<Number>;
     var screens = everyScreen();
 
     for (var s = 0; s < settings.size(); s += 1) {
@@ -109,20 +146,45 @@ function rowsReachEverySettingExactlyOnce(logger as Test.Logger) as Boolean {
                 }
             }
         }
-        Test.assertEqualMessage(
-            seen, 1,
-            "setting " + setting + " appears on " + seen +
-                " screen rows; it must appear on exactly one"
+        Test.assertMessage(
+            seen >= 1,
+            "setting " + setting + " is on no screen row at all; it would keep its " +
+                "stored value, keep driving the cue, and have nothing to change it by"
         );
     }
 
     for (var i = 0; i < screens.size(); i += 1) {
         var screen = screens[i] as Number;
-        Test.assertMessage(
-            Rows.forScreen(screen).size() > 0,
-            "screen " + screen + " has no rows at all"
-        );
+        var rows = Rows.forScreen(screen);
+        Test.assertMessage(rows.size() > 0, "screen " + screen + " has no rows at all");
+
+        for (var r = 0; r < rows.size(); r += 1) {
+            var row = rows[r] as Number;
+            var known = false;
+            for (var k = 0; k < knownRows.size(); k += 1) {
+                if ((knownRows[k] as Number) == row) { known = true; }
+            }
+            Test.assertMessage(
+                known,
+                "screen " + screen + " row " + r + " is identity " + row +
+                    ", which no formatter, caption or setter answers to"
+            );
+        }
     }
+
+    // The two views of the interval must share a screen. Apart, changing one
+    // would silently move a number the wearer cannot see, which is a puzzle
+    // rather than a convenience.
+    var settingsRows = Rows.forScreen(Rows.SCREEN_SETTINGS);
+    var sawEvery = false;
+    var sawPace = false;
+    for (var r = 0; r < settingsRows.size(); r += 1) {
+        if ((settingsRows[r] as Number) == Rows.EVERY) { sawEvery = true; }
+        if ((settingsRows[r] as Number) == Rows.PACE) { sawPace = true; }
+    }
+    Test.assertMessage(
+        sawEvery && sawPace,
+        "EVERY and PACE are two views of one number and must be drawn together");
     return true;
 }
 
@@ -444,10 +506,14 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
             dc, versionY, build, textFont, "settings bottom slot (version=" + flag + ")");
     }
 
-    // The exit hint takes the same slot for two seconds after a Back, and it is
-    // the widest thing the main screen's slot ever holds. Back does not exit any
-    // more, so this string is the only feedback a Back produces -- one clipped
-    // at the edges would be worse than useless.
+    // The exit hint takes the same slot for two seconds after a Back. Back does
+    // not exit any more, so this string is the only feedback a Back produces --
+    // one clipped at the edges would be worse than useless.
+    //
+    // It was the widest thing this slot ever held until the battery caption was
+    // spelled out: 175 px, against "BATTERY 100%" at 187. Which one is widest
+    // does not matter, because every form of the slot is measured here -- but
+    // the comment that named a winner had gone stale, so it names none now.
     var hint = Display.exitHint();
     logger.debug(
         "exit hint \"" + hint + "\" is " + dc.getTextWidthInPixels(hint, textFont) + "px");
@@ -572,7 +638,8 @@ function layoutEveryReachableValueFits(logger as Test.Logger) as Boolean {
             var y = Layout.editorRowCenter(i, rows.size(), h) - (textHeight / 2);
             var what = "screen " + screen + " row " + i;
 
-            for (var v = range[0] as Number; v <= (range[1] as Number); v += 1) {
+            var step = rowSweepStep(row);
+            for (var v = range[0] as Number; v <= (range[1] as Number); v += step) {
                 var line = rowLine(row, v);
                 assertLineFits(dc, y, line, textFont, what + " value " + v);
                 assertClearsControls(dc, line, textFont, what + " value " + v);
@@ -724,7 +791,8 @@ function layoutHitZonesClearRealisticText(logger as Test.Logger) as Boolean {
         for (var i = 0; i < rows.size(); i += 1) {
             var row = rows[i] as Number;
             var range = rowRange(row) as Array<Number>;
-            for (var v = range[0] as Number; v <= (range[1] as Number); v += 1) {
+            var step = rowSweepStep(row);
+            for (var v = range[0] as Number; v <= (range[1] as Number); v += step) {
                 var line = rowLine(row, v);
                 var px = dc.getTextWidthInPixels(line, Graphics.FONT_XTINY);
                 if (px > widestPx) {
@@ -764,60 +832,70 @@ function editorLayoutRejectsLabelsAndOutsideRows(logger as Test.Logger) as Boole
     return true;
 }
 
-// The debug exit breadcrumb, on its own line on the settings screen.
+// The "-" and the "+" are the same bar at right angles, and this is the test
+// that says so. Two properties, both of which the font quietly broke:
 //
-// It used to ride behind the version as a suffix, and the two-event ring was a
-// consequence of that: the combined line was already at the chord and a third
-// code pushed it off the glass. On this screen it has a band to itself, and
-// this test is what says how much of one -- the ring may grow only as far as
-// the worst chain still measured here.
+//   * the minus is exactly as wide as the plus. FONT_LARGE's hyphen measured
+//     13 px of ink against the plus's 26 -- half -- and no string measurement
+//     could see it, because getTextWidthInPixels reports advance, not ink.
+//   * every bar is centred on the circle it sits in. TEXT_JUSTIFY_VCENTER
+//     centres the line box, so the hyphen sat 3.5 px and the plus 2 px low.
 //
-// The worst chain is every slot filled with a two-character code: six codes,
-// five separators, the ">" and a two-character tag.
+// Both were found by measuring white pixels in shots/screen-main.png, which is
+// the only instrument that could see them, and neither can come back while the
+// glyphs are rectangles out of Layout: this test measures those rectangles.
 (:test)
-function layoutExitBreadcrumbFits(logger as Test.Logger) as Boolean {
-    var w = LayoutTestConst.VA5_W;
-    var h = LayoutTestConst.VA5_H;
+function layoutControlGlyphsAreSymmetricAndCentred(logger as Test.Logger) as Boolean {
+    // A control centre on the real screen. The arithmetic does not depend on
+    // which one -- glyphArmStart only ever sees one coordinate at a time.
+    var cx = Layout.editorControlX(LayoutTestConst.VA5_W, false);
+    var cy = LayoutTestConst.VA5_H / 2;
 
-    var ref = Graphics.createBufferedBitmap({:width => w, :height => h});
-    var bmp = ref.get();
-    Test.assertMessage(bmp != null, "could not create a buffered bitmap to measure text with");
-    var dc = (bmp as Graphics.BufferedBitmap).getDc();
-    var textFont = Graphics.FONT_XTINY;
-    var textHeight = dc.getFontHeight(textFont);
-
-    var worst = "";
-    for (var i = 0; i < ExitForensics.HISTORY; i += 1) {
-        if (i > 0) { worst += "."; }
-        worst += "P5";
-    }
-    worst += ">B!";
-
-    var y = Layout.breadcrumbY(h, textHeight);
+    var longStart = Layout.glyphArmStart(cx, Layout.GLYPH_LENGTH);
+    var shortStart = Layout.glyphArmStart(cy, Layout.GLYPH_THICKNESS);
     logger.debug(
-        "worst chain \"" + worst + "\" is " +
-        dc.getTextWidthInPixels(worst, textFont) + "px at y=" + y);
-    assertLineFits(dc, y, worst, textFont, "exit breadcrumb at " + ExitForensics.HISTORY + " events");
+        "glyph arm " + Layout.GLYPH_LENGTH + "x" + Layout.GLYPH_THICKNESS +
+        " at (" + longStart + "," + shortStart + ") for a control centred (" + cx + "," + cy + ")");
 
-    // It sits between the settings screen's one row and the version line, and
-    // must touch neither. The row's controls reach lower than its text does, so
-    // they are what is measured above.
-    var settingsRows = Rows.forScreen(Rows.SCREEN_SETTINGS);
-    var rowBottom = Layout.editorRowCenter(settingsRows.size() - 1, settingsRows.size(), h) +
-        Layout.CONTROL_RADIUS + Layout.CONTROL_PEN;
+    // Odd extents, so a bar has a middle pixel to put on the centre. An even
+    // one has its centre on a pixel boundary and cannot be centred at all --
+    // which is exactly how the font's 4 px hyphen came to sit 3.5 px low.
     Test.assertMessage(
-        y >= rowBottom,
-        "the breadcrumb overlaps the EVERY row's controls: breadcrumb at " + y +
-            ", the controls end at " + rowBottom);
+        Layout.GLYPH_LENGTH % 2 == 1,
+        "GLYPH_LENGTH is " + Layout.GLYPH_LENGTH + ", and an even bar cannot be centred on a pixel");
     Test.assertMessage(
-        y + textHeight <= Layout.versionY(h, textHeight),
-        "the breadcrumb runs into the version line: it ends at " + (y + textHeight) +
-            ", the version starts at " + Layout.versionY(h, textHeight));
+        Layout.GLYPH_THICKNESS % 2 == 1,
+        "GLYPH_THICKNESS is " + Layout.GLYPH_THICKNESS + ", and an even bar cannot be centred on a pixel");
 
-    // A taller font must lift the breadcrumb, never push it down into the
-    // version -- the same property versionY and clockY are held to.
+    // Centred: a bar reaches as far past the centre as it starts before it.
+    Test.assertEqualMessage(
+        (longStart + Layout.GLYPH_LENGTH - 1) - cx, cx - longStart,
+        "the long arm is not centred on the control: it starts " + (cx - longStart) +
+            "px before the centre and ends " + ((longStart + Layout.GLYPH_LENGTH - 1) - cx) + "px after it");
+    Test.assertEqualMessage(
+        (shortStart + Layout.GLYPH_THICKNESS - 1) - cy, cy - shortStart,
+        "the short arm is not centred on the control: it starts " + (cy - shortStart) +
+            "px before the centre and ends " + ((shortStart + Layout.GLYPH_THICKNESS - 1) - cy) + "px after it");
+
+    // Inside the ring, corner first -- the far corner of an arm is what
+    // reaches, not its end, and the ring's inner edge is the radius less the
+    // pen. Anything closer than a few pixels would read as a glyph touching
+    // its own border.
+    var halfLong = Layout.GLYPH_LENGTH / 2.0;
+    var halfShort = Layout.GLYPH_THICKNESS / 2.0;
+    var corner = Math.sqrt((halfLong * halfLong) + (halfShort * halfShort));
+    var inner = Layout.CONTROL_RADIUS - Layout.CONTROL_PEN;
+    logger.debug("glyph corner reaches " + corner + "px inside a " + inner + "px inner radius");
     Test.assertMessage(
-        Layout.breadcrumbY(h, 54) < Layout.breadcrumbY(h, 20),
-        "a taller font must raise the breadcrumb anchor");
+        corner + 4 <= inner,
+        "the glyph reaches " + corner + "px against the ring's " + inner + "px inner edge");
+
+    // And big enough to read. The font was chosen at LARGE because XTINY was a
+    // speck in a 76 px circle; the bars inherit that judgement as a number.
+    var diameter = 2 * Layout.CONTROL_RADIUS;
+    Test.assertMessage(
+        Layout.GLYPH_LENGTH * 3 >= diameter,
+        "the glyph is " + Layout.GLYPH_LENGTH + "px across a " + diameter +
+            "px circle, which reads as a speck");
     return true;
 }

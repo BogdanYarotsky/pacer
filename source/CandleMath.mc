@@ -49,14 +49,49 @@ module CandleMath {
         return everyHundredths * 10;
     }
 
-    // One-time bridge from the retired pace model, whose stored unit was
-    // hundredths of a breath per minute. Interval hundredths from bpm
-    // hundredths:
+    // Interval hundredths from breaths-per-minute hundredths.
+    //
+    // Two cues per breath, so seconds between cues = 30 / bpm, and in
+    // hundredths of each unit:
     //     (3000000 / paceHundredths) ms / 10  ==  300000 / paceHundredths
-    // The + 0.5 rounds to nearest. Kept pure so the conversion table is
-    // testable without touching Storage; candleApp owns when it runs.
-    function legacyPaceToEvery(paceHundredths as Number) as Number {
+    // The + 0.5 rounds to nearest, because Float.toNumber() truncates.
+    //
+    // The constant is the same in both directions -- everyToPace below divides
+    // by the same 300000 -- because the relationship is a reciprocal and not a
+    // scale. That is also why no pair of fixed steps can be even in both units,
+    // and why each row gets the step that suits its own.
+    //
+    // This was `legacyPaceToEvery`, the one-time bridge from the retired pace
+    // model whose STORED unit was bpm hundredths. That model came back on
+    // 2026-08-25 as a second view rather than a second key, and the migration
+    // now calls the same function the PACE row does. There was never a second
+    // formula here, only a second caller.
+    function paceToEvery(paceHundredths as Number) as Number {
         return ((300000.0 / paceHundredths) + 0.5).toNumber();
+    }
+
+    // The PACE row's value for a given interval, snapped to the 0.1 bpm ladder.
+    //
+    // The snap is what makes the row displayable: an interval the EVERY row set
+    // is under no obligation to sit on a bpm rung -- 5.26 s is 5.7034 bpm --
+    // and the row shows one decimal. Rounding to the nearest rung is also what
+    // makes a PACE tap reversible, because candleApp.stepRow steps from the
+    // value on the glass rather than from the one in Storage. Stepping from the
+    // stored interval instead would let "+" then "-" land somewhere else.
+    //
+    // Every rung from 2.00 to 10.00 bpm maps to a distinct interval and
+    // survives the round trip back -- settingsPaceAndEveryAreOneSettingTwoViews
+    // walks all 81 of them rather than sampling.
+    //
+    // **It rounds ONCE, and that is not a micro-optimisation.** The obvious
+    // spelling is to round to the nearest hundredth of a bpm and then snap that
+    // to the nearest rung, and it is wrong 60 times in the 1201 intervals this
+    // range holds: an interval of 3.11 s is 9.646 bpm, which the double round
+    // lifts to 9.65 and then to 9.7, a whole rung past the nearest one. So
+    // 30000/everyHundredths is taken as the pace in TENTHS of a bpm, rounded
+    // there, and scaled up -- one rounding, at the resolution the row shows.
+    function everyToPace(everyHundredths as Number) as Number {
+        return ((30000.0 / everyHundredths) + 0.5).toNumber() * 10;
     }
 
     // Render an integer number of hundredths as a decimal, with no trailing
@@ -86,9 +121,14 @@ module CandleMath {
         return whole + "." + fraction.format("%02d");
     }
 
-    // The EVERY row's value: the bare cue interval in seconds. No translation,
-    // no second number -- whoever thinks in breaths per minute converts once,
-    // outside the watch, and what they dial in here is the thing the timer runs.
+    // The EVERY row's value: the bare cue interval in seconds, which is the
+    // number the timer actually runs.
+    //
+    // It carries no second number in parentheses, and that has survived the
+    // arrival of the PACE row -- "5.22 sec (5.75 bpm)" is exactly the string
+    // that used to draw over both control circles. Whoever thinks in breaths
+    // per minute now has a ROW for it rather than a suffix, which is the same
+    // information at a quarter of the width apiece.
     //
     // Seconds are abbreviated to "s" rather than spelled "sec" for a measured
     // reason, not a stylistic one: "5.22 sec (5.75 bpm)" was 239 px in
@@ -98,6 +138,23 @@ module CandleMath {
     // -- this is not a free string to lengthen.
     function formatEvery(everyHundredths as Number) as String {
         return formatHundredths(everyHundredths) + "s";
+    }
+
+    // The PACE row's value: the same cue rate in breaths per minute.
+    //
+    // It goes through formatHundredths for the same reason EVERY does, so the
+    // two rows read as one grammar and the trailing zeros come off both: 570 is
+    // "5.7bpm" and 1000 is "10bpm", not "10.0bpm".
+    //
+    // "bpm" is spelled out where seconds are abbreviated to "s", and that costs
+    // real pixels -- "PACE 9.9bpm" is the second-widest line the app can draw.
+    // It fits, and it is the string the tools use; "PACE 9.9b" would save 20 px
+    // and mean nothing to anyone. The ceiling is what keeps it affordable: a
+    // pace above 9.9 would need two digits and a decimal, which is where this
+    // row would become the widest thing on either screen and start pushing the
+    // tap zones back. See candleApp.MAX_PACE_HUNDREDTHS.
+    function formatPace(paceHundredths as Number) as String {
+        return formatHundredths(paceHundredths) + "bpm";
     }
 
     // The POWER ladder is two zones: 5% steps over the working range, 1% steps
@@ -145,9 +202,9 @@ module CandleMath {
     // arithmetic between it and the screen: round to nearest, and clamp.
     //
     // The + 0.5 rounds because Float.toNumber() truncates -- the same idiom
-    // legacyPaceToEvery uses, for the same reason. The clamp is defensive
+    // paceToEvery uses, for the same reason. The clamp is defensive
     // rather than expected: the SDK documents the field as a percentage and
-    // says nothing about bounds, and a bottom line reading "BATT 104%" would
+    // says nothing about bounds, and a bottom line reading "BATTERY 104%" would
     // be a worse bug than a reading pinned at 100.
     //
     // It is here rather than in the view so the rounding is testable without a
@@ -168,6 +225,9 @@ module CandleMath {
     function rowValueText(row as Number, value as Number) as String {
         if (row == Rows.EVERY) {
             return formatEvery(value);
+        }
+        if (row == Rows.PACE) {
+            return formatPace(value);
         }
         if (row == Rows.PULSE) {
             return formatDuration(value);

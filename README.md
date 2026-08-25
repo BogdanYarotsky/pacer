@@ -27,9 +27,16 @@ is where to start looking, not an answer.
 
 Resonance frequency is individual: measure your own and dial it in on the watch
 rather than in code. Tools built for exactly that measurement include
-**Yudemon** and **Elite HRV** — run an assessment there, take the breathing
-rate it settles on, and convert it once: seconds between cues = 60 / bpm / 2.
-A measured 5.5 breaths/min, for example, dials in as `EVERY 5.45s`.
+**Yudemon** and **Elite HRV** — run an assessment there and type the breathing
+rate it settles on straight into the `PACE` row. A measured 5.5 breaths/min is
+`PACE 5.5bpm`, and there is no arithmetic to do.
+
+There is no arithmetic because the same screen carries both units. `PACE` is
+breaths per minute, `EVERY` is seconds between cues, and they are one setting
+seen twice — move either and the other follows. Use whichever your tool speaks:
+assessments report bpm, so `PACE` is usually the one you type into, and `EVERY`
+is the finer nudge afterwards (in the resonance band one `PACE` tap is worth
+several `EVERY` taps).
 
 ## Using it
 
@@ -47,7 +54,7 @@ clock and the battery — and both are repainted once a minute:
         (−)      PULSE 100ms     (+)
 
 
-                  BATT 80%
+                 BATTERY 80%
 ```
 
 The bottom line shows the charge left, `VIBE OFF` if the watch cannot vibrate,
@@ -71,16 +78,24 @@ swipe right, to return.
 | --- | --- | ---: | ---: | ---: |
 | Vibration strength — the `POWER` row | main | 20% | 1–100% | 5%, and 1% at 5% and below |
 | Vibration length — the `PULSE` row | main | 100 ms | 10–250 ms | 10 ms |
-| Seconds between cues — the `EVERY` row | upper button | 5.00 s | 0.05–15 s | 0.05 s |
+| Seconds between cues — the `EVERY` row | upper button | 5.00 s | 3–15 s | 0.05 s |
+| Breaths per minute — the `PACE` row | upper button | 6.0 bpm | 2–10 bpm | 0.1 bpm |
 
 `EVERY` is the number the timer runs, exposed with no translation: one buzz
 every that many seconds. It is half a breath, since there are two cues per
 breath — and you can check it against any clock by counting one gap between
-buzzes. The 0.05 s floor is the platform timer's own minimum, not a design
-opinion; the 15 s ceiling — 30 s per breath — is far past any breathing
-practice. The range is deliberately much wider than the adult resonance band:
-children pace faster, and a bare interval repurposes as a plain haptic
-metronome.
+buzzes. `PACE` is that same number as a breathing rate, and the two rows are one
+setting: 3–15 s and 2–10 bpm are the same range in two units, endpoints included.
+
+Note that `+` moves them in opposite directions, and that is not a bug — more
+breaths per minute is *less* time between cues. Reciprocal units cannot agree on
+which way is up.
+
+The ranges are generous rather than tight. The documented resonance bands are
+4.5–7.0 bpm for adults and 6.5–9.5 for children, so a 10 bpm ceiling clears
+every one of them; past that you are into ordinary resting respiration, which
+wants no metronome. The 15 s ceiling — 30 s per breath — is far past any
+breathing practice at the other end.
 
 Trailing zeros are dropped, so 5.00 reads `5s`. The line therefore changes width
 as you tap through it, and being centred it shifts under the thumb rather than
@@ -143,7 +158,7 @@ identical event.
 That looks like an odd choice and it is not one — it is forced. On this watch the
 firmware **synthesises a real button press for a right swipe**, so nothing in the
 app can tell your thumb from a sleeve brushing the glass, and Candle used to end
-sessions because of it. Six breadcrumbs off a wrist say so; the full working is
+sessions because of it. Six exit traces off a wrist say so; the full working is
 in `AGENTS.md`. A *held* button is the one gesture the firmware does not forge,
 so that is where the exit went.
 
@@ -248,7 +263,6 @@ running app, a graphics context or a simulator window.
 | `source/Display.mc` | Every string the screen draws |
 | `source/CandleMath.mc` | Cue arithmetic, the POWER ladder, clamping, formatting |
 | `source/ClockText.mc` | Clock rendering, 12- and 24-hour |
-| `source/ExitForensics.mc` | Debug-only exit breadcrumb for the phantom-swipe diagnosis |
 
 `Layout` and `Display` exist so the tests measure the real coordinates and the
 real strings. A literal pixel offset or caption in `candleView.mc` puts it beyond

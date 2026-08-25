@@ -63,6 +63,30 @@ module Layout {
     // because the fit maths above has to pay for it.
     const CONTROL_PEN = 3;
 
+    // The "-" and "+" are drawn as bars, not set in a font, and these two
+    // numbers are their whole shape: how long an arm is, and how thick.
+    //
+    // A font could not keep the promise the pair makes. FONT_LARGE's hyphen
+    // was 13 px of ink against the plus's 26 -- exactly half as wide, in two
+    // controls that sit either side of the same row and are meant to read as
+    // one control twice -- and no test could have caught it, because
+    // getTextWidthInPixels reports an ADVANCE width: the two strings measure
+    // alike while the ink does not. A bar has one width and it is this file's.
+    //
+    // Both numbers are ODD, and that is the vertical centring. A bar of even
+    // thickness has its centre on a pixel boundary, so it must land half a
+    // pixel off the circle's centre whichever way the division rounds; an odd
+    // one has a middle row to put there. Measured off shots/screen-main.png,
+    // the font's glyphs sat 3.5 px (the hyphen) and 2 px (the plus) BELOW the
+    // centre of their circles -- centred on the font's line box, which is what
+    // TEXT_JUSTIFY_VCENTER centres, and never on the ink.
+    //
+    // 27 px reproduces the old plus's bar to the pixel (26, plus one for
+    // symmetry) and is 36% of the 76 px circle; 5 px is the nearest odd number
+    // to the font's 4.
+    const GLYPH_LENGTH = 27;
+    const GLYPH_THICKNESS = 5;
+
     // The tap zone reaches as far inward as the widest row line allows: the
     // centre text must stay inert (reading a value can never change it), so the
     // zone edge stops short of where that text begins. The widest line either
@@ -143,6 +167,18 @@ module Layout {
         return increase ? width - CONTROL_INSET : CONTROL_INSET;
     }
 
+    // The leading edge of one arm of a control's glyph: a bar `extent` px long,
+    // centred on `center`. All three bars the two controls draw come out of
+    // this one function -- the "+"'s vertical arm is its horizontal arm with
+    // the two extents swapped -- so "centred" has one definition and the "-"
+    // cannot be a different width from the "+" without this line changing.
+    //
+    // Integer division, and the constants are odd, so a bar spans
+    // center-13..center+13 and the middle pixel IS the centre.
+    function glyphArmStart(center as Number, extent as Number) as Number {
+        return center - (extent / 2);
+    }
+
     // Widest a row's centred label or value may be drawn.
     //
     // The round-screen chord is not the only thing a row can run out of, and it
@@ -164,23 +200,6 @@ module Layout {
     // clear of the bottom edge whatever font the device ships.
     function versionY(height as Number, fontHeight as Number) as Number {
         return height - VERSION_BOTTOM_MARGIN - fontHeight;
-    }
-
-    // The debug exit breadcrumb sits one line above the version, on the
-    // settings screen and nowhere else.
-    //
-    // It is anchored off the version rather than off the bottom edge so the two
-    // cannot collide however tall the font turns out to be, and it sits high
-    // enough up the glass to be worth having: the chord here is roughly 305 px
-    // against the ~180 px the breadcrumb had while it shared the version's line
-    // on the main screen. That extra width is what let the ring grow from two
-    // events to six. layoutExitBreadcrumbFits measures the worst chain against
-    // it, and layoutRealLinesFitOnVivoactive5 proves it clears the EVERY row's
-    // controls above.
-    const BREADCRUMB_GAP = 8;
-
-    function breadcrumbY(height as Number, fontHeight as Number) as Number {
-        return versionY(height, fontHeight) - fontHeight - BREADCRUMB_GAP;
     }
 
     // Map only the large edge hit zones to a row and a direction. The centre

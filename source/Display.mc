@@ -25,17 +25,33 @@ module Display {
     // be re-worded at all. Renaming a key would silently reset that setting on
     // every watch running this app.
     //
-    // All three captions are five characters, so the label column reads as a
+    // The first three are five characters, so the label column reads as a
     // column. Units stay beside the values rather than moving up into the
     // captions.
+    //
+    // PACE is the one at four, and padding it would be worse than the ragged
+    // edge: rows are centred, not left-aligned, so a leading space would shift
+    // the whole line off centre to buy an alignment nobody can see. It is also
+    // the only caption whose value carries a three-letter unit, and the row it
+    // shares a screen with is EVERY -- "EVERY 5.26s" against "PACE 5.7bpm" is
+    // near enough the same length that the column reads straight anyway.
     const LABEL_EVERY = "EVERY";
     const LABEL_PULSE = "PULSE";
     const LABEL_POWER = "POWER";
+    const LABEL_PACE = "PACE";
 
     // Not a row caption -- the battery is not a setting and nothing taps it --
     // but it borrows the same grammar, because it is drawn two lines under
     // POWER and a bare "80%" there would read as another setting.
-    const LABEL_BATTERY = "BATT";
+    //
+    // Spelled out, where the captions above it are clipped to five characters.
+    // They are clipped to line up as a column and because a row has two
+    // circles eating its width; this line has neither constraint -- it is
+    // alone on the widest thing in the slot and still leaves most of the chord
+    // unused, so "BATT" was an abbreviation buying nothing. The one budget it
+    // does have to answer to is the round screen down here, and
+    // layoutRealLinesFitOnVivoactive5 measures all 101 readings against it.
+    const LABEL_BATTERY = "BATTERY";
 
     // The caption for a row, keyed by the row's identity and never by its
     // position. Which screen a row is on, and where on it, is Rows.forScreen's
@@ -44,6 +60,9 @@ module Display {
     function rowLabel(row as Number) as String {
         if (row == Rows.EVERY) {
             return LABEL_EVERY;
+        }
+        if (row == Rows.PACE) {
+            return LABEL_PACE;
         }
         if (row == Rows.PULSE) {
             return LABEL_PULSE;

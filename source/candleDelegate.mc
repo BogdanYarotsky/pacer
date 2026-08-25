@@ -119,7 +119,6 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
         }
 
         trace("onHold -> step and repeat");
-        ExitForensics.recordEvent("H");
         adjustSetting(hit);
         startRepeat(hit);
         return true;
@@ -130,7 +129,6 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
         if (isRepeating()) {
             trace("onRelease -> repeat stopped");
         }
-        ExitForensics.recordEvent("L");
         stopRepeat();
         return true;
     }
@@ -139,20 +137,12 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
     // rather than consumed: drags feed the firmware's own gesture recognition,
     // and this handler exists only to disarm the repeat, not to eat swipes.
     //
-    // It also writes the drag to the breadcrumb, and that is the whole reason
-    // the ring grew to six. Measured 2026-08-24: onDrag fires for a swipe and
-    // for NOTHING else that reaches onBack -- not the lower button, not a tap,
-    // not a touch-hold, not either button. That makes a drag the one witness to
-    // "a finger was on the glass" that does not depend on onKeyPressed, which
-    // the wrist has now shown the firmware is willing to synthesize.
-    //
-    // Only START and STOP are recorded. A single swipe raises several CONTINUE
-    // events and they would push everything else out of the ring.
+    // It used to log the drag for the exit breadcrumb as well, on the theory
+    // that a drag is the one witness to "a finger was on the glass" that the
+    // firmware does not synthesize. The wrist settled that question -- touch
+    // evidence preceded the forged key in only two exits out of six -- and
+    // disarming the repeat is all this handler was ever needed for.
     function onDrag(dragEvent as WatchUi.DragEvent) as Boolean {
-        var type = dragEvent.getType();
-        if (type != WatchUi.DRAG_TYPE_CONTINUE) {
-            ExitForensics.recordEvent("D" + (type as Number));
-        }
         stopRepeat();
         return false;
     }
@@ -166,16 +156,16 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
     // worth re-asking on hardware, and this is what asks it.
     //
     // Up and down swipes already reach onNextPage/onPreviousPage, which consume
-    // them; this runs afterwards either way and only writes a breadcrumb.
+    // them; this runs afterwards either way and only traces. The trace is not
+    // decoration: tests/input-behaviour.ps1 asserts "onSwipe 3" for a left
+    // swipe, which is the only event that gesture raises at all.
     function onSwipe(swipeEvent as WatchUi.SwipeEvent) as Boolean {
-        ExitForensics.recordEvent("S" + (swipeEvent.getDirection() as Number));
         trace("onSwipe " + (swipeEvent.getDirection() as Number));
         return false;
     }
 
     function onKeyPressed(keyEvent as WatchUi.KeyEvent) as Boolean {
         stopRepeat();
-        ExitForensics.recordEvent("P" + (keyEvent.getKey() as Number));
         _inputGate.press(keyEvent.getKey());
         // Declined: this is only a marker, the behaviour handlers do the work.
         return false;
@@ -184,7 +174,6 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
     // Clear a press that produced no behaviour. A stale KEY_ESC must never make
     // a later right-swipe look like the physical lower button.
     function onKeyReleased(keyEvent as WatchUi.KeyEvent) as Boolean {
-        ExitForensics.recordEvent("R" + (keyEvent.getKey() as Number));
         _inputGate.release(keyEvent.getKey());
         return false;
     }
@@ -226,7 +215,6 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
 
     function onTap(clickEvent as WatchUi.ClickEvent) as Boolean {
         stopRepeat();
-        ExitForensics.recordEvent("T");
         // Only a plain tap steps here. A hold arrives typed CLICK_TYPE_HOLD
         // and is onHold's job; letting it fall through would double-step.
         if (clickEvent.getType() != WatchUi.CLICK_TYPE_TAP) {
@@ -269,7 +257,6 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
         }
 
         trace("onBack -> swallowed, hold to exit");
-        ExitForensics.recordEvent("Bs");
         getApp().armExitHint();
         return true;
     }
@@ -292,10 +279,8 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
     // the way out is untidy and this is the last chance.
     function onMenu() as Boolean {
         stopRepeat();
-        ExitForensics.recordEvent("M");
         _inputGate.clear();
         trace("onMenu -> app exits");
-        ExitForensics.noteExit("M!");
 
         // Last statement, and deliberately with no return after it: System.exit
         // does not come back, and the compiler knows -- a trailing `return true`

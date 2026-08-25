@@ -127,11 +127,11 @@ function candleMathTwoCuesPerBreath(logger as Test.Logger) as Boolean {
 // the clamp, exactly like any other off-ladder stored value.
 (:test)
 function candleMathMigratesLegacyPaceTable(logger as Test.Logger) as Boolean {
-    Test.assertEqualMessage(CandleMath.legacyPaceToEvery(600), 500, "6.00 bpm is a 5.00 s interval");
-    Test.assertEqualMessage(CandleMath.legacyPaceToEvery(571), 525, "5.71 bpm rounds down to 5.25 s");
-    Test.assertEqualMessage(CandleMath.legacyPaceToEvery(570), 526, "5.70 bpm rounds up to 5.26 s");
-    Test.assertEqualMessage(CandleMath.legacyPaceToEvery(450), 667, "the old floor becomes 6.67 s");
-    Test.assertEqualMessage(CandleMath.legacyPaceToEvery(700), 429, "the old ceiling becomes 4.29 s");
+    Test.assertEqualMessage(CandleMath.paceToEvery(600), 500, "6.00 bpm is a 5.00 s interval");
+    Test.assertEqualMessage(CandleMath.paceToEvery(571), 525, "5.71 bpm rounds down to 5.25 s");
+    Test.assertEqualMessage(CandleMath.paceToEvery(570), 526, "5.70 bpm rounds up to 5.26 s");
+    Test.assertEqualMessage(CandleMath.paceToEvery(450), 667, "the old floor becomes 6.67 s");
+    Test.assertEqualMessage(CandleMath.paceToEvery(700), 429, "the old ceiling becomes 4.29 s");
     return true;
 }
 
