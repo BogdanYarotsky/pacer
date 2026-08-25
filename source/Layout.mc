@@ -1,7 +1,7 @@
 import Toybox.Lang;
 import Toybox.Math;
 
-// Pure layout maths for the main Candle screen.
+// Pure layout maths for Candle's screens.
 //
 // Every function takes screen dimensions and font metrics as arguments and
 // returns coordinates or a yes/no fit answer. Nothing here touches a Dc, so all
@@ -13,34 +13,69 @@ import Toybox.Math;
 // bottom edges, so fitting inside the bounding box is not the same as fitting on
 // the screen. halfChordAt models that and is the reason these tests are worth
 // having at all.
+//
+// Both screens share every function here. What differs between them is one
+// number -- how many rows they carry -- so the row grid takes that as an
+// argument rather than pinning it as a constant. Rows.forScreen owns which
+// rows those are; this module never learns which setting is standing in a row.
 module Layout {
 
     const DISPLAY_WIDTH = 390;
 
-    const EDITOR_FIRST_ROW_TOP = 96;
-    const EDITOR_ROW_HEIGHT = 72;
-    const EDITOR_ROW_COUNT = 3;
+    // The row grid is CENTRED ON THE GLASS rather than hung from a fixed top
+    // edge, and that is not a cosmetic choice. A round screen is widest at its
+    // vertical centre, and the control circles are what run out of room first:
+    // every pixel a row sits away from the centre is a pixel its circles have
+    // to give back. Hanging a two-row grid off the old 96 px top edge would
+    // have left the rows lopsided in the band and the outer one further from
+    // the centre than it needs to be, for no gain at all.
+    //
+    // 102 px per row is what two rows can afford. It leaves ~23 px of air
+    // between the circles of adjacent rows at the radius below, and the block
+    // (93..297 on this device) clears the clock above it and the bottom line
+    // under it with room to spare.
+    const EDITOR_ROW_HEIGHT = 102;
 
-    // The controls are drawn as large as the glass allows. A circle at
-    // (inset, rowCenter) fits the round screen iff
-    //     sqrt((195 - inset)^2 + (rowCenter - 195)^2) + radius <= 195
-    // and the outer rows are the binding case: at inset 58, radius 32, rows 0
-    // and 2 sit 159.15 + 32 = 191.15 from centre against the 195 radius --
-    // 3.85 px of air. Radius 32 at the old inset 55 left 1.25 px, which
-    // antialiasing visibly clips; 34 needs inset 60 and starves the text
-    // budget. layoutRealLinesFitOnVivoactive5 holds this with the real
-    // circle-in-circle arithmetic, not the chord approximation it replaced.
-    const CONTROL_INSET = 58;
-    const CONTROL_RADIUS = 32;
+    // The controls are drawn as large as the glass allows, and the outer rows
+    // are the binding case. A ring at (inset, rowCentre) fits iff
+    //     sqrt((195 - inset)^2 + (rowCentre - 195)^2) + radius + pen <= 195
+    // -- the pen is counted as if the whole stroke fell outside the radius,
+    // which is the conservative reading of an undocumented detail.
+    //
+    // At inset 54, radius 38, pen 3 the main screen's two rows sit 51 px off
+    // centre and reach 149.94 + 41 = 190.94 against the 195 px glass: 4.06 px
+    // of air, the same margin the old three-row layout was tuned to. Radius 32
+    // at the old inset 55 left 1.25 px, which antialiasing visibly clipped.
+    // layoutRealLinesFitOnVivoactive5 holds this with the real circle-in-circle
+    // arithmetic, not a chord approximation, and it checks both screens.
+    //
+    // The settings screen's single row sits ON the centre line, where the same
+    // circle has 13 px of air. It is drawn at the same radius anyway: a control
+    // that changed size when you walked to another screen would read as a
+    // different control.
+    const CONTROL_INSET = 54;
+    const CONTROL_RADIUS = 38;
+
+    // The ring, not a fill. The face is the black of the cleared screen inside
+    // a white border, which is what a button looks like and what a filled disc
+    // does not. At this radius a 1 px stroke reads as a hairline, so the pen is
+    // wide enough to be a border; it is a Layout constant and not a view detail
+    // because the fit maths above has to pay for it.
+    const CONTROL_PEN = 3;
 
     // The tap zone reaches as far inward as the widest row line allows: the
-    // centre text must stay inert (reading a value can never change it), so
-    // the zone edge stops short of "EVERY 14.95s" -- measured at 168 px, left
-    // edge x=111, which is what pushed a hoped-for 113 back to 110.
-    // layoutHitZonesClearRealisticText is the guardrail that pins this
-    // constant to that measurement; its failure message says how far back the
-    // edge must go.
-    const CONTROL_HIT_EDGE = 110;
+    // centre text must stay inert (reading a value can never change it), so the
+    // zone edge stops short of where that text begins. The widest line either
+    // screen can show is "PULSE 250ms" at 171 px, whose left edge measures
+    // x=110 -- so 108 leaves two pixels and nothing more.
+    //
+    // That is one pixel tighter than the 110 this constant held while the
+    // screen had three rows, and 110 was already wrong: the guardrail test
+    // measured only the EVERY row, and PULSE at its ceiling is 3 px wider than
+    // EVERY at its own. layoutHitZonesClearRealisticText now sweeps every row
+    // of every screen, and its failure message says how far back the edge has
+    // to go.
+    const CONTROL_HIT_EDGE = 108;
 
     // Clearance either side of a row's centred text, between it and the "-" and
     // "+" circles. See editorTextMaxWidth.
@@ -53,26 +88,18 @@ module Layout {
     // and all three were clipped by the curve of the display.
     const VERSION_BOTTOM_MARGIN = 34;
 
-    // editorActionAt encodes its result as (row * 2) + direction, so these must
-    // stay contiguous and in this order, decrease before increase. All six are
-    // pinned by the tap-hit-mapping tests in tests/LayoutTest.mc.
+    // editorHitAt encodes its answer as (row * 2) + direction: a POSITION on
+    // the screen and which side of it was touched, and deliberately nothing
+    // about which setting is standing there. Rows.forScreen is the only thing
+    // that knows that, and the view and the delegate both read it, so a
+    // re-ordered screen cannot leave a tap pointing at the wrong setting.
     //
-    // **The order of this block IS the order of the rows on screen**, which is
-    // EVERY, PULSE, POWER -- the interval leads because it is the setting, the
-    // cue's shape follows. The names are the on-screen captions, not the code's
-    // setting names: candleDelegate is where PULSE maps to duration and POWER to
-    // strength. candleView draws in this same order and candleDelegate dispatches
-    // by name, so re-ordering the screen means editing this block and the draw
-    // calls together. If they ever disagree, every tap edits the wrong setting
-    // and nothing on screen says so.
-    const ACTION_NONE = 0;
-    const ACTION_EVERY_DOWN = 1;
-    const ACTION_EVERY_UP = 2;
-    const ACTION_PULSE_DOWN = 3;
-    const ACTION_PULSE_UP = 4;
-    const ACTION_POWER_DOWN = 5;
-    const ACTION_POWER_UP = 6;
-
+    // That is the whole difference from the ACTION_ constants this replaced.
+    // They named the settings -- ACTION_EVERY_UP and friends -- so the encoding
+    // itself asserted that EVERY was the first row, on the only screen there
+    // was. Two screens make position and identity different things, and the
+    // encoding now carries only the one it can actually know.
+    const HIT_NONE = 0;
     const DIRECTION_DECREASE = 1;
     const DIRECTION_INCREASE = 2;
 
@@ -80,26 +107,36 @@ module Layout {
         return width / 2;
     }
 
-    // Top edge of the clock line, given the height of the font it will be drawn
-    // in. The clock has the whole band above the first editor row to itself and
-    // sits centred in it, so a taller font grows away from both neighbours
-    // instead of walking into the row below.
-    //
-    // Centred, and not pinned near the top edge: this is a round screen, and the
-    // usable chord at y=12 is only ~134 px against ~176 px at y=21. The clock is
-    // set in the largest font on the screen, so it wants the wider line.
-    function clockY(fontHeight as Number) as Number {
-        return (EDITOR_FIRST_ROW_TOP - fontHeight) / 2;
+    // Top edge of a screen's row block: rowCount rows of EDITOR_ROW_HEIGHT,
+    // centred on the vertical centre of the glass.
+    function editorRowsTop(rowCount as Number, height as Number) as Number {
+        return (height / 2) - ((rowCount * EDITOR_ROW_HEIGHT) / 2);
     }
 
-    function editorRowTop(index as Number) as Number {
-        return EDITOR_FIRST_ROW_TOP + (index * EDITOR_ROW_HEIGHT);
+    function editorRowTop(index as Number, rowCount as Number, height as Number) as Number {
+        return editorRowsTop(rowCount, height) + (index * EDITOR_ROW_HEIGHT);
     }
 
     // A row is one line, vertically centred here -- the caption and value sit
     // together on it, and the "-" and "+" circles share the same centre line.
-    function editorRowCenter(index as Number) as Number {
-        return editorRowTop(index) + (EDITOR_ROW_HEIGHT / 2);
+    function editorRowCenter(index as Number, rowCount as Number, height as Number) as Number {
+        return editorRowTop(index, rowCount, height) + (EDITOR_ROW_HEIGHT / 2);
+    }
+
+    // Top edge of the clock line, given the height of the font it will be drawn
+    // in and the top of the row block beneath it. The clock has that whole band
+    // to itself and sits centred in it, so a taller font grows away from both
+    // neighbours instead of walking into the row below.
+    //
+    // Centred, and not pinned near the top edge: this is a round screen, and the
+    // usable chord at y=12 is only ~134 px against ~168 px at y=19. The clock is
+    // set in the largest font on the screen, so it wants the wider line.
+    //
+    // The band is passed in rather than read from a constant because it is the
+    // main screen's row block that defines it, and Layout does not know which
+    // screen it is drawing.
+    function clockY(fontHeight as Number, rowsTop as Number) as Number {
+        return (rowsTop - fontHeight) / 2;
     }
 
     function editorControlX(width as Number, increase as Boolean) as Number {
@@ -113,8 +150,8 @@ module Layout {
     // centre where the glass is widest, but it also has a circle parked at each
     // end of it. A line long enough to reach one draws straight through it.
     //
-    // That is not hypothetical. "5.22 sec (5.75 bpm)" measured 239 px in
-    // FONT_XTINY against the 232 px between the two circles, and cleared every
+    // That is not hypothetical. "5.22 sec (5.75 bpm)" measured 239px in
+    // FONT_XTINY against the 232px between the two circles, and cleared every
     // chord check on the screen while sitting on top of both controls. The
     // gutter is what keeps a line that only just misses them from reading as if
     // it touches -- the layout it replaced had about 12 px of air each side.
@@ -129,12 +166,36 @@ module Layout {
         return height - VERSION_BOTTOM_MARGIN - fontHeight;
     }
 
-    // Map only the large edge hit zones to an action. The centre text is not
-    // interactive, preventing an accidental adjustment while reading a value.
-    function editorActionAt(x as Number, y as Number, width as Number) as Number {
-        if (y < EDITOR_FIRST_ROW_TOP ||
-                y >= EDITOR_FIRST_ROW_TOP + (EDITOR_ROW_COUNT * EDITOR_ROW_HEIGHT)) {
-            return ACTION_NONE;
+    // The debug exit breadcrumb sits one line above the version, on the
+    // settings screen and nowhere else.
+    //
+    // It is anchored off the version rather than off the bottom edge so the two
+    // cannot collide however tall the font turns out to be, and it sits high
+    // enough up the glass to be worth having: the chord here is roughly 305 px
+    // against the ~180 px the breadcrumb had while it shared the version's line
+    // on the main screen. That extra width is what let the ring grow from two
+    // events to six. layoutExitBreadcrumbFits measures the worst chain against
+    // it, and layoutRealLinesFitOnVivoactive5 proves it clears the EVERY row's
+    // controls above.
+    const BREADCRUMB_GAP = 8;
+
+    function breadcrumbY(height as Number, fontHeight as Number) as Number {
+        return versionY(height, fontHeight) - fontHeight - BREADCRUMB_GAP;
+    }
+
+    // Map only the large edge hit zones to a row and a direction. The centre
+    // text is not interactive, preventing an accidental adjustment while
+    // reading a value.
+    function editorHitAt(
+        x as Number,
+        y as Number,
+        width as Number,
+        height as Number,
+        rowCount as Number
+    ) as Number {
+        var top = editorRowsTop(rowCount, height);
+        if (y < top || y >= top + (rowCount * EDITOR_ROW_HEIGHT)) {
+            return HIT_NONE;
         }
 
         var direction;
@@ -143,13 +204,23 @@ module Layout {
         } else if (x >= width - CONTROL_HIT_EDGE) {
             direction = DIRECTION_INCREASE;
         } else {
-            return ACTION_NONE;
+            return HIT_NONE;
         }
 
         // Number / Number is integer division in Monkey C, so this is the row
         // index directly.
-        var row = (y - EDITOR_FIRST_ROW_TOP) / EDITOR_ROW_HEIGHT;
+        var row = (y - top) / EDITOR_ROW_HEIGHT;
         return (row * 2) + direction;
+    }
+
+    // The two halves of a hit, back out of the encoding above. Only ever call
+    // these on a hit that is not HIT_NONE.
+    function hitRow(hit as Number) as Number {
+        return (hit - 1) / 2;
+    }
+
+    function hitIsIncrease(hit as Number) as Boolean {
+        return (hit % 2) == 0;
     }
 
     // Half the usable width of a round screen at vertical position y, measured

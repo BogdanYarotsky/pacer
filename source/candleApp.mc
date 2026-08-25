@@ -7,9 +7,13 @@ import Toybox.Attention;
 import Toybox.Timer;
 
 class candleApp extends Application.AppBase {
-    // Shown on the main screen so the build running on the watch is
-    // identifiable at a glance. Bump on every sideload.
-    const APP_VERSION = "0.24";
+    // Drawn at the bottom of the SETTINGS screen -- one press of the upper
+    // button -- in debug builds only, so the build running on the watch is
+    // identifiable after a sideload. It is off the main screen deliberately:
+    // you read it once after a deploy and never again while breathing.
+    // deploy.ps1 bumps this on every sideload and its closing message tells
+    // you where to look; the two have to move together.
+    const APP_VERSION = "0.27";
 
     // One cue every 5.00 s -- 10 s per breath, 0.1 Hz, the Lehrer resonance
     // protocol's canonical frequency and the value the literature converges on
@@ -124,11 +128,33 @@ class candleApp extends Application.AppBase {
     // What startTimer last started the cue at. See getTimerPeriodMillis.
     private var _timerPeriodMillis as Number = 0;
 
-    // The clock is the only thing on screen the cue timer can change, and it
-    // changes once a minute. Redrawing on every cue would repaint the whole
+    // The clock is the only thing on screen the cue timer needs to change, and
+    // it changes once a minute. Redrawing on every cue would repaint the whole
     // display ~11 times a minute to show the same pixels. Every other change
     // requests its own update, so this gates the timer's redraw alone.
+    //
+    // The battery reading rides this same repaint for free -- it is drawn from
+    // System.getSystemStats() inside onUpdate, so it refreshes whenever the
+    // minute does and asks for nothing of its own.
     private var _lastRedrawMinute as Number = -1;
+
+    // How long the "HOLD TO EXIT" hint stays on the bottom line after a Back.
+    //
+    // Back does not exit any more -- it cannot, because the firmware forges the
+    // key event it would have to trust (see candleDelegate.onBack) -- so this
+    // hint is the ONLY evidence the app noticed you pressed anything. Without
+    // it a deliberate Back looks exactly like a frozen app.
+    //
+    // Two seconds is long enough to read four words and short enough that a
+    // sleeve brushing the glass mid-session costs a glance, not a screen.
+    const EXIT_HINT_MILLIS = 2000;
+
+    // The app's THIRD and last timer -- the device allows three, and the cue
+    // owns one while candleDelegate's hold-to-repeat owns another. It exists
+    // only to take the hint back down; nothing else in the app is on a clock
+    // that the cue does not already provide.
+    private var _hintTimer as Timer.Timer? = null;
+    private var _showExitHint as Boolean = false;
 
     function initialize() {
         AppBase.initialize();
@@ -185,12 +211,48 @@ class candleApp extends Application.AppBase {
         // the phantom-swipe diagnosis is after. Debug builds only.
         ExitForensics.noteExit("S");
         stopTimer();
+        stopHintTimer();
     }
 
     // The clock can be a whole minute stale by the time the app comes back to
     // the foreground, so redraw rather than wait for the next cue.
     function onActive(state as Dictionary?) as Void {
         WatchUi.requestUpdate();
+    }
+
+    // --- the exit hint ------------------------------------------------------
+    //
+    // Armed by a Back on the main screen, taken down by its own timer. The
+    // state lives here rather than on the delegate because the view is what
+    // draws it and the view already reads the app; parking it on the delegate
+    // would mean the two screens' delegates each holding a piece of one fact.
+
+    function armExitHint() as Void {
+        stopHintTimer();
+        _showExitHint = true;
+
+        var timer = new Timer.Timer();
+        timer.start(method(:hintCallback), EXIT_HINT_MILLIS, false);
+        _hintTimer = timer;
+        WatchUi.requestUpdate();
+    }
+
+    function showsExitHint() as Boolean {
+        return _showExitHint;
+    }
+
+    function hintCallback() as Void {
+        stopHintTimer();
+        _showExitHint = false;
+        WatchUi.requestUpdate();
+    }
+
+    private function stopHintTimer() as Void {
+        var timer = _hintTimer;
+        if (timer != null) {
+            timer.stop();
+            _hintTimer = null;
+        }
     }
 
     // Each breath has two cues, one at each inhale/exhale boundary, so the timer
@@ -225,7 +287,10 @@ class candleApp extends Application.AppBase {
     }
 
     function getInitialView() as [Views] or [Views, InputDelegates] {
-        return [ new candleView(), new candleDelegate() ];
+        return [
+            new candleView(Rows.SCREEN_MAIN),
+            new candleDelegate(Rows.SCREEN_MAIN)
+        ];
     }
 
     function getEveryHundredths() as Number {
@@ -240,16 +305,45 @@ class candleApp extends Application.AppBase {
         return _vibeDuration;
     }
 
-    function getEveryText() as String {
-        return CandleMath.formatEvery(_everyHundredths);
+    // --- what a row shows, and what one tap does to it ----------------------
+    //
+    // Both are keyed by the row's identity and never by where it happens to be
+    // drawn, so moving a setting to another screen is a one-line edit in Rows
+    // and nothing else.
+    //
+    // They live here rather than in the delegate because everything a step
+    // needs is already here: the range it clamps into, the stride it walks, and
+    // the ladder POWER walks instead of a stride. The delegate used to hold a
+    // six-armed if-chain over ACTION_ constants that named the settings, which
+    // meant the one file that must not care which row is where was the file
+    // that spelled it out. It now decodes a position and hands the identity
+    // straight through.
+
+    // Only the value is looked up here; how it renders is CandleMath.rowValueText,
+    // which the layout sweep calls with values no watch is holding yet.
+    function rowValueText(row as Number) as String {
+        if (row == Rows.EVERY) {
+            return CandleMath.rowValueText(row, _everyHundredths);
+        }
+        if (row == Rows.PULSE) {
+            return CandleMath.rowValueText(row, _vibeDuration);
+        }
+        return CandleMath.rowValueText(row, _vibeStrength);
     }
 
-    function getStrengthText() as String {
-        return CandleMath.formatStrength(_vibeStrength);
-    }
-
-    function getDurationText() as String {
-        return CandleMath.formatDuration(_vibeDuration);
+    // One tap of a row's "-" or "+". Every arm is deliberately unclamped: each
+    // setter clamps, so a step off the end of a range is the no-op it should be
+    // and the endpoint stays reachable from a value that is off the ladder.
+    function stepRow(row as Number, increase as Boolean) as Void {
+        if (row == Rows.EVERY) {
+            setEveryHundredths(_everyHundredths + (increase ? EVERY_STEP : -EVERY_STEP));
+        } else if (row == Rows.PULSE) {
+            setVibrationDuration(_vibeDuration + (increase ? DURATION_STEP : -DURATION_STEP));
+        } else {
+            setVibrationStrength(increase
+                ? CandleMath.strengthUp(_vibeStrength)
+                : CandleMath.strengthDown(_vibeStrength));
+        }
     }
 
     // The setters clamp through CandleMath.clamp rather than reject an

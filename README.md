@@ -4,8 +4,8 @@
 vívoactive 5. Free and open source under the [MIT license](LICENSE).
 
 Candle is a resonance-frequency breathing pacer. It vibrates twice per breathing
-cycle — once at each turn-around — and does nothing else. There is one screen and
-no menus. The cue is haptic and always will be; there is no visual pacing
+cycle — once at each turn-around — and does nothing else. There are two screens
+and no menus. The cue is haptic and always will be; there is no visual pacing
 element, because the point is to pace your breathing without looking at a watch.
 
 **The two cues are deliberately identical, and that is the whole design.**
@@ -33,26 +33,45 @@ A measured 5.5 breaths/min, for example, dials in as `EVERY 5.45s`.
 
 ## Using it
 
-The single screen shows the time, three editable settings and the running build.
-Nothing on it changes on its own except the clock, once a minute:
+The main screen shows the time, the two settings you actually reach for during a
+session, and the charge left. Only two things on it change on their own — the
+clock and the battery — and both are repainted once a minute:
 
 ```
                     07:42
 
-        (−)      EVERY 5s        (+)
-
-        (−)      PULSE 100ms     (+)
 
         (−)      POWER 20%       (+)
 
-                    v0.23
+
+        (−)      PULSE 100ms     (+)
+
+
+                  BATT 80%
 ```
 
-| Setting | Default | Range | Step per tap |
-| --- | ---: | ---: | ---: |
-| Seconds between cues — the `EVERY` row | 5.00 s | 0.05–15 s | 0.05 s |
-| Vibration length — the `PULSE` row | 100 ms | 10–250 ms | 10 ms |
-| Vibration strength — the `POWER` row | 20% | 1–100% | 5%, and 1% at 5% and below |
+The bottom line shows the charge left, `VIBE OFF` if the watch cannot vibrate,
+or `HOLD TO EXIT` for two seconds after you press Back.
+
+**Press the upper button for the interval.** It is the one setting you measure
+once and then leave alone, so it lives on a screen of its own rather than costing
+the other two a third of the glass. Press the upper button again, or Back, or
+swipe right, to return.
+
+```
+
+
+        (−)      EVERY 5s        (+)
+
+
+                    v0.24
+```
+
+| Setting | Where | Default | Range | Step per tap |
+| --- | --- | ---: | ---: | ---: |
+| Vibration strength — the `POWER` row | main | 20% | 1–100% | 5%, and 1% at 5% and below |
+| Vibration length — the `PULSE` row | main | 100 ms | 10–250 ms | 10 ms |
+| Seconds between cues — the `EVERY` row | upper button | 5.00 s | 0.05–15 s | 0.05 s |
 
 `EVERY` is the number the timer runs, exposed with no translation: one buzz
 every that many seconds. It is half a breath, since there are two cues per
@@ -110,31 +129,52 @@ was left without touch until it was rebooted — and Candle could not repair it,
 because relaunching Candle needs touch to reach the app list. The watch's own lock
 has none of that failure mode, because the OS owns the state and restores it.
 
-**Upper button — nothing.** It used to toggle Candle's lock. Held, it opens the
-controls menu, which is where Lock Screen lives.
+**Upper button — the interval.** Press it to open the `EVERY` screen and press it
+again to close. Held, it opens the watch's controls menu, which is where Lock
+Screen lives — a hold, not a press, so the two do not collide.
 
-**Lower button — Back. It exits, immediately.** There is no confirmation, because
-there is nothing left to clean up before leaving. Lock the screen during a
-session and the button cannot reach Candle anyway.
+**Lower button — Back, and it never exits.** On the `EVERY` screen it goes back
+to the main screen. On the main screen it does nothing except show
+`HOLD TO EXIT` for two seconds. Same for a right swipe, which arrives as the
+identical event.
 
-A right swipe arrives as the same event as the lower button, so Candle tells them
-apart and swallows the swipe — see the input notes in `AGENTS.md`.
+**To quit, hold the lower button.** From either screen.
 
-**If the bottom line reads `VIBE OFF`, the watch cannot vibrate** — either the
+That looks like an odd choice and it is not one — it is forced. On this watch the
+firmware **synthesises a real button press for a right swipe**, so nothing in the
+app can tell your thumb from a sleeve brushing the glass, and Candle used to end
+sessions because of it. Six breadcrumbs off a wrist say so; the full working is
+in `AGENTS.md`. A *held* button is the one gesture the firmware does not forge,
+so that is where the exit went.
+
+Lock the screen during a session (below) and nothing can reach Candle anyway.
+
+**The bottom line is the battery**, and it is there for the same reason the clock
+is: leaving a breathing session to find out whether the watch will last it is the
+thing worth avoiding. The watch shows you the charge too, but only in the
+controls menu — a button hold and a screen away from the breath.
+
+**When it reads `VIBE OFF` instead, the watch cannot vibrate** — either the
 system vibration setting is off or the device has no motor. Candle will run a
 flawless session and you will feel nothing, so it says so rather than leaving you
-to tell that apart from a dead app. It is the only warning on the screen.
+to tell that apart from a dead app. It is the only warning in the app, and it
+takes the whole line: the two do not fit side by side down there, and a warning
+clipped at both ends would be worse than no warning at all.
 
 **The version on screen is the point — on a sideload.** A sideload to this watch
 goes over MTP and *cannot* be verified from the host — see the deploy section of
 `AGENTS.md`. Reading the version off the watch is the only proof of which build
-is running, which is why `just deploy` bumps it before every build.
+is running, which is why `just deploy` bumps it before every build. It sits at
+the bottom of the **`EVERY` screen**, one button press away: you read it once
+after a deploy and never again while breathing.
 
 A Store install has no such problem: the Connect IQ app reports the installed
-version. So the version line is drawn in **debug builds only**, which is every
-sideload. In a release build the slot carries the small candle mark instead —
-static, always the same pixels — unless something is wrong, in which case
-`VIBE OFF` takes it. Text always beats the mark.
+version. So the version is drawn in **debug builds only**, which is every
+sideload; on a Store install the `EVERY` screen carries its one row and nothing
+else. Release builds once drew a small candle mark at the bottom of the main
+screen; it is gone, because the screen you breathe on is not a place to
+advertise, and the battery has that slot now. The mark still identifies the app on
+the launcher and in the store listing, which is where identifying it is the job.
 
 ## Build and run
 
@@ -170,6 +210,12 @@ On a fresh machine, `~/bin/garmin-bootstrap.ps1` does 1–3 idempotently and pri
 the two steps that cannot be scripted (accepting the SDK licence, the Garmin SSO
 login).
 
+If Windows Smart App Control blocks `connect-iq-sdk-manager.exe` — every recipe
+dies with *"An Application Control policy has blocked this file"* — set
+`CIQ_SDK_BIN` to the SDK's `bin` directory and the build stops needing the
+manager at all. Turning Smart App Control off is a one-way door on Windows and
+not worth it to compile; `AGENTS.md` has the detail.
+
 Garmin's own setup guides:
 
 - <https://developer.garmin.com/connect-iq/connect-iq-basics/getting-started/>
@@ -194,8 +240,9 @@ running app, a graphics context or a simulator window.
 | File | Responsibility |
 | --- | --- |
 | `source/candleApp.mc` | Settings, storage, the cue timer, app lifecycle |
-| `source/candleView.mc` | The only screen — draws, decides nothing |
+| `source/candleView.mc` | Both screens — draws, decides nothing |
 | `source/candleDelegate.mc` | Input — telling a button press from a touch |
+| `source/Rows.mc` | Which settings are on which screen, in what order |
 | `source/MainInputGate.mc` | Tells a physical button from a touch gesture |
 | `source/Layout.mc` | Every coordinate, including round-screen chord maths |
 | `source/Display.mc` | Every string the screen draws |
@@ -207,6 +254,12 @@ running app, a graphics context or a simulator window.
 real strings. A literal pixel offset or caption in `candleView.mc` puts it beyond
 the reach of the test that is supposed to cover it — both classes of drift have
 shipped here before.
+
+`Rows` exists for the same kind of reason. A screen's row order used to be
+written down twice, once in the tap map and once in the draw calls, and if the
+two disagreed everything still compiled and every tap silently edited a different
+setting than the one under your thumb. Now the view draws that one list and the
+input code indexes it, so they cannot disagree.
 
 ## Reference
 

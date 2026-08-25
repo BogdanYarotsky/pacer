@@ -31,7 +31,10 @@ Start-SimulatorIfNeeded | Out-Null
 
 $prg = Join-Path $RepoRoot "bin\candle-$Device.prg"
 
-# Back closes the app, so the exit check runs last and nothing may follow it.
+# A HELD lower button is the only thing that closes the app, so that check runs
+# last and nothing may follow it but the process check. A pressed lower button
+# and a right swipe are both swallowed now -- they are indistinguishable on real
+# hardware, so the delegate stopped pretending otherwise.
 function Start-App {
     Remove-Item $trace, $errLog -Force -ErrorAction SilentlyContinue
     Start-Process -FilePath $MonkeyDo -ArgumentList @($prg, $Device) -WindowStyle Hidden `
@@ -104,61 +107,113 @@ function Check {
 # value of -Action and fails ValidateSet.
 function Inject { param([hashtable]$a) & "$PSScriptRoot\..\tools\input.ps1" @a -Device $Device }
 
+function Check-AppRunning {
+    param([string]$Name, [string]$Why)
+    $script:checks++
+    if (Test-AppRunning) {
+        Write-Host ("  PASS  {0,-22} {1}" -f $Name, $Why) -ForegroundColor Green
+    } else {
+        Write-Host ("  FAIL  {0,-22} the app is gone, and {1}" -f $Name, $Why) -ForegroundColor Red
+        $script:failures++
+    }
+}
+
 Write-Host ""
 Write-Host "input behaviour on $Device" -ForegroundColor Cyan
-Write-Host "the app owns no touch state; Back is the only thing that closes it" -ForegroundColor Cyan
+Write-Host "two screens; Back never exits; a HELD lower button is the only way out" -ForegroundColor Cyan
 
 # Teardown must run even when a check throws, or the surviving simulator blocks
 # the calling shell and the run looks like a hang.
 try {
 
+    # --- the main screen ------------------------------------------------------
+    #
     # Every setting is changed directly through its edge controls; tapping the
     # centre text is intentionally inert.
     #
-    # The rows are EVERY, PULSE, POWER top to bottom, so y=132 is the interval
-    # and y=204 the pulse length. The traces name the row, so these checks read
-    # exactly as the screen does: a re-ordered screen that still passes them is
-    # editing the setting a thumb is actually on.
-    Check "every plus"      { Inject @{ Action='tap'; X=335; Y=132 } }              'onSelect from tap -> awaiting coordinates.*tap every \+'
-    Check "pulse minus"     { Inject @{ Action='tap'; X=55;  Y=204 } }              'onSelect from tap -> awaiting coordinates.*tap pulse -'
-    Check "power plus"      { Inject @{ Action='tap'; X=335; Y=276 } }              'onSelect from tap -> awaiting coordinates.*tap power \+'
-    Check "tap value"       { Inject @{ Action='tap'; X=195; Y=204 } }              'onSelect from tap -> awaiting coordinates.*tap outside controls -> ignored'
+    # MAIN carries two rows, POWER over PULSE, centred on the glass: y=144 and
+    # y=246, with the edge zones out past x=108 / x=282. The traces name the row
+    # through its own caption, so these checks read exactly as the screen does --
+    # a re-ordered screen that still passes them is editing the setting a thumb
+    # is actually on. Re-ordering Rows.forScreen without swapping the captions
+    # here is what these lines exist to catch.
+    Check "power plus"      { Inject @{ Action='tap'; X=340; Y=144 } }              'onSelect from tap -> awaiting coordinates.*tap POWER \+'
+    Check "power minus"     { Inject @{ Action='tap'; X=50;  Y=144 } }              'onSelect from tap -> awaiting coordinates.*tap POWER -'
+    Check "pulse plus"      { Inject @{ Action='tap'; X=340; Y=246 } }              'onSelect from tap -> awaiting coordinates.*tap PULSE \+'
+    Check "pulse minus"     { Inject @{ Action='tap'; X=50;  Y=246 } }              'onSelect from tap -> awaiting coordinates.*tap PULSE -'
+    Check "tap value"       { Inject @{ Action='tap'; X=195; Y=246 } }              'onSelect from tap -> awaiting coordinates.*tap outside controls -> ignored'
 
     # Hold-to-repeat: a held control steps immediately, keeps stepping while
     # held (an 1800ms hold at 200ms per step must show at least two), and the
     # release disarms it. A hold on the inert centre arms nothing.
-    Check "hold repeats"    { Inject @{ Action='touchhold'; X=335; Y=132 } }         'onHold -> step and repeat.*tap every \+.*tap every \+.*onRelease -> repeat stopped'
-    Check "hold on value"   { Inject @{ Action='touchhold'; X=195; Y=204 } }         'onHold outside controls -> ignored'
+    Check "hold repeats"    { Inject @{ Action='touchhold'; X=340; Y=144 } }        'onHold -> step and repeat.*tap POWER \+.*tap POWER \+.*onRelease -> repeat stopped'
+    Check "hold on value"   { Inject @{ Action='touchhold'; X=195; Y=246 } }        'onHold outside controls -> ignored'
 
-    # A right-swipe reaches onBack exactly as the lower button does. This is the
-    # one distinction the delegate still has to make, and getting it wrong closes
-    # the app on a stray swipe mid-session.
-    Check "swipe right" { Inject @{ Action='swipe'; Target='right' } }              'onBack from swipe -> swallowed' -AllowNothing
+    # A right-swipe reaches onBack exactly as the lower button does, and on real
+    # hardware the firmware synthesizes a KEY_ESC for it -- so the delegate stopped
+    # trying to tell them apart and swallows BOTH. Neither can close the app now.
+    Check "swipe right" { Inject @{ Action='swipe'; Target='right' } }              'onBack -> swallowed, hold to exit' -AllowNothing
 
     Check "swipe up"   { Inject @{ Action='swipe'; Target='up' } }                  'onNextPage -> swallowed' -AllowNothing
     Check "swipe down" { Inject @{ Action='swipe'; Target='down' } }                'onPreviousPage -> swallowed' -AllowNothing
 
-    # Left swipe is unmapped on this device and should produce nothing at all.
-    Check "swipe left" { Inject @{ Action='swipe'; Target='left' } } -ExpectNothing
+    # A left swipe raises NO behaviour event on this device -- but it does raise
+    # onSwipe(SWIPE_LEFT), which nothing here implemented until 2026-08-25, so
+    # the old "produces nothing at all" reading of it was really "nothing we had
+    # a handler for". Declined, so it still changes nothing; it is recorded only
+    # to answer whether the wrist raises onSwipe for a RIGHT swipe, which the
+    # simulator does not.
+    Check "swipe left" { Inject @{ Action='swipe'; Target='left' } }                'onSwipe 3'
 
-    # Holding the lower button no longer opens another screen.
-    Check "hold menu"      { Inject @{ Action='hold'; Target='menu' } }              'onMenu -> swallowed'
+    # --- the settings screen --------------------------------------------------
+    #
+    # The upper button pushes it, and three separate things close it again. Each
+    # close is followed by re-opening, so every one of them is exercised from a
+    # screen that really is on the stack rather than from wherever the previous
+    # check left things.
+    #
+    # SETTINGS carries one row, so it sits ON the centre line at y=195. That is
+    # the whole reason this section cannot reuse the coordinates above: the same
+    # row is at a different height on a screen with fewer rows on it.
+    Check "enter opens"     { Inject @{ Action='press'; Target='enter' } }           'upper button -> settings'
+    Check "settings plus"   { Inject @{ Action='tap'; X=340; Y=195 } }               'onSelect from tap -> awaiting coordinates.*tap EVERY \+'
+    Check "settings inert"  { Inject @{ Action='tap'; X=195; Y=195 } }               'onSelect from tap -> awaiting coordinates.*tap outside controls -> ignored'
 
-    # The upper button lost its only job when the app-level touch lock went; palm
-    # safety is the watch's own Lock Screen now. It must still be swallowed rather
-    # than fall through to anything else.
-    Check "upper button"   { Inject @{ Action='press'; Target='enter' } }            'upper button -> no action'
+    # The button that opened it closes it: a press that opened the screen by
+    # accident is undone by the press that follows.
+    Check "enter closes"    { Inject @{ Action='press'; Target='enter' } }           'upper button -> settings closed'
 
-    # Back closes the app, unconditionally -- so it has to be last, and what
-    # follows it is the proof that it really did. There is no state left for it
-    # to consult: the whole point of handing the lock to the OS is that Candle has
-    # nothing to restore before leaving.
-    Check "back exits"     { Inject @{ Action='press'; Target='esc' } }              'onBack from lower button -> app exits'
+    # A right-swipe pops it. On MAIN the same gesture is swallowed because it
+    # would end a session; here it costs a wearer nothing, so it is allowed to
+    # mean what it means everywhere else on the watch.
+    Check "reopen for swipe" { Inject @{ Action='press'; Target='enter' } }          'upper button -> settings'
+    Check "swipe closes"    { Inject @{ Action='swipe'; Target='right' } }           'onBack on settings -> settings closed'
+
+    # And the lower button pops it WITHOUT closing the app -- which is the whole
+    # reason Back needed a second meaning. The running check is the assertion;
+    # the trace line alone would pass just as well on an app that died.
+    Check "reopen for back" { Inject @{ Action='press'; Target='enter' } }           'upper button -> settings'
+    Check "back closes"     { Inject @{ Action='press'; Target='esc' } }             'onBack on settings -> settings closed'
+    Check-AppRunning "settings back kept it" "Back on the settings screen must not exit the app"
+
+    # --- the exit ---------------------------------------------------------------
+    #
+    # THE PHYSICAL LOWER BUTTON NO LONGER EXITS. Pressed, it is swallowed exactly
+    # like the swipe it cannot be told apart from -- and the app must still be
+    # running afterwards, which is the assertion the whole fix rests on.
+    Check "back swallowed" { Inject @{ Action='press'; Target='esc' } }              'onBack -> swallowed, hold to exit'
+    Check-AppRunning "back kept it alive" "the lower button must not close the app any more"
+
+    # HOLDING it does. onMenu is the one gesture in this whole investigation the
+    # firmware has never been caught synthesizing, which is why the only exit
+    # hangs on it -- so it has to be last, and nothing may follow it but the
+    # process check.
+    Check "hold exits"     { Inject @{ Action='hold'; Target='menu' } }              'onMenu -> app exits'
 
     $script:checks++
     Start-Sleep -Seconds 2
     if (Test-AppRunning) {
-        Write-Host ("  FAIL  {0,-22} the app is still running after Back" -f "app really exited") -ForegroundColor Red
+        Write-Host ("  FAIL  {0,-22} the app is still running after the hold" -f "app really exited") -ForegroundColor Red
         $script:failures++
     } else {
         Write-Host ("  PASS  {0,-22} process is gone" -f "app really exited") -ForegroundColor Green

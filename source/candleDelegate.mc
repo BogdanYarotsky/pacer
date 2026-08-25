@@ -3,7 +3,7 @@ import Toybox.Timer;
 import Toybox.WatchUi;
 import Toybox.System;
 
-// Input for Candle's only screen.
+// Input for both of Candle's screens.
 //
 // THE PROBLEM: a behaviour event on its own cannot tell a physical button from
 // a touch. Measured on a vivoactive 5 by driving real input into the simulator
@@ -29,10 +29,20 @@ import Toybox.System;
 //     dead code. The swipe arrives only as onBack -- the same event as the
 //     lower physical button.
 //
-// onKeyPressed distinguishes both physical buttons from touch behavior, and that
-// distinction is the only thing this class still needs to get right: a
-// right-swipe and the lower button arrive as the same onBack, and only one of
-// them may close the app.
+// onKeyPressed distinguishes both physical buttons from touch behavior, and
+// that distinction now carries two jobs rather than one. On the main screen a
+// right-swipe and the lower button arrive as the same onBack and only one of
+// them may close the app -- and the upper button, which reaches onSelect
+// alongside every tap on the glass, is the one that opens the settings screen.
+//
+// One class for both screens, parameterised by which it is. What differs is
+// only what the two buttons mean there: on MAIN the upper button pushes the
+// settings screen and Back is swallowed; on SETTINGS either of them pops back,
+// and a stray swipe pops it too, because landing on the main screen costs a
+// wearer nothing.
+//
+// Nothing exits except a HELD lower button, on either screen. Back cannot be
+// trusted with it -- see onBack.
 //
 // Palm safety is the watch's own Lock Screen, not Candle's job. Nothing here
 // touches WatchUi.configureTouchEvents -- see AGENTS.md for why that matters.
@@ -45,29 +55,37 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
 
     private var _inputGate as MainInputGate;
 
-    // The hold-to-repeat machinery. onHold arms it with the action under the
+    // Which screen this delegate serves, and the rows on it. The list is the
+    // same one candleView draws from, in the same order, which is what makes a
+    // tap land on the row under the thumb without either file naming a setting.
+    private var _screen as Number;
+    private var _rows as Array<Number>;
+
+    // The hold-to-repeat machinery. onHold arms it with the hit under the
     // finger, onRelease disarms it -- the SDK guarantees the pairing: an
     // onRelease is only ever sent after an onHold. Every other input handler
     // disarms it too, so a missed release can never leave a value running
     // away on its own. This is the app's second and last Timer; the device
     // allows three.
     private var _repeatTimer as Timer.Timer? = null;
-    private var _repeatAction as Number = Layout.ACTION_NONE;
+    private var _repeatHit as Number = Layout.HIT_NONE;
 
-    function initialize() {
+    function initialize(screen as Number) {
         BehaviorDelegate.initialize();
         _inputGate = new MainInputGate();
+        _screen = screen;
+        _rows = Rows.forScreen(screen);
     }
 
     // Arm the repeat only -- the immediate first step is onHold's job, so
     // these stay free of Storage writes and the unit tests can exercise the
     // arming logic without touching a stored setting.
-    function startRepeat(action as Number) as Void {
+    function startRepeat(hit as Number) as Void {
         stopRepeat();
         var timer = new Timer.Timer();
         timer.start(method(:repeatCallback), REPEAT_STEP_MILLIS, true);
         _repeatTimer = timer;
-        _repeatAction = action;
+        _repeatHit = hit;
     }
 
     function stopRepeat() as Void {
@@ -76,7 +94,7 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
             timer.stop();
             _repeatTimer = null;
         }
-        _repeatAction = Layout.ACTION_NONE;
+        _repeatHit = Layout.HIT_NONE;
     }
 
     function isRepeating() as Boolean {
@@ -87,25 +105,23 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
     // hold parked on an endpoint costs five empty calls a second and changes
     // nothing -- the timer still stops at release like any other.
     function repeatCallback() as Void {
-        adjustSetting(_repeatAction);
+        adjustSetting(_repeatHit);
     }
 
     // A touch held on a control: one step immediately -- the hold should feel
     // like a tap that keeps going, not a pause then a burst -- and the repeat
     // timer takes it from there until the finger lifts.
     function onHold(clickEvent as WatchUi.ClickEvent) as Boolean {
-        var coordinates = clickEvent.getCoordinates();
-        var action = Layout.editorActionAt(
-            coordinates[0], coordinates[1], Layout.DISPLAY_WIDTH);
-        if (action == Layout.ACTION_NONE) {
+        var hit = hitAt(clickEvent);
+        if (hit == Layout.HIT_NONE) {
             trace("onHold outside controls -> ignored");
             return true;
         }
 
         trace("onHold -> step and repeat");
         ExitForensics.recordEvent("H");
-        adjustSetting(action);
-        startRepeat(action);
+        adjustSetting(hit);
+        startRepeat(hit);
         return true;
     }
 
@@ -122,8 +138,38 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
     // A finger that starts dragging has stopped holding a control. Declined
     // rather than consumed: drags feed the firmware's own gesture recognition,
     // and this handler exists only to disarm the repeat, not to eat swipes.
+    //
+    // It also writes the drag to the breadcrumb, and that is the whole reason
+    // the ring grew to six. Measured 2026-08-24: onDrag fires for a swipe and
+    // for NOTHING else that reaches onBack -- not the lower button, not a tap,
+    // not a touch-hold, not either button. That makes a drag the one witness to
+    // "a finger was on the glass" that does not depend on onKeyPressed, which
+    // the wrist has now shown the firmware is willing to synthesize.
+    //
+    // Only START and STOP are recorded. A single swipe raises several CONTINUE
+    // events and they would push everything else out of the ring.
     function onDrag(dragEvent as WatchUi.DragEvent) as Boolean {
+        var type = dragEvent.getType();
+        if (type != WatchUi.DRAG_TYPE_CONTINUE) {
+            ExitForensics.recordEvent("D" + (type as Number));
+        }
         stopRepeat();
+        return false;
+    }
+
+    // Purely an observer, and declined so it changes nothing.
+    //
+    // The measured chain says a right swipe never raises onSwipe on this device
+    // -- but that was measured in the SIMULATOR, and the simulator has since
+    // been shown to lie about this exact gesture: it raises no key event for a
+    // right swipe where the watch raises a real KEY_ESC. So the question is
+    // worth re-asking on hardware, and this is what asks it.
+    //
+    // Up and down swipes already reach onNextPage/onPreviousPage, which consume
+    // them; this runs afterwards either way and only writes a breadcrumb.
+    function onSwipe(swipeEvent as WatchUi.SwipeEvent) as Boolean {
+        ExitForensics.recordEvent("S" + (swipeEvent.getDirection() as Number));
+        trace("onSwipe " + (swipeEvent.getDirection() as Number));
         return false;
     }
 
@@ -143,14 +189,31 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
         return false;
     }
 
-    // The upper button has no job left -- it used to toggle Candle's own touch
-    // lock. It is still consumed rather than declined, so a press cannot fall
-    // through to anything else. Held, it opens the watch's controls menu, which
-    // never reaches the app at all and is where the Lock Screen lives.
+    // The upper button opens the settings screen, and closes it again.
+    //
+    // It had no job at all between losing Candle's touch lock and gaining this
+    // one. What it opens is the interval -- the one setting that is measured
+    // once and then left alone -- and moving it off the main screen is what
+    // bought the two rows that remain their size. Held, the button still opens
+    // the watch's controls menu, which never reaches the app and is where Lock
+    // Screen lives; that is a hold, not a press, and the two do not collide.
+    //
+    // The same button closes it, so a press that opened the screen by accident
+    // is undone by the press that follows rather than by finding another
+    // gesture. Back does it too.
     function onSelect() as Boolean {
         stopRepeat();
         if (_inputGate.consume(WatchUi.KEY_ENTER)) {
-            trace("upper button -> no action");
+            if (_screen == Rows.SCREEN_MAIN) {
+                trace("upper button -> settings");
+                WatchUi.pushView(
+                    new candleView(Rows.SCREEN_SETTINGS),
+                    new candleDelegate(Rows.SCREEN_SETTINGS),
+                    WatchUi.SLIDE_LEFT);
+            } else {
+                trace("upper button -> settings closed");
+                WatchUi.popView(WatchUi.SLIDE_RIGHT);
+            }
             return true;
         }
 
@@ -171,48 +234,78 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
             return true;
         }
 
-        var coordinates = clickEvent.getCoordinates();
-        adjustSetting(Layout.editorActionAt(
-            coordinates[0], coordinates[1], Layout.DISPLAY_WIDTH));
+        adjustSetting(hitAt(clickEvent));
         return true;
     }
 
-    // Back exits. That is the whole rule.
+    // **BACK NEVER EXITS.** It pops the settings screen and it does nothing at
+    // all on the main screen, and that is the fix for the phantom swipe-exit.
     //
-    // It used to be conditional, because Candle disabled the watch-global touch
-    // setting itself and must never have left it that way -- first a four-second
-    // two-press confirmation with two timers, then a single check of its own lock
-    // flag. The watch's built-in Lock Screen now owns palm safety, so Candle
-    // disables nothing and has nothing to restore before leaving.
+    // The gate is not consulted here any more, and deleting that check is the
+    // whole change. It asked "was a KEY_ESC latched?", which was a sound
+    // question right up until the wrist answered it: the firmware synthesizes a
+    // real onKeyPressed(KEY_ESC) for a right swipe. Six breadcrumbs on
+    // 2026-08-25, every one ending P5>B!, and touch evidence arrived ahead of
+    // the key in only two of the six -- so there is no companion event to gate
+    // on either. onBack simply cannot tell a thumb from a sleeve on this
+    // hardware, and code that acts on an answer it cannot have is the bug.
     //
-    // The swipe check stays, and is now the only conditional in this file. A
-    // right-swipe arrives as the same onBack as the lower button, so without the
-    // gate a stray swipe would close the app mid-session.
+    // What replaces it is onMenu, below: a HELD lower button, which is the one
+    // gesture in this whole investigation the firmware has never been caught
+    // forging.
+    //
+    // The main screen still arms the hint, because a Back that changes nothing
+    // on screen reads as a frozen app -- and because it names the gesture that
+    // does work. The settings screen needs no hint: Back does something visible
+    // there, and popping costs a wearer nothing since the cue timer lives in
+    // the app and never stopped.
     function onBack() as Boolean {
         stopRepeat();
-        if (!_inputGate.consume(WatchUi.KEY_ESC)) {
-            trace("onBack from swipe -> swallowed");
-            ExitForensics.recordEvent("Bs");
+
+        if (_screen != Rows.SCREEN_MAIN) {
+            trace("onBack on settings -> settings closed");
+            WatchUi.popView(WatchUi.SLIDE_RIGHT);
             return true;
         }
 
-        trace("onBack from lower button -> app exits");
-        ExitForensics.noteExit("B!");
-        return false;
-    }
-
-    // There is no second screen. Holding the lower button is intentionally a
-    // no-op and its key latch must not leak into a later Back gesture.
-    function onMenu() as Boolean {
-        stopRepeat();
-        ExitForensics.recordEvent("M");
-        trace("onMenu -> swallowed");
-        _inputGate.clear();
+        trace("onBack -> swallowed, hold to exit");
+        ExitForensics.recordEvent("Bs");
+        getApp().armExitHint();
         return true;
     }
 
-    // Vertical swipes are page behaviours here. Candle has a single screen, so
-    // they are swallowed rather than allowed to page away mid-session.
+    // Holding the lower button exits the app, from either screen.
+    //
+    // System.exit ends the app "cleanly from any point within an app", so this
+    // needs no view-stack unwinding and one handler serves both screens --
+    // restricting the exit to the main screen would cost a branch, not save
+    // one. One rule, everywhere: hold the lower button to quit.
+    //
+    // A hold cannot be produced by a swipe. The measured chain is
+    // onKeyPressed(5), onMenu, onKey(7), onKeyReleased(5) -- and onMenu was
+    // confirmed on the wrist on 2026-08-25, reliably, by holding the button and
+    // reading "M" back out of the breadcrumb. That is what makes it safe to
+    // hang the only exit on it.
+    //
+    // The latch is cleared because a synthesized KEY_ESC may well be sitting in
+    // it; nothing reads it for Back any more, but leaving a stale key behind on
+    // the way out is untidy and this is the last chance.
+    function onMenu() as Boolean {
+        stopRepeat();
+        ExitForensics.recordEvent("M");
+        _inputGate.clear();
+        trace("onMenu -> app exits");
+        ExitForensics.noteExit("M!");
+
+        // Last statement, and deliberately with no return after it: System.exit
+        // does not come back, and the compiler knows -- a trailing `return true`
+        // here builds with "Statement is not reachable" at -w.
+        System.exit();
+    }
+
+    // Vertical swipes are page behaviours here. Neither screen has a page above
+    // or below it, so they are swallowed rather than allowed to page away
+    // mid-session.
     function onNextPage() as Boolean {
         stopRepeat();
         trace("onNextPage -> swallowed");
@@ -225,34 +318,34 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // The one place a row's caption meets the setting under it: EVERY is the
-    // cue interval, PULSE the vibration length, POWER the vibration strength.
-    // Traces name the row, so tests/input-behaviour.ps1 asserts what a thumb on
-    // that row actually edited.
-    private function adjustSetting(action as Number) as Void {
-        var app = getApp();
+    // Where a click landed, as a row position and a direction on THIS screen.
+    // Layout knows how many rows are under the finger and nothing about what
+    // they are; that is the point of the encoding.
+    private function hitAt(clickEvent as WatchUi.ClickEvent) as Number {
+        var coordinates = clickEvent.getCoordinates();
+        return Layout.editorHitAt(
+            coordinates[0], coordinates[1],
+            Layout.DISPLAY_WIDTH, Layout.DISPLAY_WIDTH, _rows.size());
+    }
 
-        if (action == Layout.ACTION_EVERY_DOWN) {
-            app.setEveryHundredths(app.getEveryHundredths() - app.EVERY_STEP);
-            trace("tap every -");
-        } else if (action == Layout.ACTION_EVERY_UP) {
-            app.setEveryHundredths(app.getEveryHundredths() + app.EVERY_STEP);
-            trace("tap every +");
-        } else if (action == Layout.ACTION_PULSE_DOWN) {
-            app.setVibrationDuration(app.getVibrationDuration() - app.DURATION_STEP);
-            trace("tap pulse -");
-        } else if (action == Layout.ACTION_PULSE_UP) {
-            app.setVibrationDuration(app.getVibrationDuration() + app.DURATION_STEP);
-            trace("tap pulse +");
-        } else if (action == Layout.ACTION_POWER_DOWN) {
-            app.setVibrationStrength(CandleMath.strengthDown(app.getVibrationStrength()));
-            trace("tap power -");
-        } else if (action == Layout.ACTION_POWER_UP) {
-            app.setVibrationStrength(CandleMath.strengthUp(app.getVibrationStrength()));
-            trace("tap power +");
-        } else {
+    // The one place a position on the glass meets the setting under it -- and
+    // it does that by index into the screen's own row list, so this file names
+    // no setting at all. The six-armed if-chain over ACTION_ constants that
+    // used to live here was the second copy of the row order; candleApp.stepRow
+    // is the first and only one now.
+    //
+    // Traces name the row through its caption, so tests/input-behaviour.ps1
+    // asserts what a thumb on that row actually edited.
+    private function adjustSetting(hit as Number) as Void {
+        if (hit == Layout.HIT_NONE) {
             trace("tap outside controls -> ignored");
+            return;
         }
+
+        var row = _rows[Layout.hitRow(hit)] as Number;
+        var increase = Layout.hitIsIncrease(hit);
+        getApp().stepRow(row, increase);
+        trace("tap " + Display.rowLabel(row) + (increase ? " +" : " -"));
     }
 
     // Input tracing. (:debug) blocks are dropped from release builds at compile

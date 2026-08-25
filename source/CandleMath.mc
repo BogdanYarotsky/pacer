@@ -140,4 +140,38 @@ module CandleMath {
     function formatDuration(milliseconds as Number) as String {
         return milliseconds.toString() + "ms";
     }
+
+    // System.Stats.battery is a Float percentage. This is the whole of the
+    // arithmetic between it and the screen: round to nearest, and clamp.
+    //
+    // The + 0.5 rounds because Float.toNumber() truncates -- the same idiom
+    // legacyPaceToEvery uses, for the same reason. The clamp is defensive
+    // rather than expected: the SDK documents the field as a percentage and
+    // says nothing about bounds, and a bottom line reading "BATT 104%" would
+    // be a worse bug than a reading pinned at 100.
+    //
+    // It is here rather than in the view so the rounding is testable without a
+    // battery -- there is no way to make the simulator report 79.5%.
+    function batteryPercent(battery as Float) as Number {
+        return clamp((battery + 0.5).toNumber(), 0, 100);
+    }
+
+    // Which of the three formatters a row's value goes through -- the one place
+    // that mapping lives.
+    //
+    // It is here rather than on candleApp because measure-what-you-draw needs
+    // it in both hands at once: the view asks the app for the value a row is
+    // showing right now, while the layout sweep has to render every value a row
+    // can ever show without a running app or a Storage write. Two copies of
+    // this if-chain would be two chances for the sweep to measure a string the
+    // screen does not draw, which is the drift Display.mc's header is about.
+    function rowValueText(row as Number, value as Number) as String {
+        if (row == Rows.EVERY) {
+            return formatEvery(value);
+        }
+        if (row == Rows.PULSE) {
+            return formatDuration(value);
+        }
+        return formatStrength(value);
+    }
 }

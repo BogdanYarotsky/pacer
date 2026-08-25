@@ -292,3 +292,49 @@ function candleMathFormatsEvery(logger as Test.Logger) as Boolean {
         CandleMath.formatEvery(1500), "15s", "the ceiling trims clean");
     return true;
 }
+
+// The battery reading is a Float and the screen is integers, so the whole of
+// the arithmetic between them is a rounding and a clamp. Neither can be
+// exercised on a real battery -- the simulator has no way to report 79.5% --
+// which is exactly why the arithmetic lives in a pure function.
+(:test)
+function candleMathRoundsBatteryToNearestPercent(logger as Test.Logger) as Boolean {
+    Test.assertEqualMessage(
+        CandleMath.batteryPercent(80.0), 80, "a whole percentage passes through");
+    Test.assertEqualMessage(
+        CandleMath.batteryPercent(79.4), 79, "below the half rounds down");
+    Test.assertEqualMessage(
+        CandleMath.batteryPercent(79.5), 80, "the half rounds up, not toward zero");
+    Test.assertEqualMessage(
+        CandleMath.batteryPercent(79.9), 80, "just under the next percent rounds up");
+    Test.assertEqualMessage(
+        CandleMath.batteryPercent(0.0), 0, "a flat battery reads zero, not blank");
+    Test.assertEqualMessage(
+        CandleMath.batteryPercent(0.4), 0, "a nearly flat battery still reads zero");
+    Test.assertEqualMessage(
+        CandleMath.batteryPercent(100.0), 100, "a full battery reads 100");
+
+    // The SDK documents the field as a percentage and says nothing about
+    // bounds, so both ends clamp rather than print something impossible.
+    Test.assertEqualMessage(
+        CandleMath.batteryPercent(104.0), 100, "over 100 must pin at 100");
+    Test.assertEqualMessage(
+        CandleMath.batteryPercent(-3.0), 0, "under zero must pin at 0");
+
+    // Monotonic across the whole range: a charge that goes up can never make
+    // the displayed percentage go down.
+    var previous = -1;
+    for (var tenths = 0; tenths <= 1000; tenths += 1) {
+        var shown = CandleMath.batteryPercent(tenths / 10.0);
+        Test.assertMessage(
+            shown >= previous,
+            "battery " + (tenths / 10.0) + "% displayed " + shown +
+                " after a lower charge displayed " + previous);
+        Test.assertMessage(
+            shown >= 0 && shown <= 100,
+            "battery " + (tenths / 10.0) + "% displayed out of range: " + shown);
+        previous = shown;
+    }
+    logger.debug("swept 1001 tenths of a percent, 0.0 through 100.0");
+    return true;
+}

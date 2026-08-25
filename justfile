@@ -62,7 +62,7 @@ shot-release device=device typecheck=typecheck:
 package:
     pwsh -NoProfile -File tools/package.ps1
 
-# Regenerate the candle mark at every size (store icon, launcher, bottom slot)
+# Regenerate the candle mark at every size it is still needed (store, launcher)
 icons:
     pwsh -NoProfile -File tools/make-icons.ps1
 

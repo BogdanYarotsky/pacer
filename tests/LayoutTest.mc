@@ -3,16 +3,50 @@ import Toybox.Math;
 import Toybox.Test;
 import Toybox.Graphics;
 import Toybox.System;
-import Toybox.WatchUi;
 
 // Layout tests for the vivoactive 5.
 //
 // 390x390 round is not a guess: it comes from the SDK device config at
 // %APPDATA%\Garmin\ConnectIQ\Devices\vivoactive5\compiler.json
 // ("resolution": 390x390, "deviceFamily": "round-390x390").
+//
+// Every sweep in this file walks BOTH screens. A row's anchor depends on how
+// many rows share the screen with it, so a value measured at the main screen's
+// row 0 says nothing about the same value on the settings screen -- and the
+// settings screen is the one carrying the widest string the app can produce.
 module LayoutTestConst {
     const VA5_W = 390;
     const VA5_H = 390;
+}
+
+// Both screens, so a sweep that claims to cover every reachable value really
+// covers every anchor a value can be drawn at.
+function everyScreen() as Array<Number> {
+    return [Rows.SCREEN_MAIN, Rows.SCREEN_SETTINGS] as Array<Number>;
+}
+
+// The band a row's taps can walk, straight off the app's own range constants.
+// Stepping it by 1 rather than by the control's step is deliberate: clamping
+// means an endpoint is reachable from a value that is off the ladder, so every
+// integer in the band is a value the row can end up displaying -- a migrated
+// 5.26 s is exactly such a value.
+function rowRange(row as Number) as Array<Number> {
+    var app = getApp();
+    if (row == Rows.EVERY) {
+        return [app.MIN_EVERY_HUNDREDTHS, app.MAX_EVERY_HUNDREDTHS] as Array<Number>;
+    }
+    if (row == Rows.PULSE) {
+        return [app.MIN_VIBE_DURATION, app.MAX_VIBE_DURATION] as Array<Number>;
+    }
+    return [app.MIN_VIBE_STRENGTH, app.MAX_VIBE_STRENGTH] as Array<Number>;
+}
+
+// The line a row draws at a given value, composed through the same two
+// functions candleView draws it with. Hardcoding the string here is how the
+// test came to be checking "v0.22  UNLOCKED" for a screen that had said
+// "v0.22  EDIT" for several commits.
+function rowLine(row as Number, value as Number) as String {
+    return Display.rowText(row, CandleMath.rowValueText(row, value));
 }
 
 (:test)
@@ -41,38 +75,98 @@ function layoutDisplayWidthMatchesTheDevice(logger as Test.Logger) as Boolean {
         settings.screenWidth, settings.screenHeight,
         "the round-screen chord maths assumes a square bounding box"
     );
+
+    // candleDelegate passes DISPLAY_WIDTH for the height too, which is only
+    // sound while the two are equal. This is the assertion that makes that
+    // shortcut safe rather than lucky.
+    Test.assertEqualMessage(
+        Layout.DISPLAY_WIDTH, settings.screenHeight,
+        "the hit map passes DISPLAY_WIDTH as the height, so it must be the height"
+    );
     return true;
 }
 
-// The clock is anchored off the first editor row by the height of the font it
-// will be drawn in, so it cannot fall off the top edge or grow down into the
-// row below whatever that font turns out to be.
+// Every setting is on exactly one screen, and every screen's list is non-empty.
+//
+// This is what replaced "the ACTION_ order must match the draw order". That
+// coupling is gone -- the view and the delegate read the same list -- but a new
+// way to lose a setting arrived with the second screen: drop it from both
+// lists and it becomes unreachable, still stored, still driving the cue, and
+// with nothing on either screen to change it by.
+(:test)
+function rowsReachEverySettingExactlyOnce(logger as Test.Logger) as Boolean {
+    var settings = [Rows.EVERY, Rows.PULSE, Rows.POWER] as Array<Number>;
+    var screens = everyScreen();
+
+    for (var s = 0; s < settings.size(); s += 1) {
+        var setting = settings[s] as Number;
+        var seen = 0;
+        for (var i = 0; i < screens.size(); i += 1) {
+            var rows = Rows.forScreen(screens[i] as Number);
+            for (var r = 0; r < rows.size(); r += 1) {
+                if ((rows[r] as Number) == setting) {
+                    seen += 1;
+                }
+            }
+        }
+        Test.assertEqualMessage(
+            seen, 1,
+            "setting " + setting + " appears on " + seen +
+                " screen rows; it must appear on exactly one"
+        );
+    }
+
+    for (var i = 0; i < screens.size(); i += 1) {
+        var screen = screens[i] as Number;
+        Test.assertMessage(
+            Rows.forScreen(screen).size() > 0,
+            "screen " + screen + " has no rows at all"
+        );
+    }
+    return true;
+}
+
+// The clock is anchored off the main screen's row block by the height of the
+// font it will be drawn in, so it cannot fall off the top edge or grow down
+// into the row below whatever that font turns out to be.
 (:test)
 function layoutAnchorsAreOnScreen(logger as Test.Logger) as Boolean {
     var h = LayoutTestConst.VA5_H;
+    var rowCount = Rows.forScreen(Rows.SCREEN_MAIN).size();
+    var rowsTop = Layout.editorRowsTop(rowCount, h);
     var heights = [20, 26, 35, 48, 54];
+    logger.debug("main screen: " + rowCount + " rows, block starts at y=" + rowsTop);
 
     for (var i = 0; i < heights.size(); i += 1) {
         var fontHeight = heights[i] as Number;
-        var y = Layout.clockY(fontHeight);
+        var y = Layout.clockY(fontHeight, rowsTop);
         logger.debug("font " + fontHeight + "px -> clock y=" + y + " bottom=" + (y + fontHeight));
 
         Test.assertMessage(y >= 0, "clock for a " + fontHeight + "px font is off the top: " + y);
         Test.assertMessage(
-            y + fontHeight <= Layout.editorRowTop(0),
+            y + fontHeight <= rowsTop,
             "clock for a " + fontHeight + "px font runs into the first editor row"
         );
     }
 
     // A taller font must grow the clock upwards, never down into the rows.
     Test.assertMessage(
-        Layout.clockY(54) < Layout.clockY(20),
+        Layout.clockY(54, rowsTop) < Layout.clockY(20, rowsTop),
         "a taller font must raise the clock anchor"
     );
-    Test.assertMessage(
-        Layout.editorRowTop(2) + Layout.EDITOR_ROW_HEIGHT < h,
-        "editor rows extend below the screen"
-    );
+
+    // The row block is centred on the glass, so it must stay on it -- on every
+    // screen, not just the busiest one.
+    var screens = everyScreen();
+    for (var i = 0; i < screens.size(); i += 1) {
+        var count = Rows.forScreen(screens[i] as Number).size();
+        var top = Layout.editorRowsTop(count, h);
+        Test.assertMessage(top >= 0, "screen " + i + "'s row block starts off the top: " + top);
+        Test.assertMessage(
+            top + (count * Layout.EDITOR_ROW_HEIGHT) <= h,
+            "screen " + i + "'s editor rows extend below the screen"
+        );
+    }
     return true;
 }
 
@@ -234,12 +328,39 @@ function assertClearsControls(
     );
 }
 
+// A row's control circles, drawn on a round screen, are a circle-in-circle
+// problem and not a chord one: what has to be inside the glass is the ring's
+// outer edge in every direction, not just horizontally. The chord-at-tangent
+// check this replaced was strictly tighter than the real bound and rejected
+// radii the glass fits.
+//
+// The pen is counted as if the whole stroke fell outside the radius. Where the
+// SDK puts a wide stroke relative to the radius is not documented, and the
+// conservative reading costs 3 px of a margin that has 4 to spare.
+function assertControlsAreOnTheGlass(
+    rowCenter as Number, what as String
+) as Void {
+    var w = LayoutTestConst.VA5_W;
+    var h = LayoutTestConst.VA5_H;
+    var dy = (rowCenter - (h / 2.0)).abs();
+    var leftDx = (w / 2.0) - Layout.editorControlX(w, false);
+    var rightDx = Layout.editorControlX(w, true) - (w / 2.0);
+    var worseDx = leftDx > rightDx ? leftDx : rightDx;
+    var reach = Math.sqrt((worseDx * worseDx) + (dy * dy)) +
+        Layout.CONTROL_RADIUS + Layout.CONTROL_PEN;
+
+    Test.assertMessage(
+        reach <= w / 2.0,
+        what + ": the controls reach " + reach + "px from the centre against a " +
+            (w / 2) + "px glass radius"
+    );
+}
+
 // The real check, against metrics measured from the device's own font set.
 //
 // Every string here comes from Display or from the same formatter the app uses,
-// so this measures what the view actually draws. Hardcoding the strings here is
-// how the test came to be checking "v0.22  UNLOCKED" for a screen that had said
-// "v0.22  EDIT" for several commits.
+// so this measures what the view actually draws -- on both screens, at each
+// one's own anchors.
 (:test)
 function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     var w = LayoutTestConst.VA5_W;
@@ -258,45 +379,46 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
 
     // 24-hour is the wider of the two clock formats, and 23:59 the widest hour.
     // layoutEveryClockMinuteFits is the exhaustive version of this line.
+    var mainRowsTop = Layout.editorRowsTop(Rows.forScreen(Rows.SCREEN_MAIN).size(), h);
     assertLineFits(
-        dc, Layout.clockY(clockHeight), ClockText.formatTime(23, 59, true), clockFont, "clock");
+        dc, Layout.clockY(clockHeight, mainRowsTop),
+        ClockText.formatTime(23, 59, true), clockFont, "clock");
 
-    // Each row at its widest reachable value, composed exactly as drawn. The
-    // exhaustive sweep in layoutEveryReachableValueFits covers every value;
-    // these name the worst cases so a failure reads as the string that broke.
-    var app = getApp();
-    var rows = [
-        Display.rowText(Display.LABEL_EVERY,
-            CandleMath.formatEvery(app.MAX_EVERY_HUNDREDTHS - app.EVERY_STEP)),
-        Display.rowText(Display.LABEL_PULSE,
-            CandleMath.formatDuration(app.MAX_VIBE_DURATION)),
-        Display.rowText(Display.LABEL_POWER,
-            CandleMath.formatStrength(app.MAX_VIBE_STRENGTH))
-    ];
-    for (var i = 0; i < rows.size(); i += 1) {
-        var line = rows[i] as String;
-        var rowTop = Layout.editorRowCenter(i) - (textHeight / 2);
-        assertLineFits(dc, rowTop, line, textFont, "row " + i);
-        assertClearsControls(dc, line, textFont, "row " + i);
+    // Each screen's rows at their widest reachable value, composed exactly as
+    // drawn. The exhaustive sweep in layoutEveryReachableValueFits covers every
+    // value; these name the worst cases so a failure reads as the string that
+    // broke.
+    var screens = everyScreen();
+    for (var s = 0; s < screens.size(); s += 1) {
+        var screen = screens[s] as Number;
+        var rows = Rows.forScreen(screen);
+        for (var i = 0; i < rows.size(); i += 1) {
+            var row = rows[i] as Number;
+            var line = rowLine(row, (rowRange(row) as Array<Number>)[1] as Number);
+            var center = Layout.editorRowCenter(i, rows.size(), h);
+            var what = "screen " + screen + " row " + i;
+            logger.debug(what + " centre y=" + center + " \"" + line + "\"");
 
-        // The controls are circles on a round screen, so the true condition is
-        // circle-in-circle: centre distance plus radius inside the glass
-        // radius. The chord-at-tangent check this replaces was strictly
-        // tighter than the real bound and rejected radii the glass fits.
-        var radius = Layout.CONTROL_RADIUS;
-        var dy = (Layout.editorRowCenter(i) - (h / 2.0)).abs();
-        var leftDx = (w / 2.0) - Layout.editorControlX(w, false);
-        var rightDx = Layout.editorControlX(w, true) - (w / 2.0);
-        var worseDx = leftDx > rightDx ? leftDx : rightDx;
-        var reach = Math.sqrt((worseDx * worseDx) + (dy * dy)) + radius;
-        Test.assertMessage(
-            reach <= w / 2.0,
-            "editor controls " + i + " extend outside the round screen: reach " +
-                reach + " against radius " + (w / 2)
-        );
+            assertLineFits(dc, center - (textHeight / 2), line, textFont, what);
+            assertClearsControls(dc, line, textFont, what);
+            assertControlsAreOnTheGlass(center, what);
+        }
+
+        // Adjacent rows must not run their circles into each other. The chord
+        // maths cannot see this either -- both circles are comfortably on the
+        // glass while overlapping one another.
+        if (rows.size() > 1) {
+            var gap = Layout.EDITOR_ROW_HEIGHT -
+                (2 * (Layout.CONTROL_RADIUS + Layout.CONTROL_PEN));
+            logger.debug("screen " + screen + ": " + gap + "px of air between stacked controls");
+            Test.assertMessage(
+                gap >= 12,
+                "controls on adjacent rows are " + gap + "px apart, which reads as one blob"
+            );
+        }
     }
 
-    // All four forms of the bottom line, because it sits where the round screen
+    // Every form of both bottom slots, because they sit where the round screen
     // is at its tightest -- the chord under this anchor is roughly half the
     // display width -- and a warning nobody can read because it is clipped at
     // both ends is worse than no warning.
@@ -307,39 +429,77 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     // release strings measured by something.
     var versionY = Layout.versionY(h, textHeight);
     var appVersion = getApp().APP_VERSION;
-    var shows = [ true, false ];
-    var vibes = [ true, false ];
-    for (var s = 0; s < shows.size(); s += 1) {
-        for (var v = 0; v < vibes.size(); v += 1) {
-            var showVersion = shows[s] as Boolean;
-            var willVibrate = vibes[v] as Boolean;
-            var line = Display.bottomLine(appVersion, showVersion, willVibrate);
-            logger.debug(
-                "bottom line: version=" + showVersion + " vibrate=" + willVibrate +
-                " -> \"" + line + "\"");
-            assertLineFits(
-                dc, versionY, line, textFont,
-                "bottom line (version=" + showVersion + ", vibrate=" + willVibrate + ")");
-        }
+    var flags = [ true, false ];
+    for (var f = 0; f < flags.size(); f += 1) {
+        var flag = flags[f] as Boolean;
+
+        var warning = Display.vibeWarning(flag);
+        logger.debug("main slot: vibrate=" + flag + " -> \"" + warning + "\"");
+        assertLineFits(
+            dc, versionY, warning, textFont, "main bottom slot (vibrate=" + flag + ")");
+
+        var build = Display.buildLine(appVersion, flag);
+        logger.debug("settings slot: version=" + flag + " -> \"" + build + "\"");
+        assertLineFits(
+            dc, versionY, build, textFont, "settings bottom slot (version=" + flag + ")");
     }
 
-    // The debug exit breadcrumb rides the same line when vibration is on --
-    // the view keeps it off the VIBE OFF forms. Worst realistic chain: two
-    // two-character codes and the two-character exit tag.
-    assertLineFits(
-        dc, versionY, Display.bottomLine(appVersion, true, true) + " Bs.P5>B!",
-        textFont, "bottom line with the exit breadcrumb");
+    // The exit hint takes the same slot for two seconds after a Back, and it is
+    // the widest thing the main screen's slot ever holds. Back does not exit any
+    // more, so this string is the only feedback a Back produces -- one clipped
+    // at the edges would be worse than useless.
+    var hint = Display.exitHint();
+    logger.debug(
+        "exit hint \"" + hint + "\" is " + dc.getTextWidthInPixels(hint, textFont) + "px");
+    assertLineFits(dc, versionY, hint, textFont, "exit hint");
+
+    // Every charge the battery line can show, not a sample of them. One digit,
+    // two digits and three all render here, and the widest is not guessable
+    // from the endpoints -- digit widths differ.
+    var widestBattery = "";
+    var widestBatteryPx = 0;
+    for (var p = 0; p <= 100; p += 1) {
+        var line = Display.batteryLine(p);
+        assertLineFits(dc, versionY, line, textFont, "battery " + p);
+        var px = dc.getTextWidthInPixels(line, textFont);
+        if (px > widestBatteryPx) {
+            widestBatteryPx = px;
+            widestBattery = line;
+        }
+    }
+    logger.debug(
+        "widest battery line: \"" + widestBattery + "\" at " + widestBatteryPx + "px");
+
+    // The reason the warning takes the slot outright instead of sharing it.
+    // If this ever became false the two could go on one line -- but it is
+    // false today by a wide margin, and a clipped VIBE OFF is the one failure
+    // this slot exists to prevent.
+    var combined = widestBattery + "  " + Display.vibeWarning(false);
+    var combinedPx = dc.getTextWidthInPixels(combined, textFont);
+    var chord = Layout.halfChordAt(versionY + textHeight, w, h) * 2;
+    logger.debug(
+        "battery + warning on one line would be " + combinedPx +
+        "px against a " + chord + "px chord");
+    Test.assertMessage(
+        combinedPx > chord,
+        "\"" + combined + "\" now fits the slot at " + combinedPx + "px against " + chord +
+            "px -- the reason the warning evicts the battery instead of sharing has lapsed"
+    );
+
 
     // The other end of the same question layoutAnchorsAreOnScreen asks at the
     // top: the version line is anchored to the bottom edge and the last row's
     // line to the row grid, so nothing but a measured font height stands
     // between them. Both are XTINY, and only what is drawn is compared -- a
     // font box is taller than its glyphs, so touching boxes are not a collision.
-    var lastRowBottom = Layout.editorRowCenter(2) + (textHeight / 2);
+    // The circles reach lower than the text does, so they are what is measured.
+    var mainRows = Rows.forScreen(Rows.SCREEN_MAIN);
+    var lastRowBottom = Layout.editorRowCenter(mainRows.size() - 1, mainRows.size(), h) +
+        Layout.CONTROL_RADIUS + Layout.CONTROL_PEN;
     Test.assertMessage(
         versionY >= lastRowBottom,
         "the version line overlaps the last editor row: version at " + versionY +
-            ", the row ends at " + lastRowBottom
+            ", the row's controls end at " + lastRowBottom
     );
 
     return true;
@@ -359,7 +519,9 @@ function layoutEveryClockMinuteFits(logger as Test.Logger) as Boolean {
     var dc = (bmp as Graphics.BufferedBitmap).getDc();
 
     var clockFont = Graphics.FONT_MEDIUM;
-    var y = Layout.clockY(dc.getFontHeight(clockFont));
+    var y = Layout.clockY(
+        dc.getFontHeight(clockFont),
+        Layout.editorRowsTop(Rows.forScreen(Rows.SCREEN_MAIN).size(), h));
     var formats = [ true, false ];
 
     for (var f = 0; f < formats.size(); f += 1) {
@@ -375,128 +537,212 @@ function layoutEveryClockMinuteFits(logger as Test.Logger) as Boolean {
     return true;
 }
 
-// Not a sample of plausible values -- every value the tap editor can reach.
-// A string that only overflows at a three-digit length, or at one end of the
-// pace range and not the other, is exactly what a handful of hand-picked worst
-// cases misses. The interval row carries two numbers and their units now, so it
-// is the widest line on the screen and the one this sweep is really for.
+// Not a sample of plausible values -- every value the tap editor can reach, on
+// the screen and at the row position it can reach it from. A string that only
+// overflows at a three-digit length, or at one end of a range and not the
+// other, is exactly what a handful of hand-picked worst cases misses.
+//
+// Both budgets are checked for every line: the chord above and below it, and
+// the clear width between the two controls. The second is the one the rows
+// actually spend.
+//
+// Screen and row index are not interchangeable. A row's anchor comes from how
+// many rows share its screen, so sweeping the settings screen's values at the
+// main screen's row 0 measures the wrong chord entirely.
 (:test)
 function layoutEveryReachableValueFits(logger as Test.Logger) as Boolean {
     var w = LayoutTestConst.VA5_W;
     var h = LayoutTestConst.VA5_H;
-    var app = getApp();
 
     var ref = Graphics.createBufferedBitmap({:width => w, :height => h});
     var bmp = ref.get();
     Test.assertMessage(bmp != null, "could not create a buffered bitmap to measure text with");
     var dc = (bmp as Graphics.BufferedBitmap).getDc();
     var textFont = Graphics.FONT_XTINY;
-
-    // Stepping by 1 rather than by the control's own step: clamping means the
-    // endpoint is reachable even from a value that is off the ladder, so every
-    // integer in the band is a value the row can end up displaying -- a
-    // migrated 5.26 s is exactly such a value.
-    //
-    // Every line is composed through Display.rowText, caption included,
-    // because that is the string the view draws. Both budgets are checked for
-    // each one -- the chord above and below the line, and the clear width
-    // between the two controls. The second is the one the EVERY row spends: it
-    // is the widest line on the screen.
-    //
-    // The row indices are the on-screen order, EVERY then PULSE then POWER.
-    // They are not interchangeable: row 0 sits nearer the top of the glass
-    // than row 1, so sweeping a row's values at another row's anchor measures
-    // the wrong chord.
     var textHeight = dc.getFontHeight(textFont);
-    for (var v = app.MIN_EVERY_HUNDREDTHS; v <= app.MAX_EVERY_HUNDREDTHS; v += 1) {
-        var line = Display.rowText(Display.LABEL_EVERY, CandleMath.formatEvery(v));
-        assertLineFits(
-            dc, Layout.editorRowCenter(0) - (textHeight / 2), line, textFont, "every " + v);
-        assertClearsControls(dc, line, textFont, "every " + v);
+
+    var swept = 0;
+    var screens = everyScreen();
+    for (var s = 0; s < screens.size(); s += 1) {
+        var screen = screens[s] as Number;
+        var rows = Rows.forScreen(screen);
+        for (var i = 0; i < rows.size(); i += 1) {
+            var row = rows[i] as Number;
+            var range = rowRange(row) as Array<Number>;
+            var y = Layout.editorRowCenter(i, rows.size(), h) - (textHeight / 2);
+            var what = "screen " + screen + " row " + i;
+
+            for (var v = range[0] as Number; v <= (range[1] as Number); v += 1) {
+                var line = rowLine(row, v);
+                assertLineFits(dc, y, line, textFont, what + " value " + v);
+                assertClearsControls(dc, line, textFont, what + " value " + v);
+                swept += 1;
+            }
+        }
     }
-    for (var v = app.MIN_VIBE_DURATION; v <= app.MAX_VIBE_DURATION; v += 1) {
-        var line = Display.rowText(Display.LABEL_PULSE, CandleMath.formatDuration(v));
-        assertLineFits(
-            dc, Layout.editorRowCenter(1) - (textHeight / 2), line, textFont, "duration " + v);
-        assertClearsControls(dc, line, textFont, "duration " + v);
-    }
-    for (var v = app.MIN_VIBE_STRENGTH; v <= app.MAX_VIBE_STRENGTH; v += 1) {
-        var line = Display.rowText(Display.LABEL_POWER, CandleMath.formatStrength(v));
-        assertLineFits(
-            dc, Layout.editorRowCenter(2) - (textHeight / 2), line, textFont, "strength " + v);
-        assertClearsControls(dc, line, textFont, "strength " + v);
-    }
+
+    logger.debug("swept " + swept + " reachable row lines across " + screens.size() + " screens");
     return true;
 }
 
 // --- tap hit mapping --------------------------------------------------------
 //
-// editorActionAt encodes its result as (row * 2) + direction, so these six cases
-// are what pins the ACTION_ constants to staying contiguous and in order.
+// editorHitAt encodes its answer as (row * 2) + direction -- a position and a
+// side, and deliberately nothing about the setting standing there. What these
+// tests pin is that the encoding survives its two decoders and that the row
+// list a screen draws is the row list its taps walk.
 //
-// The y values are the three rows top to bottom, and the actions are the screen
-// order they now carry: EVERY, PULSE, POWER. This is the test that fails if a
-// row is moved on screen without moving its ACTION_ constants with it -- the
-// failure mode being that every tap edits a different setting than the one
-// under it, which nothing else here would notice.
+// This is the test that fails if a screen's rows are re-ordered without the
+// taps following, the failure mode being that every tap edits a different
+// setting than the one under it, which nothing else here would notice.
 
 (:test)
-function editorLayoutMapsEveryControl(logger as Test.Logger) as Boolean {
-    var w = 390;
-    Test.assertEqualMessage(Layout.editorActionAt(55, 130, w), Layout.ACTION_EVERY_DOWN, "every -");
-    Test.assertEqualMessage(Layout.editorActionAt(335, 130, w), Layout.ACTION_EVERY_UP, "every +");
-    Test.assertEqualMessage(Layout.editorActionAt(55, 202, w), Layout.ACTION_PULSE_DOWN, "pulse -");
-    Test.assertEqualMessage(Layout.editorActionAt(335, 202, w), Layout.ACTION_PULSE_UP, "pulse +");
-    Test.assertEqualMessage(Layout.editorActionAt(55, 274, w), Layout.ACTION_POWER_DOWN, "power -");
-    Test.assertEqualMessage(Layout.editorActionAt(335, 274, w), Layout.ACTION_POWER_UP, "power +");
+function editorLayoutMapsEveryControlOnEveryScreen(logger as Test.Logger) as Boolean {
+    var w = LayoutTestConst.VA5_W;
+    var h = LayoutTestConst.VA5_H;
+    var screens = everyScreen();
 
-    // The zone boundaries, one pixel to each side. Both edges are inclusive,
-    // so the inert centre is exactly (w - 2*edge - 2) px wide -- these four
-    // pins are what notices an off-by-one creeping into either comparison.
-    var edge = Layout.CONTROL_HIT_EDGE;
+    for (var s = 0; s < screens.size(); s += 1) {
+        var screen = screens[s] as Number;
+        var rows = Rows.forScreen(screen);
+        var count = rows.size();
+
+        for (var i = 0; i < count; i += 1) {
+            var y = Layout.editorRowCenter(i, count, h);
+            var down = Layout.editorHitAt(50, y, w, h, count);
+            var up = Layout.editorHitAt(w - 50, y, w, h, count);
+            logger.debug(
+                "screen " + screen + " row " + i + " at y=" + y +
+                " -> down=" + down + " up=" + up);
+
+            Test.assertNotEqualMessage(
+                down, Layout.HIT_NONE, "screen " + screen + " row " + i + ": no hit on the left");
+            Test.assertNotEqualMessage(
+                up, Layout.HIT_NONE, "screen " + screen + " row " + i + ": no hit on the right");
+
+            Test.assertEqualMessage(
+                Layout.hitRow(down), i,
+                "screen " + screen + ": a tap on row " + i + "'s left decodes to row " +
+                    Layout.hitRow(down));
+            Test.assertEqualMessage(
+                Layout.hitRow(up), i,
+                "screen " + screen + ": a tap on row " + i + "'s right decodes to row " +
+                    Layout.hitRow(up));
+            Test.assertMessage(
+                !Layout.hitIsIncrease(down),
+                "screen " + screen + " row " + i + ": the left control must decrease");
+            Test.assertMessage(
+                Layout.hitIsIncrease(up),
+                "screen " + screen + " row " + i + ": the right control must increase");
+        }
+    }
+
+    // The rows the taps walk and the rows the view draws are the same list --
+    // which is the property that makes every assertion above about a position
+    // also an assertion about the setting under it. Named explicitly so the
+    // guarantee is written down somewhere and not merely true.
     Test.assertEqualMessage(
-        Layout.editorActionAt(edge, 130, w), Layout.ACTION_EVERY_DOWN,
-        "the left zone must include its inner edge");
+        (Rows.forScreen(Rows.SCREEN_MAIN)[0] as Number), Rows.POWER,
+        "the main screen's first row is no longer POWER");
     Test.assertEqualMessage(
-        Layout.editorActionAt(edge + 1, 130, w), Layout.ACTION_NONE,
-        "one px past the left zone must be inert");
+        (Rows.forScreen(Rows.SCREEN_MAIN)[1] as Number), Rows.PULSE,
+        "the main screen's second row is no longer PULSE");
     Test.assertEqualMessage(
-        Layout.editorActionAt(w - edge, 130, w), Layout.ACTION_EVERY_UP,
-        "the right zone must include its inner edge");
-    Test.assertEqualMessage(
-        Layout.editorActionAt(w - edge - 1, 130, w), Layout.ACTION_NONE,
-        "one px short of the right zone must be inert");
+        (Rows.forScreen(Rows.SCREEN_SETTINGS)[0] as Number), Rows.EVERY,
+        "the settings screen's only row is no longer EVERY");
     return true;
 }
 
-// The inward reach of the hit zones is bounded by the widest line a row can
-// show: the centre text is deliberately inert (reading a value must never
-// change it), so the zone edge has to stop short of where that text begins.
-// Measured with the device's own font metrics -- this is the test that decides
-// how wide CONTROL_HIT_EDGE may be, and its failure message says how far back
-// it has to go.
+// The zone boundaries, one pixel to each side. Both edges are inclusive, so the
+// inert centre is exactly (w - 2*edge - 2) px wide -- these four pins are what
+// notices an off-by-one creeping into either comparison.
+(:test)
+function editorLayoutHitZoneEdgesAreInclusive(logger as Test.Logger) as Boolean {
+    var w = LayoutTestConst.VA5_W;
+    var h = LayoutTestConst.VA5_H;
+    var count = Rows.forScreen(Rows.SCREEN_MAIN).size();
+    var y = Layout.editorRowCenter(0, count, h);
+    var edge = Layout.CONTROL_HIT_EDGE;
+
+    Test.assertNotEqualMessage(
+        Layout.editorHitAt(edge, y, w, h, count), Layout.HIT_NONE,
+        "the left zone must include its inner edge");
+    Test.assertEqualMessage(
+        Layout.editorHitAt(edge + 1, y, w, h, count), Layout.HIT_NONE,
+        "one px past the left zone must be inert");
+    Test.assertNotEqualMessage(
+        Layout.editorHitAt(w - edge, y, w, h, count), Layout.HIT_NONE,
+        "the right zone must include its inner edge");
+    Test.assertEqualMessage(
+        Layout.editorHitAt(w - edge - 1, y, w, h, count), Layout.HIT_NONE,
+        "one px short of the right zone must be inert");
+
+    // The row block's own edges, top and bottom. A row that starts one pixel
+    // late leaves a dead stripe under the clock that nothing on screen explains.
+    var top = Layout.editorRowsTop(count, h);
+    var bottom = top + (count * Layout.EDITOR_ROW_HEIGHT);
+    Test.assertNotEqualMessage(
+        Layout.editorHitAt(50, top, w, h, count), Layout.HIT_NONE,
+        "the row block must include its top edge");
+    Test.assertEqualMessage(
+        Layout.editorHitAt(50, top - 1, w, h, count), Layout.HIT_NONE,
+        "one px above the row block must be inert");
+    Test.assertNotEqualMessage(
+        Layout.editorHitAt(50, bottom - 1, w, h, count), Layout.HIT_NONE,
+        "the row block must include its last row");
+    Test.assertEqualMessage(
+        Layout.editorHitAt(50, bottom, w, h, count), Layout.HIT_NONE,
+        "the pixel past the row block must be inert");
+    return true;
+}
+
+// The inward reach of the hit zones is bounded by the widest line ANY row on
+// ANY screen can show: the centre text is deliberately inert (reading a value
+// must never change it), so the zone edge has to stop short of where that text
+// begins. Measured with the device's own font metrics -- this is the test that
+// decides how wide CONTROL_HIT_EDGE may be, and its failure message says how
+// far back it has to go.
+//
+// It used to measure the EVERY row alone, and that was not conservative, it was
+// wrong: PULSE at its 250 ms ceiling is 3 px wider than EVERY at 14.95 s, so
+// the edge sat under the PULSE line the whole time the test called it clear.
 (:test)
 function layoutHitZonesClearRealisticText(logger as Test.Logger) as Boolean {
     var w = LayoutTestConst.VA5_W;
     var h = LayoutTestConst.VA5_H;
-    var app = getApp();
 
     var ref = Graphics.createBufferedBitmap({:width => w, :height => h});
     var bmp = ref.get();
     Test.assertMessage(bmp != null, "could not create a buffered bitmap to measure text with");
     var dc = (bmp as Graphics.BufferedBitmap).getDc();
 
-    var widest = Display.rowText(
-        Display.LABEL_EVERY,
-        CandleMath.formatEvery(app.MAX_EVERY_HUNDREDTHS - app.EVERY_STEP));
-    var width = dc.getTextWidthInPixels(widest, Graphics.FONT_XTINY);
-    var textLeft = (w / 2) - (width / 2);
+    var widest = "";
+    var widestPx = 0;
+    var screens = everyScreen();
+    for (var s = 0; s < screens.size(); s += 1) {
+        var rows = Rows.forScreen(screens[s] as Number);
+        for (var i = 0; i < rows.size(); i += 1) {
+            var row = rows[i] as Number;
+            var range = rowRange(row) as Array<Number>;
+            for (var v = range[0] as Number; v <= (range[1] as Number); v += 1) {
+                var line = rowLine(row, v);
+                var px = dc.getTextWidthInPixels(line, Graphics.FONT_XTINY);
+                if (px > widestPx) {
+                    widestPx = px;
+                    widest = line;
+                }
+            }
+        }
+    }
+
+    var textLeft = (w / 2) - (widestPx / 2);
     logger.debug(
-        "widest row line \"" + widest + "\" is " + width + "px, left edge at x=" + textLeft);
+        "widest row line anywhere: \"" + widest + "\" at " + widestPx +
+        "px, left edge x=" + textLeft);
 
     Test.assertMessage(
         Layout.CONTROL_HIT_EDGE < textLeft,
-        "the hit zone reaches under the widest row line: edge " + Layout.CONTROL_HIT_EDGE +
+        "the hit zone reaches under \"" + widest + "\": edge " + Layout.CONTROL_HIT_EDGE +
             " against a text left edge of " + textLeft
     );
     return true;
@@ -504,43 +750,74 @@ function layoutHitZonesClearRealisticText(logger as Test.Logger) as Boolean {
 
 (:test)
 function editorLayoutRejectsLabelsAndOutsideRows(logger as Test.Logger) as Boolean {
-    var w = 390;
-    Test.assertEqualMessage(Layout.editorActionAt(195, 130, w), Layout.ACTION_NONE, "every label");
-    Test.assertEqualMessage(Layout.editorActionAt(55, 90, w), Layout.ACTION_NONE, "above rows");
-    Test.assertEqualMessage(Layout.editorActionAt(335, 312, w), Layout.ACTION_NONE, "below rows");
+    var w = LayoutTestConst.VA5_W;
+    var h = LayoutTestConst.VA5_H;
+    var count = Rows.forScreen(Rows.SCREEN_MAIN).size();
+    var rowY = Layout.editorRowCenter(0, count, h);
+
+    Test.assertEqualMessage(
+        Layout.editorHitAt(w / 2, rowY, w, h, count), Layout.HIT_NONE, "row label");
+    Test.assertEqualMessage(
+        Layout.editorHitAt(50, 10, w, h, count), Layout.HIT_NONE, "above rows");
+    Test.assertEqualMessage(
+        Layout.editorHitAt(w - 50, h - 10, w, h, count), Layout.HIT_NONE, "below rows");
     return true;
 }
 
-// The release build's bottom-slot mark: same slot as the version line, same
-// two constraints -- on the glass, and clear of the last editor row. The
-// bitmap is loaded through the same Rez id the view uses, so a regenerated
-// PNG that grows past the slot fails here, not on a wrist. (Tests compile as
-// debug, where the view never loads the mark -- this measures the resource
-// itself, which is identical in both builds.)
+// The debug exit breadcrumb, on its own line on the settings screen.
+//
+// It used to ride behind the version as a suffix, and the two-event ring was a
+// consequence of that: the combined line was already at the chord and a third
+// code pushed it off the glass. On this screen it has a band to itself, and
+// this test is what says how much of one -- the ring may grow only as far as
+// the worst chain still measured here.
+//
+// The worst chain is every slot filled with a two-character code: six codes,
+// five separators, the ">" and a two-character tag.
 (:test)
-function layoutLogoFitsTheBottomSlot(logger as Test.Logger) as Boolean {
+function layoutExitBreadcrumbFits(logger as Test.Logger) as Boolean {
     var w = LayoutTestConst.VA5_W;
     var h = LayoutTestConst.VA5_H;
-
-    var logo = WatchUi.loadResource(Rez.Drawables.LogoSmall) as Graphics.BitmapReference;
-    var logoW = logo.getWidth();
-    var logoH = logo.getHeight();
-    var y = Layout.versionY(h, logoH);
-    logger.debug("logo " + logoW + "x" + logoH + " sits at y=" + y);
-
-    Test.assertMessage(
-        Layout.fitsOnRoundScreen(y, logoW, logoH, w, h),
-        "the mark must sit on the glass in the bottom slot"
-    );
 
     var ref = Graphics.createBufferedBitmap({:width => w, :height => h});
     var bmp = ref.get();
     Test.assertMessage(bmp != null, "could not create a buffered bitmap to measure text with");
     var dc = (bmp as Graphics.BufferedBitmap).getDc();
-    var textHeight = dc.getFontHeight(Graphics.FONT_XTINY);
+    var textFont = Graphics.FONT_XTINY;
+    var textHeight = dc.getFontHeight(textFont);
+
+    var worst = "";
+    for (var i = 0; i < ExitForensics.HISTORY; i += 1) {
+        if (i > 0) { worst += "."; }
+        worst += "P5";
+    }
+    worst += ">B!";
+
+    var y = Layout.breadcrumbY(h, textHeight);
+    logger.debug(
+        "worst chain \"" + worst + "\" is " +
+        dc.getTextWidthInPixels(worst, textFont) + "px at y=" + y);
+    assertLineFits(dc, y, worst, textFont, "exit breadcrumb at " + ExitForensics.HISTORY + " events");
+
+    // It sits between the settings screen's one row and the version line, and
+    // must touch neither. The row's controls reach lower than its text does, so
+    // they are what is measured above.
+    var settingsRows = Rows.forScreen(Rows.SCREEN_SETTINGS);
+    var rowBottom = Layout.editorRowCenter(settingsRows.size() - 1, settingsRows.size(), h) +
+        Layout.CONTROL_RADIUS + Layout.CONTROL_PEN;
     Test.assertMessage(
-        y >= Layout.editorRowCenter(2) + (textHeight / 2),
-        "the mark overlaps the last editor row: mark top at " + y
-    );
+        y >= rowBottom,
+        "the breadcrumb overlaps the EVERY row's controls: breadcrumb at " + y +
+            ", the controls end at " + rowBottom);
+    Test.assertMessage(
+        y + textHeight <= Layout.versionY(h, textHeight),
+        "the breadcrumb runs into the version line: it ends at " + (y + textHeight) +
+            ", the version starts at " + Layout.versionY(h, textHeight));
+
+    // A taller font must lift the breadcrumb, never push it down into the
+    // version -- the same property versionY and clockY are held to.
+    Test.assertMessage(
+        Layout.breadcrumbY(h, 54) < Layout.breadcrumbY(h, 20),
+        "a taller font must raise the breadcrumb anchor");
     return true;
 }

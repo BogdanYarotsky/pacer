@@ -9,8 +9,14 @@
 #
 # VERIFICATION CAVEAT: current firmware hides .prg files after install, so the
 # file cannot be read back to prove the copy landed. The ONLY proof is launching
-# Candle on the watch and reading the version off the main screen. That is why
-# this script bumps the version before every build.
+# Candle on the watch, pressing the UPPER BUTTON, and reading the version off
+# the settings screen. That is why this script bumps the version before every
+# build.
+#
+# The version used to be on the main screen and moved on 2026-08-24. If it moves
+# again, the closing message at the bottom of this file has to move with it --
+# it is the instruction someone follows while holding the watch, and a wrong one
+# sends them to look at a slot that has never shown a version.
 
 param(
     [string]$Device = "vivoactive5",
@@ -136,5 +142,7 @@ if ($seen) {
 
 Write-Host ""
 Write-Host "THE COPY CANNOT BE VERIFIED FROM HERE." -ForegroundColor Yellow
-Write-Host "Disconnect the watch, open Candle, and confirm the main screen reads v$nextVersion." -ForegroundColor Yellow
+Write-Host "Disconnect the watch and open Candle. The main screen shows the clock," -ForegroundColor Yellow
+Write-Host "POWER, PULSE and the battery -- no version. Press the UPPER BUTTON and" -ForegroundColor Yellow
+Write-Host "confirm the settings screen reads v$nextVersion under the EVERY row." -ForegroundColor Yellow
 Write-Host "If it shows an older version, the watch is still running the previous build." -ForegroundColor Yellow
