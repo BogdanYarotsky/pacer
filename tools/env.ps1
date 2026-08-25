@@ -17,17 +17,35 @@ if (-not (Get-Command java -ErrorAction SilentlyContinue)) {
 }
 
 # --- SDK ----------------------------------------------------------------------
-# connect-iq-sdk-manager is the source of truth for which SDK is pinned.
-$mgr = Get-Command connect-iq-sdk-manager -ErrorAction SilentlyContinue
-if (-not $mgr) {
-    $candidate = "$env:USERPROFILE\bin\connect-iq-sdk-manager.exe"
-    if (Test-Path $candidate) { $mgr = $candidate } else {
-        throw "connect-iq-sdk-manager not found. Run ~/bin/garmin-bootstrap.ps1 first."
+# connect-iq-sdk-manager is the source of truth for which SDK is pinned, and
+# CIQ_SDK_BIN is the one thing allowed to override it.
+#
+# That override is not a convenience. Windows Smart App Control blocks the
+# manager binary outright -- it is unsigned and carries no reputation, so
+# launching it dies with "An Application Control policy has blocked this file"
+# and logs CodeIntegrity event 3077 against it. Smart App Control cannot be
+# switched back on once it is off, short of reinstalling Windows, which makes
+# "turn it off" a one-way door and a poor prerequisite for compiling. Every
+# line below only ever wanted the path the manager prints, so point CIQ_SDK_BIN
+# at <sdk>\bin and the manager is not needed at all.
+$SdkBin = $env:CIQ_SDK_BIN
+if (-not $SdkBin) {
+    $mgr = Get-Command connect-iq-sdk-manager -ErrorAction SilentlyContinue
+    if (-not $mgr) {
+        $candidate = "$env:USERPROFILE\bin\connect-iq-sdk-manager.exe"
+        if (Test-Path $candidate) { $mgr = $candidate } else {
+            throw "connect-iq-sdk-manager not found. Run ~/bin/garmin-bootstrap.ps1 first."
+        }
+    }
+    try {
+        $SdkBin = (& $mgr sdk current-path --bin 2>$null | Out-String).Trim()
+    } catch {
+        throw ("connect-iq-sdk-manager could not run: " + $_.Exception.Message.Trim() +
+            " If Windows Smart App Control is blocking it, set CIQ_SDK_BIN to <sdk>\bin.")
     }
 }
-$SdkBin = (& $mgr sdk current-path --bin 2>$null | Out-String).Trim()
 if (-not $SdkBin -or -not (Test-Path $SdkBin)) {
-    throw "No active Connect IQ SDK. Run: connect-iq-sdk-manager sdk set 9.2.0"
+    throw "No active Connect IQ SDK. Run: connect-iq-sdk-manager sdk set 9.2.0, or set CIQ_SDK_BIN."
 }
 $SdkRoot = Split-Path -Parent $SdkBin
 
