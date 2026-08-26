@@ -141,6 +141,78 @@ completely, without Candle growing a start button, a duration and an auto-stop.
 
 ---
 
+## THE STALENESS RULE: never write a number a test can compute
+
+Measured 2026-08-26: `source/` is **54% comment** (`Rows.mc` is 76%), and
+AGENTS.md + README.md + PUBLISHING.md are **1457 lines** of prose. Changing the
+interval's stored unit from hundredths of a second to milliseconds -- one unit
+and one step -- took **12 files and 666 insertions**, and still left stale facts
+behind.
+
+**The volume is not the problem. Which facts the prose states is the problem.**
+Two kinds of sentence live in these comments and they have opposite lifetimes:
+
+- **Rationale** — *why* a value is what it is. "The pen is counted as if the
+  whole stroke fell outside the radius, the conservative reading of an
+  undocumented detail." Durable. It survives every tuning pass. **Keep writing
+  this.** It is why this repo is navigable after months away.
+- **Computation** — *what the value works out to*. "190.94 against a 195 px
+  glass: 4.06 px of air." "265 px against a 220 px chord." "205 of 801 rungs
+  collide." Volatile. Every one dies the moment a constant moves, and **nothing
+  fails when it does** — no compiler, no test, nothing but a later reader
+  believing it.
+
+**Do not write the second kind.** If a test can compute it, the test computes it
+and `logger.debug`s it. A number typed into a comment is a number with no owner.
+
+That one session produced ten staleness events: `265 px`, the `2%` strength
+floor in three places, the `50 ms` Timer pin in two (one of which only surfaced
+at runtime, after a "verified" build), `PACE 2.01bpm`, the `CONTROL_HIT_EDGE`
+note naming a string that was no longer widest, `clockY`/`versionY` naming
+content they no longer held, deploy.ps1's "under the EVERY row", and two README
+sketches. **The `2%` was already stale before that session started** — the
+pattern compounds on its own.
+
+### A tunable change touches exactly these, in this order
+
+This list exists so the next change is a checklist rather than a hunt. Ranges,
+steps, defaults and geometry constants all follow it:
+
+1. **The constant**, in `candleApp` (ranges/steps/defaults) or `Layout`
+   (geometry). Its *rationale* comment stays; delete any arithmetic in it.
+2. **`CandleMath`** if a ladder or formatter reads the unit.
+3. **`tests/SettingsTest.mc`** — `settingsRangesAndStepsAreCoherent` pins
+   *relationships* (does the step divide the range, is the floor the pace
+   ceiling's reciprocal), never literals. If you find yourself changing a
+   literal there, the assertion was wrong to begin with.
+4. **`tests/LayoutTest.mc`** — `rowRange`/`rowSweepStep` if a range moved. The
+   sweeps then cover it automatically.
+5. **`tests/CandleMathTest.mc`** — the fixed-point tables. These *are* literals
+   and that is correct; they are the conversion's specification.
+6. **Docs, last and least.** README's settings table, PUBLISHING's wrist
+   checklist and store description. **These should point at the code, not copy
+   it** — every number restated here is a fourth copy waiting to rot.
+
+### Where the separation is missing, and what would fix it
+
+The user's diagnosis, and it is right: there is no split between what never
+changes and what is tuned constantly. A 20-line essay wraps every one-line
+constant, so touching the constant means editing the essay, in every file that
+restated it.
+
+The fix is not fewer comments. It is:
+
+- **Docs stop restating numbers.** README/PUBLISHING name rows and behaviours,
+  never ranges and steps. One sentence pointing at `candleApp`'s constants
+  replaces every table cell that goes stale.
+- **Comments stop restating arithmetic.** The measurement lives in the test that
+  measures it; the comment says why it matters.
+- **`Layout` already models this well and `candleApp` does not.** Layout's
+  functions take metrics as arguments and compute; candleApp's constants carry
+  their consequences in prose. Constants that derive from each other should
+  derive in code (`MIN_EVERY_MILLIS` *is* `paceToEvery(MAX_PACE_HUNDREDTHS)` —
+  the test asserts this, so it could simply *be* it).
+
 ## Repo map — where each concern lives
 
 Orientation only — deliberately no numbers, labels, coordinates, defaults or
