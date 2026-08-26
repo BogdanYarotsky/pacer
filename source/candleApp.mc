@@ -13,7 +13,7 @@ class candleApp extends Application.AppBase {
     // you read it once after a deploy and never again while breathing.
     // deploy.ps1 bumps this on every sideload and its closing message tells
     // you where to look; the two have to move together.
-    const APP_VERSION = "0.28";
+    const APP_VERSION = "0.29";
 
     // One cue every 5.00 s -- 10 s per breath, 0.1 Hz, the Lehrer resonance
     // protocol's canonical frequency and the value the literature converges on
