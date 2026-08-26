@@ -4,54 +4,25 @@ import Toybox.Lang;
 import Toybox.System;
 import Toybox.WatchUi;
 
-// Candle's screens. There are two, and this one class draws both.
+// Candle's two screens, drawn by one class. The difference between them is a
+// row list and what fills the two bands above and below it. ADR-0028
 //
-// MAIN is what the app opens on: the time, the two settings a session reaches
-// for, and the build version. SETTINGS is pushed over it by the upper button
-// and carries the interval, which is measured once and then left alone -- so it
-// gets a screen of its own and the main screen gets its room back. That extra
-// room is the whole point: two rows instead of three is what pays for controls
-// this size, at the same 4 px of air from the glass edge the old three-row
-// layout was tuned to.
+// Nothing here animates and nothing paces you -- the cue is haptic. ADR-0001
 //
-// One class rather than two, because the difference between the screens is one
-// list of rows and whether the clock and the bottom line come with them. Two
-// classes would have shared the row drawing, the control drawing, the resolved
-// anchors and the font choices, and differed in four lines.
-//
-// The cue is haptic, so nothing here paces you and nothing animates. Two things
-// on the main screen change on their own -- the clock and the battery -- and
-// both ride the same minute-gated redraw, so the screen still repaints about
-// once a minute rather than once per cue. Neither says anything about the
-// breath. There is no bitmap on either screen and no (:release) rendering fork
-// left in this file.
-//
-// The pen leaves white in exactly one place: inside a control, where the ring
-// and the glyph are white over the black of the cleared screen. There is no
-// screen state to render beyond that -- palm safety is the watch's own Lock
-// Screen, so the app has no lock of its own to dim the controls for. See
-// AGENTS.md.
-//
-// Every coordinate comes from Layout, every string from Display, and every row
-// order from Rows. Neither a pixel offset nor a literal caption nor a hand-
-// written row order belongs in this file -- all three are covered by unit tests
-// that can only test what they can also see.
+// Every coordinate comes from Layout, every string from Display, every row
+// order from Rows. A pixel offset, a literal caption or a hand-written row
+// order in this file puts it beyond the tests that cover it. ADR-0029, ADR-0030
 class candleView extends WatchUi.View {
 
     const FONT_CLOCK = Graphics.FONT_MEDIUM;
     const FONT_TEXT = Graphics.FONT_XTINY;
-    // ...and no third. The "-" and "+" had FONT_LARGE to themselves and are
-    // drawn as bars now, from Layout's own constants -- see GLYPH_LENGTH for
-    // what a font could not be held to.
+    // ...and no third: the "-" and "+" are drawn bars. ADR-0015
 
-    // Which screen this instance is, and the rows it carries. Both are fixed
-    // for the life of the view; Rows.forScreen is resolved once here rather
-    // than on every draw.
     private var _screen as Number;
     private var _rows as Array<Number>;
 
-    // Resolved once in onLayout. Screen size and font metrics cannot change
-    // while the app runs, so recomputing them per draw would be pure waste.
+    // Resolved once in onLayout -- screen size and font metrics cannot change
+    // while the app runs, so recomputing per draw would be pure waste.
     private var _centerX as Number = 0;
     private var _controlLeftX as Number = 0;
     private var _controlRightX as Number = 0;
@@ -66,8 +37,7 @@ class candleView extends WatchUi.View {
         _rows = Rows.forScreen(screen);
     }
 
-    // The entry point for the View, called before it is first shown. The clock
-    // and version anchors depend on measured font heights, which need a Dc.
+    // The anchors depend on measured font heights, which need a Dc. ADR-0011
     function onLayout(dc as Dc) as Void {
         var width = dc.getWidth();
         var height = dc.getHeight();
@@ -76,39 +46,31 @@ class candleView extends WatchUi.View {
         _controlLeftX = Layout.editorControlX(width, false);
         _controlRightX = Layout.editorControlX(width, true);
 
-        // The clock sits in the band above this screen's own row block, which
-        // on the only screen that draws a clock is the main screen's. Resolved
-        // for both because the arithmetic is cheaper than the branch, and
-        // because a settings screen that ever grows a clock should get a
-        // correct anchor rather than the other screen's.
+        // The same band at two font sizes: the clock on the main screen, the
+        // build version on the settings screen. Both resolved on both screens
+        // because the arithmetic is cheaper than the branch.
         _clockY = Layout.topSlotY(
             dc.getFontHeight(FONT_CLOCK), Layout.editorRowsTop(_rows.size(), height));
-        // The same band, measured for the smaller font: the settings screen
-        // puts its build version up here where the main screen puts the clock.
         _topTextY = Layout.topSlotY(
             dc.getFontHeight(FONT_TEXT), Layout.editorRowsTop(_rows.size(), height));
         _bottomSlotY = Layout.bottomSlotY(height, dc.getFontHeight(FONT_TEXT));
     }
 
-    // Called on every requestUpdate, and by the framework whenever this view
-    // becomes visible -- including when the settings screen above it is popped,
-    // which is measured, not assumed. That is what keeps the clock current on
-    // the way back: the cue timer's minute check may well have fired while the
-    // settings screen was on top, with this view not on screen to hear it.
+    // Also called when the settings screen above is popped, which is measured
+    // rather than assumed -- and is what keeps the clock current on the way
+    // back, since the cue timer's minute check may have fired while this view
+    // was not on screen to hear it. ADR-0006
     function onUpdate(dc as Dc) as Void {
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
 
-        // The rows, in the order Rows.forScreen gives them -- which is the same
-        // order candleDelegate maps taps in, because it is the same list.
+        // In the order Rows gives them -- the same order the delegate maps taps
+        // in, because it is the same list. ADR-0028
         for (var i = 0; i < _rows.size(); i += 1) {
             drawEditorRow(dc, i, _rows[i] as Number);
         }
 
-        // The clock belongs to the screen you breathe on; the settings screen
-        // is a place you visit to change one number and leave. Both screens
-        // have a bottom slot, but they hold different things -- see Display.
         if (_screen == Rows.SCREEN_MAIN) {
             drawClock(dc);
             drawMainBottomSlot(dc);
@@ -125,28 +87,8 @@ class candleView extends WatchUi.View {
             ClockText.formatTime(now.hour, now.min, System.getDeviceSettings().is24Hour));
     }
 
-    // The main screen's slot, in strict precedence:
-    //
-    //   1. transient input feedback -- the HOLD TO EXIT hint, for two seconds
-    //   2. the standing warning     -- VIBE OFF
-    //   3. the routine reading      -- the battery
-    //
-    // The hint outranking the warning is deliberate and it is not the warning
-    // being crowded out; it is the warning deferred by two seconds. Back no
-    // longer exits, so the hint is the only feedback a Back produces at all,
-    // and an input that changes nothing on screen reads as a frozen app --
-    // which is a worse thing to hand someone than a two-second wait for a
-    // warning they have already been looking at.
-    //
-    // Nothing here shares a line. "BATTERY 100%  VIBE OFF" measures 313 px against
-    // a 220 px chord this near the bottom of a round screen, so a combined line
-    // would be clipped at both ends, and a clipped warning is the one failure
-    // this slot exists to prevent. layoutRealLinesFitOnVivoactive5 pins that.
-    //
-    // Two things have held this slot and lost it outright: the build version,
-    // which moved to the settings screen, and the Candle mark, which was
-    // deleted. Both were facts about the install. The other three are facts
-    // about the session in front of you, which is the difference.
+    // Hint, then warning, then the battery -- strict precedence, one line, no
+    // sharing. ADR-0005
     private function drawMainBottomSlot(dc as Dc) as Void {
         var app = getApp();
         var line = "";
@@ -155,8 +97,8 @@ class candleView extends WatchUi.View {
             line = Display.exitHint();
         } else {
             // The same two conditions timerCallback needs for a cue to happen
-            // at all. The cue path itself is left untouched: it still asks the
-            // OS to vibrate and lets the OS decide, so this only reports.
+            // at all. The cue path itself is untouched: it still asks the OS to
+            // vibrate and lets the OS decide, so this only reports.
             var settings = System.getDeviceSettings();
             line = Display.vibeWarning((Attention has :vibrate) && settings.vibrateOn);
             if (line.length() == 0) {
@@ -168,13 +110,7 @@ class candleView extends WatchUi.View {
         drawCentered(dc, _bottomSlotY, FONT_TEXT, line);
     }
 
-    // The settings screen's TOP band: which build this is, where the main
-    // screen puts the clock. Debug-only, so a Store install draws nothing here
-    // and the band is simply empty.
-    //
-    // It moved up from the bottom to make room for the BACK button, and the
-    // swap reads correctly on its own terms: the version is a label on the
-    // screen, and the thing at the bottom is now something you press.
+    // Debug builds only, so a Store install draws an empty top band. ADR-0032
     private function drawSettingsTopSlot(dc as Dc) as Void {
         var version = Display.buildLine(getApp().APP_VERSION, Display.showsBuildVersion());
         if (version.length() > 0) {
@@ -182,23 +118,7 @@ class candleView extends WatchUi.View {
         }
     }
 
-    // The settings screen's bottom band: the BACK button, and it is the reason
-    // this screen can stop trusting Back at all.
-    //
-    // The firmware forges KEY_ESC for a right swipe -- the finding that took
-    // the exit off Back on the main screen -- and the same forged key was
-    // popping this screen mid-adjustment whenever a sleeve crossed the glass.
-    // The main screen's answer was to move the exit to a HELD button; this
-    // screen's answer is a target you can see, because unlike "quit" there is
-    // no held gesture that means "go back" and inventing one would be a hidden
-    // control on a screen that has room for a visible one.
-    //
-    // Drawn in every build, unlike the version above it. It is not a diagnostic
-    // -- it is the way out, and on a Store install it is the ONLY visible one.
-    // The upper button still pops the screen too, which is the gesture that
-    // opened it, but nothing on the glass says so.
-    //
-    // Its tap zone is the whole band, not the width of the word: Layout.isBackTap.
+    // Drawn unconditionally -- it is the way out, not a diagnostic. ADR-0010
     private function drawSettingsBottomSlot(dc as Dc) as Void {
         drawCentered(dc, _bottomSlotY, FONT_TEXT, Display.backLabel());
     }
@@ -220,17 +140,9 @@ class candleView extends WatchUi.View {
         drawControl(dc, _controlRightX, rowY, true);
     }
 
-    // A white glyph on a black face inside a white ring.
-    //
-    // The face is filled black rather than left to the cleared screen so the
-    // control is an object in the code and not a coincidence of what happens to
-    // be behind it. The ring is wide enough to read as a border: a 1 px stroke
-    // at this radius is a hairline, which is what made the old small outlined
-    // circle read as decoration and had thumbs aiming at it as if the hit zone
-    // were that small. The zone is far larger than the ring, and always was.
-    //
-    // The pen goes back to 1 before the glyph, because it is state on the Dc
-    // and the next thing drawn is not a border.
+    // A white glyph on a black face inside a white ring. The face is filled
+    // rather than left to the cleared screen so the control is an object in the
+    // code and not a coincidence of what happens to be behind it. ADR-0012
     private function drawControl(dc as Dc, x as Number, y as Number, increase as Boolean) as Void {
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(x, y, Layout.CONTROL_RADIUS);
@@ -238,20 +150,17 @@ class candleView extends WatchUi.View {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(Layout.CONTROL_PEN);
         dc.drawCircle(x, y, Layout.CONTROL_RADIUS);
+
+        // The pen goes back to 1: it is state on the Dc, and the next thing
+        // drawn is not a border.
         dc.setPenWidth(1);
 
         drawGlyph(dc, x, y, increase);
     }
 
-    // The "-" and the "+", as one horizontal bar and, for the "+", the same bar
-    // stood on end. Both are centred on the circle's own centre, which is the
-    // whole reason they are drawn rather than set in a font: a font centres the
-    // LINE BOX, and the ink inside it sat low and -- for the hyphen -- half as
-    // wide as the plus it is paired with. See Layout.GLYPH_LENGTH.
-    //
-    // It takes the same Boolean the hit encoding and candleApp.stepRow do, so
-    // the glyph a control wears and what a tap on it does are the same fact
-    // spelled the same way. A glyph string would have been a second spelling.
+    // One bar, and for the "+" the same bar stood on end. It takes the same
+    // boolean the hit encoding and the setter take, so the glyph a control
+    // wears and what a tap on it does are one fact spelled one way. ADR-0015
     private function drawGlyph(dc as Dc, x as Number, y as Number, increase as Boolean) as Void {
         dc.fillRectangle(
             Layout.glyphArmStart(x, Layout.GLYPH_LENGTH),

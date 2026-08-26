@@ -17,6 +17,16 @@ param(
 
 . "$PSScriptRoot\env.ps1"
 
+# --- prose first --------------------------------------------------------------
+# The cheapest possible failure: no build, no simulator. A dangling ADR
+# reference or an ADR nothing points at is caught before anything expensive
+# starts. See ADR-0033.
+& "$PSScriptRoot\check-adrs.ps1"
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "test: ADR check failed, not building" -ForegroundColor Red
+    exit 1
+}
+
 # --- build --------------------------------------------------------------------
 & "$PSScriptRoot\build.ps1" -Device $Device -Typecheck $Typecheck -UnitTest
 if ($LASTEXITCODE -ne 0) { Write-Host "test: build failed, not running tests" -ForegroundColor Red; exit 1 }

@@ -10,3 +10,5 @@ project.manifest = manifest.xml
 # gitignored sdk-samples junction into the build and fails with hundreds of
 # undefined-symbol errors from Garmin's sample apps.
 base.sourcePath = source;tests
+
+# Both paths listed explicitly -- never the self-referencing form. ADR-0035

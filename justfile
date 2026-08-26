@@ -73,3 +73,8 @@ link-docs:
 # Remove build output
 clean:
     pwsh -NoProfile -Command "Remove-Item -Recurse -Force bin, shots -ErrorAction SilentlyContinue; Write-Host 'cleaned'"
+
+# ADR reference integrity: every ADR-NNNN resolves, every accepted ADR is used.
+# Also runs at the start of `just test`.
+check-adrs:
+    pwsh -NoProfile -File tools/check-adrs.ps1

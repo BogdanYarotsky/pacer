@@ -290,6 +290,22 @@ two disagreed everything still compiled and every tap silently edited a differen
 setting than the one under your thumb. Now the view draws that one list and the
 input code indexes it, so they cannot disagree.
 
+### Why it is built this way
+
+**The reasoning is not in the comments — it is in
+[`docs/adr/`](docs/adr/README.md)**, one file per decision, referenced from the
+code by id (`// ADR-0018`). The code carries the tripwires; the ADRs carry the
+arguments. They are append-only: a decision that changes is superseded rather
+than edited, so a stale ADR is history instead of a lie.
+
+Start with `0001`–`0004` — the decisions that look like bugs and have each been
+"fixed" at least once. If you are wondering why the screen never animates, why
+both cues feel the same, why there is no session timer, or why Back does not go
+back, they are all in there.
+
+`just check-adrs` fails the build on a dangling reference or an ADR nothing
+points at.
+
 ## Reference
 
 - Persistent values: <https://developer.garmin.com/connect-iq/api-docs/Toybox/Application/Storage.html>
