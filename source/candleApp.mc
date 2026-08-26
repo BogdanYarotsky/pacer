@@ -24,7 +24,7 @@ class candleApp extends Application.AppBase {
     // dressed as a default would be a wrong number wearing a right number's
     // clothes. Whoever installs this should measure their own and dial it in;
     // 5.00 s is the place to start looking, not an answer.
-    const DEFAULT_EVERY_HUNDREDTHS = 500;
+    const DEFAULT_EVERY_MILLIS = 5000;
 
     // Both vibe defaults sit on their own ladders -- settingsRangesAndStepsAre
     // Coherent proves it -- and both are starting points for a wrist to move
@@ -37,40 +37,43 @@ class candleApp extends Application.AppBase {
     const DEFAULT_VIBE_STRENGTH = 20;
     const DEFAULT_VIBE_DURATION = 100;
 
-    // The interval, in hundredths of a second between cues -- and the pace
-    // range below it, which is THE SAME RANGE IN THE OTHER UNIT. Read the two
+    // The interval between cues, **in MILLISECONDS** -- and the pace range
+    // below it, which is THE SAME RANGE IN THE OTHER UNIT. Read the two
     // together; neither is free to move on its own.
     //
-    // CandleMath.paceToEvery maps each onto the other exactly, both endpoints
-    // landing without rounding (300000/1000 = 300, 300000/200 = 1500). That is
-    // the property the PACE row rests on: there is no interval the pace row
-    // cannot show and no pace the interval row cannot. Break it and one of the
-    // two rows acquires a state its controls cannot leave.
+    // The unit was hundredths of a second until the PACE step went to 0.01 bpm,
+    // and hundredths cannot hold that step: 205 of the 801 rungs between 2.00
+    // and 10.00 bpm collide with their neighbour, the first pair being 5.53 and
+    // 5.54 bpm. Two hundred dead taps starting inside the resonance band. In
+    // milliseconds all 801 are distinct with 3 ms to spare at the tightest.
+    // Milliseconds are also what the cue timer takes, so the stored number is
+    // now the number that runs.
     //
-    // The ceiling is unchanged: 15.00 s between cues -- 30 s per breath -- is
-    // comfortably past any breathing practice.
+    // CandleMath.paceToEvery maps each range onto the other exactly, both
+    // endpoints landing without rounding (3000000/1000 = 3000, 3000000/200 =
+    // 15000). That is the property the PACE row rests on: there is no interval
+    // the pace row cannot show and no pace the interval row cannot. Break it
+    // and one of the two rows acquires a state its controls cannot leave.
     //
-    // **The floor moved from 0.05 s to 3.00 s when PACE arrived**, and this is
-    // the first time it was ever chosen. It used to be technical: 0.05 s is the
-    // platform's documented Timer minimum, inherited rather than decided. Two
-    // things set it at 3.00:
+    // The ceiling: 15.00 s between cues -- 30 s per breath -- is comfortably
+    // past any breathing practice.
     //
-    //   * A 0.1 bpm tap only moves the stored interval if 3000/b^2 >= 1, i.e.
-    //     while b <= 17.3 bpm. Above that, adjacent rungs round to the same
-    //     hundredth and the control silently does nothing -- 25.0 and 25.1 bpm
-    //     both store 120. At the 10 bpm ceiling every rung is still 3
-    //     hundredths clear, which is three times the margin it needs.
+    // **The floor was chosen for the first time when PACE arrived.** It used to
+    // be technical: 0.05 s is the platform's documented Timer minimum,
+    // inherited rather than decided. Two things set it at 3.00 s:
+    //
+    //   * A pace tap only moves the stored interval while the rungs stay at
+    //     least 1 ms apart, and they narrow as the square of the rate. At the
+    //     10 bpm ceiling they are 3 ms apart; past it a control would start
+    //     doing nothing at all, silently.
     //   * Nobody paces breathing above 10 bpm. The documented resonance bands
     //     are 4.5-7.0 for adults and 6.5-9.5 for children (Lehrer/Vaschillo);
     //     10-20 bpm is ordinary resting respiration, which wants no metronome.
     //
     // What it costs is the sub-3-second haptic metronome, which was a side
-    // effect of the Timer minimum and not a capability anyone asked for. It
-    // also means a watch holding an interval under 3.00 s falls back to the
-    // default on the next launch -- readStoredNumber range-checks before it
-    // trusts a stored value, and 0.05-2.99 s is below any breathing practice.
-    const MIN_EVERY_HUNDREDTHS = 300;
-    const MAX_EVERY_HUNDREDTHS = 1500;
+    // effect of the Timer minimum and not a capability anyone asked for.
+    const MIN_EVERY_MILLIS = 3000;
+    const MAX_EVERY_MILLIS = 15000;
 
     // The same setting in hundredths of a breath per minute: the exact
     // reciprocal image of the interval range above, and the range the PACE row
@@ -81,13 +84,20 @@ class candleApp extends Application.AppBase {
     // interval that sits on no bpm rung, and the row would stop being
     // reversible.
     //
-    // 0.1 bpm per tap is five times finer than the assessment protocols that
-    // produce these numbers: Lehrer and Vaschillo walk 6.5 down to 4.5 bpm in
-    // 0.5-bpm steps. So any measured resonance frequency lands exactly on a
-    // rung, with room to interpolate between the ones a protocol tests.
+    // **0.01 bpm per tap is the precision Yudemon reports**, which is the whole
+    // reason for it: whatever number an assessment hands you can be typed in
+    // exactly, with no rounding and no "close enough". It is fifty times finer
+    // than the clinical protocols, which walk 6.5 down to 4.5 bpm in 0.5-bpm
+    // steps -- so this is about faithful entry, not about a wrist telling 5.73
+    // from 5.74 (at 6 bpm one rung is 8 ms of cue interval, which it cannot).
+    //
+    // It costs a long hold: 800 rungs end to end is about 160 s at the repeat
+    // rate. Crossing the whole range is not a thing anyone does -- you arrive
+    // near your own frequency and nudge -- but if it ever grates, a two-zone
+    // ladder like POWER's is the shape to reach for.
     const MIN_PACE_HUNDREDTHS = 200;
     const MAX_PACE_HUNDREDTHS = 1000;
-    const PACE_STEP = 10;
+    const PACE_STEP = 1;
 
     // VibeProfile.dutyCycle is documented as 0-100%, "0 indicating no vibration
     // and 100 indicating the strongest" -- so this range IS the full API range,
@@ -135,17 +145,35 @@ class candleApp extends Application.AppBase {
     // own ladders; settingsRangesAndStepsAreCoherent asserts both. POWER has no
     // single step: its two-zone ladder lives in CandleMath.strengthUp/Down, and
     // the same test pins that ladder to this range's endpoints.
-    const EVERY_STEP = 5;
+    const EVERY_STEP_MILLIS = 50;
     const DURATION_STEP = 10;
 
     // Storage keys are on-disk API: renaming one silently resets that setting
-    // on every installed watch. everyHundredths is deliberately NOT the old
-    // pace key re-worded -- the unit changed (hundredths of a second between
-    // cues, was hundredths of a breath per minute), so it is a NEW key, and
-    // migrateLegacyPace converts the old one exactly once.
-    const EVERY_STORAGE_KEY = "everyHundredths";
+    // on every installed watch, and **changing a key's UNIT is not a rename, it
+    // is a new key plus a migration.** This interval has now been through that
+    // twice, and both keys below are still read:
+    //
+    //   paceHundredths   hundredths of a BREATH PER MINUTE. The original model,
+    //                    where the screen translated and the setting did not.
+    //   everyHundredths  hundredths of a SECOND between cues. What replaced it
+    //                    when the EVERY row started showing the bare interval.
+    //   everyMillis      MILLISECONDS between cues. What the 0.01 bpm pace step
+    //                    forced, because hundredths cannot represent it.
+    //
+    // migrateStoredInterval walks that chain, newest key first, and converts at
+    // most once. A watch that has run any build of this app since the first one
+    // keeps its measured frequency across both changes.
+    const EVERY_STORAGE_KEY = "everyMillis";
     const STRENGTH_STORAGE_KEY = "vibrationStrength";
     const DURATION_STORAGE_KEY = "vibrationDuration";
+
+    // The retired hundredths-of-a-second key, and the band that build could
+    // write. Its whole range converts by a clean x10, so unlike the pace key
+    // there is no plausibility window to apply -- any value inside the old
+    // range is a valid interval.
+    const LEGACY_EVERY_HUNDREDTHS_KEY = "everyHundredths";
+    const LEGACY_EVERY_MIN = 5;
+    const LEGACY_EVERY_MAX = 1500;
 
     // The retired pace key and the band that build could actually write.
     // Anything stored outside it is not a pace value and is left alone.
@@ -154,7 +182,7 @@ class candleApp extends Application.AppBase {
     const LEGACY_PACE_MAX = 700;
 
     private var _timer as Timer.Timer? = null;
-    private var _everyHundredths as Number = DEFAULT_EVERY_HUNDREDTHS;
+    private var _everyMillis as Number = DEFAULT_EVERY_MILLIS;
     private var _vibeStrength as Number = DEFAULT_VIBE_STRENGTH;
     private var _vibeDuration as Number = DEFAULT_VIBE_DURATION;
 
@@ -293,7 +321,7 @@ class candleApp extends Application.AppBase {
     // testable without an application instance -- see tests/CandleMathTest.mc.
     function startTimer() as Void {
         stopTimer();
-        var period = CandleMath.intervalMillis(_everyHundredths);
+        var period = _everyMillis;
         var timer = new Timer.Timer();
         timer.start(method(:timerCallback), period, true);
         _timer = timer;
@@ -326,8 +354,8 @@ class candleApp extends Application.AppBase {
         ];
     }
 
-    function getEveryHundredths() as Number {
-        return _everyHundredths;
+    function getEveryMillis() as Number {
+        return _everyMillis;
     }
 
     function getVibrationStrength() as Number {
@@ -356,10 +384,10 @@ class candleApp extends Application.AppBase {
     // which the layout sweep calls with values no watch is holding yet.
     function rowValueText(row as Number) as String {
         if (row == Rows.EVERY) {
-            return CandleMath.rowValueText(row, _everyHundredths);
+            return CandleMath.rowValueText(row, _everyMillis);
         }
         if (row == Rows.PACE) {
-            return CandleMath.rowValueText(row, CandleMath.everyToPace(_everyHundredths));
+            return CandleMath.rowValueText(row, CandleMath.everyToPace(_everyMillis));
         }
         if (row == Rows.PULSE) {
             return CandleMath.rowValueText(row, _vibeDuration);
@@ -372,7 +400,15 @@ class candleApp extends Application.AppBase {
     // and the endpoint stays reachable from a value that is off the ladder.
     function stepRow(row as Number, increase as Boolean) as Void {
         if (row == Rows.EVERY) {
-            setEveryHundredths(_everyHundredths + (increase ? EVERY_STEP : -EVERY_STEP));
+            // SNAPPED to the ladder, not added to. The PACE row leaves the
+            // interval off the 50 ms grid constantly -- 5.73 bpm is 5237 ms --
+            // and a plain +50 from there walks 5287, 5337, 5387 and never
+            // touches a round tenth of a second again. Snapping is what makes
+            // "EVERY 5.1s" reachable from wherever PACE left you, and it is
+            // exactly what POWER already does with its own ladder.
+            setEveryMillis(increase
+                ? CandleMath.everyUp(_everyMillis, EVERY_STEP_MILLIS)
+                : CandleMath.everyDown(_everyMillis, EVERY_STEP_MILLIS));
         } else if (row == Rows.PACE) {
             // Stepped from the value ON THE GLASS, not from the stored
             // interval. everyToPace snaps to the nearest 0.1 bpm rung, so a
@@ -387,7 +423,7 @@ class candleApp extends Application.AppBase {
             // units cannot agree on which way is up, and pretending otherwise
             // would mean a bpm row whose "+" lowered the bpm.
             setPaceHundredths(
-                CandleMath.everyToPace(_everyHundredths) + (increase ? PACE_STEP : -PACE_STEP));
+                CandleMath.everyToPace(_everyMillis) + (increase ? PACE_STEP : -PACE_STEP));
         } else if (row == Rows.PULSE) {
             setVibrationDuration(_vibeDuration + (increase ? DURATION_STEP : -DURATION_STEP));
         } else {
@@ -402,13 +438,13 @@ class candleApp extends Application.AppBase {
     // that clamping makes necessary: without it, every tap on "+" at the maximum
     // would rewrite Storage and restart the cue timer to no effect.
 
-    function setEveryHundredths(value as Number) as Void {
-        var next = CandleMath.clamp(value, MIN_EVERY_HUNDREDTHS, MAX_EVERY_HUNDREDTHS);
-        if (next == _everyHundredths) {
+    function setEveryMillis(value as Number) as Void {
+        var next = CandleMath.clamp(value, MIN_EVERY_MILLIS, MAX_EVERY_MILLIS);
+        if (next == _everyMillis) {
             return;
         }
 
-        _everyHundredths = next;
+        _everyMillis = next;
         Storage.setValue(EVERY_STORAGE_KEY, next);
 
         if (_timer != null) {
@@ -431,7 +467,7 @@ class candleApp extends Application.AppBase {
     // A pace change restarts the cue exactly as an interval change does, which
     // costs one breath and is the documented behaviour of both.
     function setPaceHundredths(value as Number) as Void {
-        setEveryHundredths(CandleMath.paceToEvery(
+        setEveryMillis(CandleMath.paceToEvery(
             CandleMath.clamp(value, MIN_PACE_HUNDREDTHS, MAX_PACE_HUNDREDTHS)));
     }
 
@@ -462,26 +498,51 @@ class candleApp extends Application.AppBase {
     // Public rather than private for one reason: settingsMigratesLegacyPace can
     // only prove the migration by staging Storage and re-running this.
     function loadSettings() as Void {
-        migrateLegacyPace();
-        _everyHundredths = readStoredNumber(
-            EVERY_STORAGE_KEY, MIN_EVERY_HUNDREDTHS, MAX_EVERY_HUNDREDTHS, DEFAULT_EVERY_HUNDREDTHS);
+        migrateStoredInterval();
+        _everyMillis = readStoredNumber(
+            EVERY_STORAGE_KEY, MIN_EVERY_MILLIS, MAX_EVERY_MILLIS, DEFAULT_EVERY_MILLIS);
         _vibeStrength = readStoredNumber(
             STRENGTH_STORAGE_KEY, MIN_VIBE_STRENGTH, MAX_VIBE_STRENGTH, DEFAULT_VIBE_STRENGTH);
         _vibeDuration = readStoredNumber(
             DURATION_STORAGE_KEY, MIN_VIBE_DURATION, MAX_VIBE_DURATION, DEFAULT_VIBE_DURATION);
     }
 
-    // Carry a wearer's measured pace across the unit change, exactly once.
+    // Carry a wearer's measured frequency across BOTH unit changes, at most
+    // once each, so no measurement is ever lost to a storage decision.
     //
-    // A valid value under the new key always wins -- once it exists, whatever
-    // sits under the legacy key is dead data, never read again. Otherwise a
-    // plausible legacy pace is converted and the legacy key deleted, so the
-    // conversion cannot run twice and overwrite a later adjustment. An
-    // implausible legacy value is not a pace and is left where it lies.
-    private function migrateLegacyPace() as Void {
+    // The chain runs newest first and stops at the first thing it can use:
+    //
+    //   1. A valid everyMillis wins outright. Once it exists, both legacy keys
+    //      are dead data and are never read again.
+    //   2. everyHundredths (hundredths of a second) converts by a clean x10.
+    //      Its whole old range is valid, so there is no plausibility window --
+    //      any number the old build could have written is a real interval. It
+    //      is then clamped, because the old range reached down to 0.05 s and
+    //      the new one floors at 3.00 s; a wearer parked below the floor gets
+    //      the floor rather than the default, which is the nearer of the two to
+    //      what they had.
+    //   3. paceHundredths (hundredths of a bpm) is the original model, and it
+    //      DOES need a plausibility window: that build could only write
+    //      4.50-7.00 bpm, so anything outside it is not a pace and is left
+    //      alone rather than converted into nonsense.
+    //
+    // Each legacy key is deleted as it is consumed, so a conversion cannot run
+    // twice and overwrite a later adjustment.
+    private function migrateStoredInterval() as Void {
         var current = Storage.getValue(EVERY_STORAGE_KEY);
         if (current instanceof Number
-                && current >= MIN_EVERY_HUNDREDTHS && current <= MAX_EVERY_HUNDREDTHS) {
+                && current >= MIN_EVERY_MILLIS && current <= MAX_EVERY_MILLIS) {
+            return;
+        }
+
+        var hundredths = Storage.getValue(LEGACY_EVERY_HUNDREDTHS_KEY);
+        if (hundredths instanceof Number
+                && hundredths >= LEGACY_EVERY_MIN && hundredths <= LEGACY_EVERY_MAX) {
+            Storage.setValue(
+                EVERY_STORAGE_KEY,
+                CandleMath.clamp(hundredths * 10, MIN_EVERY_MILLIS, MAX_EVERY_MILLIS));
+            Storage.deleteValue(LEGACY_EVERY_HUNDREDTHS_KEY);
+            Storage.deleteValue(LEGACY_PACE_STORAGE_KEY);
             return;
         }
 

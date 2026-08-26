@@ -151,7 +151,24 @@ module Display {
         return LABEL_BATTERY + " " + percent.toString() + "%";
     }
 
-    // The settings screen's slot: which build this is.
+    // The settings screen's way out, drawn along its bottom band.
+    //
+    // A visible control rather than a gesture, and that is the whole point:
+    // this screen used to be popped by Back, which the firmware forges for a
+    // right swipe, so a sleeve across the glass would close it mid-adjustment.
+    // Back is swallowed here now, exactly as on the main screen, and this word
+    // is what replaces it. The main screen could answer a swallowed Back with a
+    // hint naming a held button; there is no held gesture for "go back", so
+    // this screen answers with a target instead.
+    //
+    // It is drawn in every build. The version above it is a debug instrument
+    // and vanishes on a Store install; this does not, because on a Store
+    // install it is the only way out anybody can see.
+    function backLabel() as String {
+        return "BACK";
+    }
+
+    // The settings screen's top slot: which build this is.
     //
     // A sideload cannot be verified from the host at all -- MTP exposes no
     // sizes and the directory listing lies in both directions -- so on a

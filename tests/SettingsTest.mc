@@ -31,7 +31,7 @@ import Toybox.Test;
 (:test)
 function settingsVibeProfileTracksSettingChanges(logger as Test.Logger) as Boolean {
     var app = getApp();
-    var savedEvery = app.getEveryHundredths();
+    var savedEvery = app.getEveryMillis();
     var savedStrength = app.getVibrationStrength();
     var savedDuration = app.getVibrationDuration();
 
@@ -81,20 +81,20 @@ function settingsVibeProfileTracksSettingChanges(logger as Test.Logger) as Boole
         // The cue timer must follow the interval while it is running.
         app.startTimer();
         Test.assertEqualMessage(
-            app.getTimerPeriodMillis(), CandleMath.intervalMillis(app.getEveryHundredths()),
+            app.getTimerPeriodMillis(), app.getEveryMillis(),
             "the timer did not start at the current interval");
 
-        app.setEveryHundredths(600);
+        app.setEveryMillis(6000);
         Test.assertEqualMessage(
-            app.getTimerPeriodMillis(), CandleMath.intervalMillis(600),
+            app.getTimerPeriodMillis(), 6000,
             "an interval change did not restart the cue timer -- the cadence would not change");
-        app.setEveryHundredths(450);
+        app.setEveryMillis(4500);
         Test.assertEqualMessage(
-            app.getTimerPeriodMillis(), CandleMath.intervalMillis(450),
+            app.getTimerPeriodMillis(), 4500,
             "the cue timer kept the previous interval");
         logger.debug(
-            "600 -> " + CandleMath.intervalMillis(600) + " ms, 450 -> " +
-            CandleMath.intervalMillis(450) + " ms");
+            "cue timer follows the interval: 6000 ms then " +
+            app.getTimerPeriodMillis() + " ms");
 
         // A stopped timer reports no period, so a non-zero reading above cannot
         // be a leftover from an earlier start.
@@ -102,7 +102,7 @@ function settingsVibeProfileTracksSettingChanges(logger as Test.Logger) as Boole
         Test.assertEqualMessage(
             app.getTimerPeriodMillis(), 0, "a stopped timer still reports a period");
     } finally {
-        app.setEveryHundredths(savedEvery);
+        app.setEveryMillis(savedEvery);
         app.setVibrationStrength(savedStrength);
         app.setVibrationDuration(savedDuration);
         app.startTimer();
@@ -117,13 +117,13 @@ function settingsRangesAndStepsAreCoherent(logger as Test.Logger) as Boolean {
     var app = getApp();
 
     Test.assertMessage(
-        app.MIN_EVERY_HUNDREDTHS < app.MAX_EVERY_HUNDREDTHS, "the interval range is inverted");
+        app.MIN_EVERY_MILLIS < app.MAX_EVERY_MILLIS, "the interval range is inverted");
     Test.assertMessage(
         app.MIN_VIBE_STRENGTH < app.MAX_VIBE_STRENGTH, "the strength range is inverted");
     Test.assertMessage(
         app.MIN_VIBE_DURATION < app.MAX_VIBE_DURATION, "the length range is inverted");
 
-    Test.assertMessage(app.EVERY_STEP > 0, "the interval step must advance");
+    Test.assertMessage(app.EVERY_STEP_MILLIS > 0, "the interval step must advance");
     Test.assertMessage(app.DURATION_STEP > 0, "the length step must advance");
 
     // POWER walks a two-zone ladder instead of a single step. What must hold:
@@ -158,20 +158,20 @@ function settingsRangesAndStepsAreCoherent(logger as Test.Logger) as Boolean {
     // Pin the RELATIONSHIP, not the constants, so the ranges stay free to be
     // re-argued as long as they are re-argued together.
     Test.assertEqualMessage(
-        app.MIN_EVERY_HUNDREDTHS, CandleMath.paceToEvery(app.MAX_PACE_HUNDREDTHS),
+        app.MIN_EVERY_MILLIS, CandleMath.paceToEvery(app.MAX_PACE_HUNDREDTHS),
         "the interval floor must be exactly the fastest pace's own interval");
     Test.assertEqualMessage(
-        app.MAX_EVERY_HUNDREDTHS, CandleMath.paceToEvery(app.MIN_PACE_HUNDREDTHS),
+        app.MAX_EVERY_MILLIS, CandleMath.paceToEvery(app.MIN_PACE_HUNDREDTHS),
         "the interval ceiling must be exactly the slowest pace's own interval");
 
     // The 50 ms minimum has not gone away, it has stopped being the binding
     // constraint. The floor may never go under it whatever the pace ceiling is
     // argued to.
     Test.assertMessage(
-        CandleMath.intervalMillis(app.MIN_EVERY_HUNDREDTHS) >= 50,
+        app.MIN_EVERY_MILLIS >= 50,
         "the interval floor is under the platform's 50 ms Timer minimum");
     Test.assertEqualMessage(
-        CandleMath.intervalMillis(app.MAX_EVERY_HUNDREDTHS), 15000,
+        app.MAX_EVERY_MILLIS, 15000,
         "the interval ceiling is 15 s between cues");
 
     // A 0.1 bpm tap only moves the stored interval while 3000/b^2 >= 1, i.e.
@@ -186,8 +186,8 @@ function settingsRangesAndStepsAreCoherent(logger as Test.Logger) as Boolean {
 
     // A default outside its own range would be silently replaced on first run.
     Test.assertEqualMessage(
-        CandleMath.clamp(app.DEFAULT_EVERY_HUNDREDTHS, app.MIN_EVERY_HUNDREDTHS, app.MAX_EVERY_HUNDREDTHS),
-        app.DEFAULT_EVERY_HUNDREDTHS, "the default interval is outside the interval range");
+        CandleMath.clamp(app.DEFAULT_EVERY_MILLIS, app.MIN_EVERY_MILLIS, app.MAX_EVERY_MILLIS),
+        app.DEFAULT_EVERY_MILLIS, "the default interval is outside the interval range");
     Test.assertEqualMessage(
         CandleMath.clamp(app.DEFAULT_VIBE_STRENGTH, app.MIN_VIBE_STRENGTH, app.MAX_VIBE_STRENGTH),
         app.DEFAULT_VIBE_STRENGTH, "the default strength is outside the strength range");
@@ -201,7 +201,7 @@ function settingsRangesAndStepsAreCoherent(logger as Test.Logger) as Boolean {
     // allowed to move; the ladder is the property that must hold whatever the
     // floor is tuned to.
     Test.assertEqualMessage(
-        (app.MAX_EVERY_HUNDREDTHS - app.MIN_EVERY_HUNDREDTHS) % app.EVERY_STEP, 0,
+        (app.MAX_EVERY_MILLIS - app.MIN_EVERY_MILLIS) % app.EVERY_STEP_MILLIS, 0,
         "the interval step does not divide the interval range");
     Test.assertEqualMessage(
         (app.MAX_PACE_HUNDREDTHS - app.MIN_PACE_HUNDREDTHS) % app.PACE_STEP, 0,
@@ -214,12 +214,12 @@ function settingsRangesAndStepsAreCoherent(logger as Test.Logger) as Boolean {
     // value the taps can come back to. A default one step beside the ladder is
     // how the strength scale ran on odd percents for as long as it did.
     Test.assertEqualMessage(
-        (app.DEFAULT_EVERY_HUNDREDTHS - app.MIN_EVERY_HUNDREDTHS) % app.EVERY_STEP, 0,
+        (app.DEFAULT_EVERY_MILLIS - app.MIN_EVERY_MILLIS) % app.EVERY_STEP_MILLIS, 0,
         "the default interval is off the interval ladder");
     // ...and off the PACE row's ladder too, since the default is the one value
     // both rows are guaranteed to show a fresh install.
     Test.assertEqualMessage(
-        (CandleMath.everyToPace(app.DEFAULT_EVERY_HUNDREDTHS) - app.MIN_PACE_HUNDREDTHS)
+        (CandleMath.everyToPace(app.DEFAULT_EVERY_MILLIS) - app.MIN_PACE_HUNDREDTHS)
             % app.PACE_STEP, 0,
         "the default interval reads as a pace that is off the pace ladder");
     Test.assertEqualMessage(
@@ -249,23 +249,23 @@ function settingsRangesAndStepsAreCoherent(logger as Test.Logger) as Boolean {
 (:test)
 function settingsStepsWalkEveryRangeEndToEnd(logger as Test.Logger) as Boolean {
     var app = getApp();
-    var savedEvery = app.getEveryHundredths();
+    var savedEvery = app.getEveryMillis();
     var savedStrength = app.getVibrationStrength();
     var savedDuration = app.getVibrationDuration();
 
     try {
-        app.setEveryHundredths(app.MIN_EVERY_HUNDREDTHS);
+        app.setEveryMillis(app.MIN_EVERY_MILLIS);
         var taps = 0;
-        while (app.getEveryHundredths() < app.MAX_EVERY_HUNDREDTHS && taps < 1000) {
-            app.setEveryHundredths(app.getEveryHundredths() + app.EVERY_STEP);
+        while (app.getEveryMillis() < app.MAX_EVERY_MILLIS && taps < 1000) {
+            app.setEveryMillis(app.getEveryMillis() + app.EVERY_STEP_MILLIS);
             Test.assertMessage(
-                app.getEveryHundredths() <= app.MAX_EVERY_HUNDREDTHS,
-                "stepping up overshot the interval ceiling: " + app.getEveryHundredths()
+                app.getEveryMillis() <= app.MAX_EVERY_MILLIS,
+                "stepping up overshot the interval ceiling: " + app.getEveryMillis()
             );
             taps += 1;
         }
         Test.assertEqualMessage(
-            app.getEveryHundredths(), app.MAX_EVERY_HUNDREDTHS,
+            app.getEveryMillis(), app.MAX_EVERY_MILLIS,
             "stepping up must reach the interval ceiling"
         );
         logger.debug("interval: " + taps + " taps from floor to ceiling");
@@ -274,15 +274,15 @@ function settingsStepsWalkEveryRangeEndToEnd(logger as Test.Logger) as Boolean {
         // is on it, but 5.70 bpm -> 5.26 s is not). One tap down from just off
         // the floor must land ON the floor, and a single out-of-range request
         // must clamp in one write -- both are the setter's clamp at work.
-        app.setEveryHundredths(app.MIN_EVERY_HUNDREDTHS + 3);
-        app.setEveryHundredths(app.getEveryHundredths() - app.EVERY_STEP);
+        app.setEveryMillis(app.MIN_EVERY_MILLIS + 3);
+        app.setEveryMillis(app.getEveryMillis() - app.EVERY_STEP_MILLIS);
         Test.assertEqualMessage(
-            app.getEveryHundredths(), app.MIN_EVERY_HUNDREDTHS,
+            app.getEveryMillis(), app.MIN_EVERY_MILLIS,
             "stepping down off the ladder must land on the floor, not below or beside it"
         );
-        app.setEveryHundredths(app.MAX_EVERY_HUNDREDTHS + 7);
+        app.setEveryMillis(app.MAX_EVERY_MILLIS + 7);
         Test.assertEqualMessage(
-            app.getEveryHundredths(), app.MAX_EVERY_HUNDREDTHS,
+            app.getEveryMillis(), app.MAX_EVERY_MILLIS,
             "an out-of-range interval must clamp to the ceiling in a single write"
         );
 
@@ -359,12 +359,12 @@ function settingsStepsWalkEveryRangeEndToEnd(logger as Test.Logger) as Boolean {
         );
         logger.debug("length: " + taps + " taps from ceiling to floor");
     } finally {
-        app.setEveryHundredths(savedEvery);
+        app.setEveryMillis(savedEvery);
         app.setVibrationStrength(savedStrength);
         app.setVibrationDuration(savedDuration);
     }
 
-    Test.assertEqualMessage(app.getEveryHundredths(), savedEvery, "the interval was not restored");
+    Test.assertEqualMessage(app.getEveryMillis(), savedEvery, "the interval was not restored");
     Test.assertEqualMessage(
         app.getVibrationStrength(), savedStrength, "the strength was not restored");
     Test.assertEqualMessage(
@@ -385,7 +385,7 @@ function settingsStepsWalkEveryRangeEndToEnd(logger as Test.Logger) as Boolean {
 (:test)
 function settingsMigratesLegacyPace(logger as Test.Logger) as Boolean {
     var app = getApp();
-    var savedEvery = app.getEveryHundredths();
+    var savedEvery = app.getEveryMillis();
 
     try {
         // A plausible legacy pace, no new value yet: converted, persisted
@@ -394,9 +394,9 @@ function settingsMigratesLegacyPace(logger as Test.Logger) as Boolean {
         Storage.setValue(app.LEGACY_PACE_STORAGE_KEY, 571);
         app.loadSettings();
         Test.assertEqualMessage(
-            app.getEveryHundredths(), 525, "5.71 bpm should migrate to a 5.25 s interval");
+            app.getEveryMillis(), 5254, "5.71 bpm should migrate to a 5.254 s interval");
         Test.assertEqualMessage(
-            Storage.getValue(app.EVERY_STORAGE_KEY) as Number, 525,
+            Storage.getValue(app.EVERY_STORAGE_KEY) as Number, 5254,
             "the migrated interval must be persisted, not just held in memory");
         Test.assertMessage(
             Storage.getValue(app.LEGACY_PACE_STORAGE_KEY) == null,
@@ -404,11 +404,11 @@ function settingsMigratesLegacyPace(logger as Test.Logger) as Boolean {
 
         // Both keys present: the new value wins and the legacy key is left
         // exactly as it lies -- it is dead data, not an input.
-        Storage.setValue(app.EVERY_STORAGE_KEY, 700);
+        Storage.setValue(app.EVERY_STORAGE_KEY, 7000);
         Storage.setValue(app.LEGACY_PACE_STORAGE_KEY, 600);
         app.loadSettings();
         Test.assertEqualMessage(
-            app.getEveryHundredths(), 700, "a valid new value must never be overridden");
+            app.getEveryMillis(), 7000, "a valid new value must never be overridden");
         Test.assertEqualMessage(
             Storage.getValue(app.LEGACY_PACE_STORAGE_KEY) as Number, 600,
             "a legacy value beside a valid new one must be left untouched");
@@ -420,7 +420,7 @@ function settingsMigratesLegacyPace(logger as Test.Logger) as Boolean {
         Storage.setValue(app.LEGACY_PACE_STORAGE_KEY, 9999);
         app.loadSettings();
         Test.assertEqualMessage(
-            app.getEveryHundredths(), app.DEFAULT_EVERY_HUNDREDTHS,
+            app.getEveryMillis(), app.DEFAULT_EVERY_MILLIS,
             "an implausible legacy value must fall back to the default");
         Storage.deleteValue(app.LEGACY_PACE_STORAGE_KEY);
 
@@ -428,7 +428,7 @@ function settingsMigratesLegacyPace(logger as Test.Logger) as Boolean {
         Storage.deleteValue(app.EVERY_STORAGE_KEY);
         app.loadSettings();
         Test.assertEqualMessage(
-            app.getEveryHundredths(), app.DEFAULT_EVERY_HUNDREDTHS,
+            app.getEveryMillis(), app.DEFAULT_EVERY_MILLIS,
             "a fresh install must start at the default interval");
     } finally {
         // The setter early-returns on an unchanged value without writing, so
@@ -438,7 +438,7 @@ function settingsMigratesLegacyPace(logger as Test.Logger) as Boolean {
     }
 
     Test.assertEqualMessage(
-        app.getEveryHundredths(), savedEvery, "the interval was not restored");
+        app.getEveryMillis(), savedEvery, "the interval was not restored");
     return true;
 }
 
@@ -474,9 +474,9 @@ function settingsPaceAndEveryAreOneSettingTwoViews(logger as Test.Logger) as Boo
         var every = CandleMath.paceToEvery(p);
 
         Test.assertMessage(
-            every >= app.MIN_EVERY_HUNDREDTHS && every <= app.MAX_EVERY_HUNDREDTHS,
+            every >= app.MIN_EVERY_MILLIS && every <= app.MAX_EVERY_MILLIS,
             "pace " + p + " maps to interval " + every + ", outside " +
-                app.MIN_EVERY_HUNDREDTHS + ".." + app.MAX_EVERY_HUNDREDTHS);
+                app.MIN_EVERY_MILLIS + ".." + app.MAX_EVERY_MILLIS);
 
         Test.assertMessage(
             every != previous,
@@ -494,14 +494,14 @@ function settingsPaceAndEveryAreOneSettingTwoViews(logger as Test.Logger) as Boo
 
     // The endpoints meet exactly, with nothing rounded at either end.
     Test.assertEqualMessage(
-        CandleMath.paceToEvery(app.MAX_PACE_HUNDREDTHS), app.MIN_EVERY_HUNDREDTHS,
+        CandleMath.paceToEvery(app.MAX_PACE_HUNDREDTHS), app.MIN_EVERY_MILLIS,
         "the fastest pace must be exactly the shortest interval");
     Test.assertEqualMessage(
-        CandleMath.paceToEvery(app.MIN_PACE_HUNDREDTHS), app.MAX_EVERY_HUNDREDTHS,
+        CandleMath.paceToEvery(app.MIN_PACE_HUNDREDTHS), app.MAX_EVERY_MILLIS,
         "the slowest pace must be exactly the longest interval");
 
     var intervals = 0;
-    for (var e = app.MIN_EVERY_HUNDREDTHS; e <= app.MAX_EVERY_HUNDREDTHS; e += 1) {
+    for (var e = app.MIN_EVERY_MILLIS; e <= app.MAX_EVERY_MILLIS; e += 1) {
         var pace = CandleMath.everyToPace(e);
         Test.assertMessage(
             pace >= app.MIN_PACE_HUNDREDTHS && pace <= app.MAX_PACE_HUNDREDTHS,
@@ -525,61 +525,61 @@ function settingsPaceAndEveryAreOneSettingTwoViews(logger as Test.Logger) as Boo
 (:test)
 function settingsPaceStepsWalkTheirOwnLadder(logger as Test.Logger) as Boolean {
     var app = getApp();
-    var savedEvery = app.getEveryHundredths();
+    var savedEvery = app.getEveryMillis();
 
     try {
         // From the default, one tap each way must land on the neighbouring rung
         // and come straight back. This is the property that fails if stepRow
         // ever steps from the stored interval instead of the displayed pace.
-        app.setEveryHundredths(app.DEFAULT_EVERY_HUNDREDTHS);
-        var start = CandleMath.everyToPace(app.getEveryHundredths());
+        app.setEveryMillis(app.DEFAULT_EVERY_MILLIS);
+        var start = CandleMath.everyToPace(app.getEveryMillis());
 
         app.stepRow(Rows.PACE, true);
         Test.assertEqualMessage(
-            CandleMath.everyToPace(app.getEveryHundredths()), start + app.PACE_STEP,
+            CandleMath.everyToPace(app.getEveryMillis()), start + app.PACE_STEP,
             "one PACE tap up must land on the next rung");
         app.stepRow(Rows.PACE, false);
         Test.assertEqualMessage(
-            CandleMath.everyToPace(app.getEveryHundredths()), start,
+            CandleMath.everyToPace(app.getEveryMillis()), start,
             "PACE up then down must return to the rung it started on");
 
         // "+" on PACE shortens the interval, where "+" on EVERY lengthens it.
         // Reciprocal units cannot agree on which way is up, and a bpm row whose
         // "+" lowered the bpm would be the wrong fix for that.
-        var before = app.getEveryHundredths();
+        var before = app.getEveryMillis();
         app.stepRow(Rows.PACE, true);
         Test.assertMessage(
-            app.getEveryHundredths() < before,
+            app.getEveryMillis() < before,
             "a faster pace must be a shorter interval: " + before + " -> " +
-                app.getEveryHundredths());
+                app.getEveryMillis());
 
         // Both ends clamp. Walking off either end must stop on the endpoint
         // rather than run past it or wrap.
         app.setPaceHundredths(app.MAX_PACE_HUNDREDTHS);
         app.stepRow(Rows.PACE, true);
         Test.assertEqualMessage(
-            app.getEveryHundredths(), app.MIN_EVERY_HUNDREDTHS,
+            app.getEveryMillis(), app.MIN_EVERY_MILLIS,
             "stepping up at the pace ceiling must stay on the interval floor");
 
         app.setPaceHundredths(app.MIN_PACE_HUNDREDTHS);
         app.stepRow(Rows.PACE, false);
         Test.assertEqualMessage(
-            app.getEveryHundredths(), app.MAX_EVERY_HUNDREDTHS,
+            app.getEveryMillis(), app.MAX_EVERY_MILLIS,
             "stepping down at the pace floor must stay on the interval ceiling");
 
         // An interval left BETWEEN two rungs by an EVERY tap -- which is most of
         // them, since the two ladders line up only at 7.75 bpm. The pace tap
         // must still land on a rung, not on the same off-ladder offset.
-        app.setEveryHundredths(526);
+        app.setEveryMillis(CandleMath.paceToEvery(573));
         app.stepRow(Rows.PACE, true);
         Test.assertEqualMessage(
-            CandleMath.everyToPace(app.getEveryHundredths()) % app.PACE_STEP, 0,
+            CandleMath.everyToPace(app.getEveryMillis()) % app.PACE_STEP, 0,
             "a PACE tap from an off-rung interval must land ON a rung");
     } finally {
-        app.setEveryHundredths(savedEvery);
+        app.setEveryMillis(savedEvery);
     }
 
     Test.assertEqualMessage(
-        app.getEveryHundredths(), savedEvery, "the interval was not restored");
+        app.getEveryMillis(), savedEvery, "the interval was not restored");
     return true;
 }

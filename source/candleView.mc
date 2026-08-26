@@ -57,7 +57,8 @@ class candleView extends WatchUi.View {
     private var _controlRightX as Number = 0;
     private var _screenHeight as Number = 0;
     private var _clockY as Number = 0;
-    private var _versionY as Number = 0;
+    private var _topTextY as Number = 0;
+    private var _bottomSlotY as Number = 0;
 
     function initialize(screen as Number) {
         View.initialize();
@@ -80,9 +81,13 @@ class candleView extends WatchUi.View {
         // for both because the arithmetic is cheaper than the branch, and
         // because a settings screen that ever grows a clock should get a
         // correct anchor rather than the other screen's.
-        _clockY = Layout.clockY(
+        _clockY = Layout.topSlotY(
             dc.getFontHeight(FONT_CLOCK), Layout.editorRowsTop(_rows.size(), height));
-        _versionY = Layout.versionY(height, dc.getFontHeight(FONT_TEXT));
+        // The same band, measured for the smaller font: the settings screen
+        // puts its build version up here where the main screen puts the clock.
+        _topTextY = Layout.topSlotY(
+            dc.getFontHeight(FONT_TEXT), Layout.editorRowsTop(_rows.size(), height));
+        _bottomSlotY = Layout.bottomSlotY(height, dc.getFontHeight(FONT_TEXT));
     }
 
     // Called on every requestUpdate, and by the framework whenever this view
@@ -108,6 +113,7 @@ class candleView extends WatchUi.View {
             drawClock(dc);
             drawMainBottomSlot(dc);
         } else {
+            drawSettingsTopSlot(dc);
             drawSettingsBottomSlot(dc);
         }
     }
@@ -159,22 +165,42 @@ class candleView extends WatchUi.View {
             }
         }
 
-        drawCentered(dc, _versionY, FONT_TEXT, line);
+        drawCentered(dc, _bottomSlotY, FONT_TEXT, line);
     }
 
-    // The settings screen's lower half: which build this is, and nothing else.
-    // Debug-only, and empty in a release build, so the line is not drawn on a
-    // Store install and the screen is its rows and nothing else.
+    // The settings screen's TOP band: which build this is, where the main
+    // screen puts the clock. Debug-only, so a Store install draws nothing here
+    // and the band is simply empty.
     //
-    // It had a second line above it until 2026-08-25 -- the previous run's exit
-    // breadcrumb, which is what caught the firmware forging KEY_ESC. That
-    // question is answered and the instrument is gone; the band above the
-    // version is empty again.
-    private function drawSettingsBottomSlot(dc as Dc) as Void {
+    // It moved up from the bottom to make room for the BACK button, and the
+    // swap reads correctly on its own terms: the version is a label on the
+    // screen, and the thing at the bottom is now something you press.
+    private function drawSettingsTopSlot(dc as Dc) as Void {
         var version = Display.buildLine(getApp().APP_VERSION, Display.showsBuildVersion());
         if (version.length() > 0) {
-            drawCentered(dc, _versionY, FONT_TEXT, version);
+            drawCentered(dc, _topTextY, FONT_TEXT, version);
         }
+    }
+
+    // The settings screen's bottom band: the BACK button, and it is the reason
+    // this screen can stop trusting Back at all.
+    //
+    // The firmware forges KEY_ESC for a right swipe -- the finding that took
+    // the exit off Back on the main screen -- and the same forged key was
+    // popping this screen mid-adjustment whenever a sleeve crossed the glass.
+    // The main screen's answer was to move the exit to a HELD button; this
+    // screen's answer is a target you can see, because unlike "quit" there is
+    // no held gesture that means "go back" and inventing one would be a hidden
+    // control on a screen that has room for a visible one.
+    //
+    // Drawn in every build, unlike the version above it. It is not a diagnostic
+    // -- it is the way out, and on a Store install it is the ONLY visible one.
+    // The upper button still pops the screen too, which is the gesture that
+    // opened it, but nothing on the glass says so.
+    //
+    // Its tap zone is the whole band, not the width of the word: Layout.isBackTap.
+    private function drawSettingsBottomSlot(dc as Dc) as Void {
+        drawCentered(dc, _bottomSlotY, FONT_TEXT, Display.backLabel());
     }
 
     private function drawCentered(

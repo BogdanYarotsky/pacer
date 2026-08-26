@@ -50,7 +50,7 @@ function candleMathClampHandlesASingleValueRange(logger as Test.Logger) as Boole
 function candleMathClampHoldsAcrossEveryRealRange(logger as Test.Logger) as Boolean {
     var app = getApp();
     var ranges = [
-        [app.MIN_EVERY_HUNDREDTHS, app.MAX_EVERY_HUNDREDTHS],
+        [app.MIN_EVERY_MILLIS, app.MAX_EVERY_MILLIS],
         [app.MIN_VIBE_STRENGTH, app.MAX_VIBE_STRENGTH],
         [app.MIN_VIBE_DURATION, app.MAX_VIBE_DURATION]
     ];
@@ -81,52 +81,72 @@ function candleMathClampHoldsAcrossEveryRealRange(logger as Test.Logger) as Bool
 
 // --- cue arithmetic ---------------------------------------------------------
 
-// The setting IS the interval, so the conversion is exactly ×10 -- hundredths
-// of a second to milliseconds -- with nothing to round. The endpoints matter:
-// the floor must land exactly on the platform's 50 ms Timer minimum, which is
-// the reason the floor is the value it is.
+// The EVERY row's taps, SNAPPED to the ladder rather than added to it.
+//
+// This is the fix for a complaint with a very concrete shape: dial the PACE row
+// to 5.73 bpm and the interval is 5236 ms, off the 50 ms grid, so a plain +50
+// walks 5286, 5336, 5386 and never touches a round tenth of a second again --
+// "I can't make it EVERY 5.1s without guessing a proper PACE before that."
+//
+// Snapping is what makes every rung reachable from anywhere. Off the ladder,
+// the tap's own direction decides which side of the nearest rung you land on;
+// on the ladder it is a plain step. Both ends deliberately step OUT of range --
+// the setter's clamp brings them back, exactly as it does for every other row,
+// which is what keeps the endpoints reachable from an off-ladder value.
 (:test)
-function candleMathIntervalIsTenTimesTheValue(logger as Test.Logger) as Boolean {
+function candleMathEveryStepsSnapToTheLadder(logger as Test.Logger) as Boolean {
     var app = getApp();
+    var step = app.EVERY_STEP_MILLIS;
 
-    // Fixed points, not the endpoints. This test is about the conversion being
-    // a clean x10 with nothing to round, so it names values whose milliseconds
-    // are worth stating on their own.
-    //
-    // It used to pin the floor at 50 ms -- the platform's Timer minimum, which
-    // the floor sat on until the PACE row moved it to 3.00 s. That assertion
-    // has not just changed value, it has moved house: what the floor must BE is
-    // a range question and belongs with the other range questions, and
-    // settingsRangesAndStepsAreCoherent now pins it as the reciprocal of the
-    // pace ceiling plus a floor-above-50 ms guard. Two copies of it is how one
-    // of them got left behind here.
+    // Off the ladder: 5.73 bpm, the case that prompted this.
+    var offLadder = CandleMath.paceToEvery(573);
+    logger.debug("5.73 bpm stores as " + offLadder + " ms");
     Test.assertEqualMessage(
-        CandleMath.intervalMillis(app.DEFAULT_EVERY_HUNDREDTHS), 5000,
-        "the default should be one cue every 5000 ms exactly");
+        CandleMath.everyUp(offLadder, step), 5250,
+        "up from an off-ladder interval must land on the rung above");
     Test.assertEqualMessage(
-        CandleMath.intervalMillis(525), 5250, "an off-ladder migrated value converts too");
-    Test.assertEqualMessage(
-        CandleMath.intervalMillis(app.MAX_EVERY_HUNDREDTHS), 15000,
-        "the ceiling is 15 s between cues");
+        CandleMath.everyDown(offLadder, step), 5200,
+        "down from an off-ladder interval must land on the rung below");
 
-    // The endpoints still go through it, and must still be a clean x10 -- the
-    // property, without a second opinion on what the endpoints ought to be.
-    Test.assertEqualMessage(
-        CandleMath.intervalMillis(app.MIN_EVERY_HUNDREDTHS), app.MIN_EVERY_HUNDREDTHS * 10,
-        "the floor does not convert as a clean x10");
-    logger.debug(
-        "floor " + CandleMath.intervalMillis(app.MIN_EVERY_HUNDREDTHS) +
-        " ms, ceiling " + CandleMath.intervalMillis(app.MAX_EVERY_HUNDREDTHS) + " ms");
+    // And from there, plain steps -- three taps down reaches 5.1 s exactly,
+    // which is the thing that could not be done before.
+    Test.assertEqualMessage(CandleMath.everyDown(5200, step), 5150, "5.20 -> 5.15");
+    Test.assertEqualMessage(CandleMath.everyDown(5150, step), 5100, "5.15 -> 5.10");
+    Test.assertEqualMessage(CandleMath.everyUp(5100, step), 5150, "and back up again");
+
+    // Every rung of the whole ladder: one step up then down returns, and the
+    // steps never stall.
+    for (var ms = app.MIN_EVERY_MILLIS; ms <= app.MAX_EVERY_MILLIS; ms += step) {
+        Test.assertEqualMessage(
+            CandleMath.everyDown(CandleMath.everyUp(ms, step), step), ms,
+            "up then down from " + ms + " ms did not return");
+        Test.assertMessage(
+            CandleMath.everyUp(ms, step) > ms, "up from " + ms + " ms did not advance");
+        Test.assertMessage(
+            CandleMath.everyDown(ms, step) < ms, "down from " + ms + " ms did not advance");
+    }
+
+    // The ends step out of range on purpose; the setter clamps them back.
+    Test.assertMessage(
+        CandleMath.everyDown(app.MIN_EVERY_MILLIS, step) < app.MIN_EVERY_MILLIS,
+        "down from the floor must under-run so the clamp can pin it");
+    Test.assertMessage(
+        CandleMath.everyUp(app.MAX_EVERY_MILLIS, step) > app.MAX_EVERY_MILLIS,
+        "up from the ceiling must over-run so the clamp can pin it");
     return true;
 }
 
 // Two cues per breath: the interval is half a breath, so twice the default
 // interval is one full breath -- 10 s, 6 breaths a minute, 0.1 Hz, the Lehrer
 // protocol's canonical frequency.
+//
+// The stored value IS the timer period now, in milliseconds, so this reads it
+// straight. It went through CandleMath.intervalMillis while the stored unit was
+// hundredths of a second; that function would be the identity today and is gone.
 (:test)
 function candleMathTwoCuesPerBreath(logger as Test.Logger) as Boolean {
     var app = getApp();
-    var breathPeriodMs = 2 * CandleMath.intervalMillis(app.DEFAULT_EVERY_HUNDREDTHS);
+    var breathPeriodMs = 2 * app.DEFAULT_EVERY_MILLIS;
     logger.debug("default breath period = " + breathPeriodMs + " ms");
     Test.assertEqualMessage(
         breathPeriodMs, 10000,
@@ -134,19 +154,22 @@ function candleMathTwoCuesPerBreath(logger as Test.Logger) as Boolean {
     return true;
 }
 
-// The bridge from the retired pace model. These are the values real watches
-// can hold: the shipped default, the measured pace that was once the default,
-// its neighbour (which rounds the other way), and both ends of the old band.
-// Migrated values land off the 0.05 s ladder on purpose -- the conversion
-// preserves the wearer's measurement, and the next tap snaps to the ladder via
-// the clamp, exactly like any other off-ladder stored value.
+// The bridge from the retired pace model, which is also the PACE row's own
+// conversion -- one formula, two callers. These are the values real watches can
+// hold: the shipped default, the measured pace that was once the default, its
+// neighbour (which rounds the other way), and both ends of the old band.
+//
+// Migrated values land off the 50 ms ladder on purpose: the conversion
+// preserves the wearer's measurement rather than rounding it to a rung, and
+// CandleMath.everyUp/everyDown are what let the EVERY row walk back onto the
+// ladder from wherever that leaves it.
 (:test)
 function candleMathMigratesLegacyPaceTable(logger as Test.Logger) as Boolean {
-    Test.assertEqualMessage(CandleMath.paceToEvery(600), 500, "6.00 bpm is a 5.00 s interval");
-    Test.assertEqualMessage(CandleMath.paceToEvery(571), 525, "5.71 bpm rounds down to 5.25 s");
-    Test.assertEqualMessage(CandleMath.paceToEvery(570), 526, "5.70 bpm rounds up to 5.26 s");
-    Test.assertEqualMessage(CandleMath.paceToEvery(450), 667, "the old floor becomes 6.67 s");
-    Test.assertEqualMessage(CandleMath.paceToEvery(700), 429, "the old ceiling becomes 4.29 s");
+    Test.assertEqualMessage(CandleMath.paceToEvery(600), 5000, "6.00 bpm is a 5.000 s interval");
+    Test.assertEqualMessage(CandleMath.paceToEvery(571), 5254, "5.71 bpm is 5.254 s");
+    Test.assertEqualMessage(CandleMath.paceToEvery(570), 5263, "5.70 bpm is 5.263 s");
+    Test.assertEqualMessage(CandleMath.paceToEvery(450), 6667, "the old floor becomes 6.667 s");
+    Test.assertEqualMessage(CandleMath.paceToEvery(700), 4286, "the old ceiling becomes 4.286 s");
     return true;
 }
 
@@ -188,7 +211,11 @@ function candleMathTrimsTrailingZeros(logger as Test.Logger) as Boolean {
 (:test)
 function candleMathFormatsEveryReachableInterval(logger as Test.Logger) as Boolean {
     var app = getApp();
-    for (var v = app.MIN_EVERY_HUNDREDTHS; v <= app.MAX_EVERY_HUNDREDTHS; v += 1) {
+    // Sweeps HUNDREDTHS, which is the resolution formatHundredths renders and
+    // the resolution the EVERY row reads at -- the stored value is milliseconds
+    // and formatEvery divides down to here before formatting. The band is the
+    // interval range expressed in that unit.
+    for (var v = app.MIN_EVERY_MILLIS / 10; v <= app.MAX_EVERY_MILLIS / 10; v += 1) {
         var s = CandleMath.formatHundredths(v);
 
         // String.toFloat is documented as Float or Null, so an unparseable
@@ -289,22 +316,32 @@ function candleMathStrengthLadderStepsBothZones(logger as Test.Logger) as Boolea
 // unit or reintroduces a space still changes what the screen says.
 (:test)
 function candleMathFormatsEvery(logger as Test.Logger) as Boolean {
+    // Milliseconds in, seconds out. The row reads at hundredths of a second
+    // where the value is stored to the millisecond, so the last two lines here
+    // are the interesting ones: an interval the PACE row put between two
+    // hundredths is ROUNDED for display, not truncated, and the exact value
+    // stays underneath.
     Test.assertEqualMessage(
-        CandleMath.formatEvery(500), "5s", "the default trims to a bare 5s");
+        CandleMath.formatEvery(5000), "5s", "the default trims to a bare 5s");
     Test.assertEqualMessage(
-        CandleMath.formatEvery(510), "5.1s", "one trailing zero comes off");
+        CandleMath.formatEvery(5100), "5.1s", "one trailing zero comes off");
     Test.assertEqualMessage(
-        CandleMath.formatEvery(525), "5.25s", "a migrated measurement keeps both decimals");
+        CandleMath.formatEvery(5250), "5.25s", "a value on the ladder keeps both decimals");
     Test.assertEqualMessage(
-        CandleMath.formatEvery(495), "4.95s", "one step below the default");
+        CandleMath.formatEvery(4950), "4.95s", "one step below the default");
     Test.assertEqualMessage(
-        CandleMath.formatEvery(5), "0.05s", "the floor keeps its leading zero");
+        CandleMath.formatEvery(3050), "3.05s", "just off the floor, leading zero intact");
     Test.assertEqualMessage(
-        CandleMath.formatEvery(1000), "10s", "two digits of whole seconds");
+        CandleMath.formatEvery(10000), "10s", "two digits of whole seconds");
     Test.assertEqualMessage(
-        CandleMath.formatEvery(1495), "14.95s", "the widest string the row can show");
+        CandleMath.formatEvery(14950), "14.95s", "the widest string the row can show");
     Test.assertEqualMessage(
-        CandleMath.formatEvery(1500), "15s", "the ceiling trims clean");
+        CandleMath.formatEvery(15000), "15s", "the ceiling trims clean");
+    Test.assertEqualMessage(
+        CandleMath.formatEvery(CandleMath.paceToEvery(573)), "5.24s",
+        "5.73 bpm is 5236 ms and rounds up for display, not down");
+    Test.assertEqualMessage(
+        CandleMath.formatEvery(5234), "5.23s", "and rounds down when it should");
     return true;
 }
 

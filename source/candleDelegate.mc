@@ -222,6 +222,18 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
             return true;
         }
 
+        // The BACK button, before the rows. It is asked first because it owns
+        // the band BELOW the row block and the row map returns HIT_NONE there
+        // anyway -- the order is about reading, not about resolving a clash.
+        //
+        // Settings only. The main screen's bottom band holds the battery, which
+        // nothing taps, and its way out is a held button rather than a target.
+        if (_screen != Rows.SCREEN_MAIN && isBackTap(clickEvent)) {
+            trace("tap BACK -> settings closed");
+            WatchUi.popView(WatchUi.SLIDE_RIGHT);
+            return true;
+        }
+
         adjustSetting(hitAt(clickEvent));
         return true;
     }
@@ -247,12 +259,27 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
     // does work. The settings screen needs no hint: Back does something visible
     // there, and popping costs a wearer nothing since the cue timer lives in
     // the app and never stopped.
+    // **BACK NEVER DOES ANYTHING, ON EITHER SCREEN**, and the settings screen
+    // joined the main screen in that on 2026-08-25.
+    //
+    // It popped the settings screen until then, on the reasoning that landing
+    // on the main screen costs a wearer nothing. That reasoning was about
+    // deliberate Backs. The forged ones are the problem: a right swipe raises
+    // the same synthesized KEY_ESC here as anywhere, so a sleeve crossing the
+    // glass closed the screen out from under a value being adjusted. Losing
+    // your place mid-adjustment costs more than the pop was ever worth.
+    //
+    // What replaces it is the BACK button along the bottom -- see
+    // Display.backLabel. The main screen arms a hint here instead, because it
+    // has no visible control to point at and a Back that changes nothing on
+    // screen reads as a frozen app. The settings screen needs no hint: the
+    // thing to press is already drawn, permanently, and a hint would have to
+    // cover it to say so.
     function onBack() as Boolean {
         stopRepeat();
 
         if (_screen != Rows.SCREEN_MAIN) {
-            trace("onBack on settings -> settings closed");
-            WatchUi.popView(WatchUi.SLIDE_RIGHT);
+            trace("onBack on settings -> swallowed, tap BACK");
             return true;
         }
 
@@ -306,6 +333,16 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
     // Where a click landed, as a row position and a direction on THIS screen.
     // Layout knows how many rows are under the finger and nothing about what
     // they are; that is the point of the encoding.
+    // Whether a click landed in the settings screen's BACK band. Same width and
+    // height Layout.editorHitAt is given, for the same reason: the delegate maps
+    // taps against Layout.DISPLAY_WIDTH while the view draws with dc.getWidth(),
+    // and layoutDisplayWidthMatchesTheDevice is what keeps those two the same
+    // number.
+    private function isBackTap(clickEvent as WatchUi.ClickEvent) as Boolean {
+        var coordinates = clickEvent.getCoordinates();
+        return Layout.isBackTap(coordinates[1], Layout.DISPLAY_WIDTH, _rows.size());
+    }
+
     private function hitAt(clickEvent as WatchUi.ClickEvent) as Number {
         var coordinates = clickEvent.getCoordinates();
         return Layout.editorHitAt(

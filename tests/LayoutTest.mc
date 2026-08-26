@@ -34,7 +34,7 @@ function everyScreen() as Array<Number> {
 function rowRange(row as Number) as Array<Number> {
     var app = getApp();
     if (row == Rows.EVERY) {
-        return [app.MIN_EVERY_HUNDREDTHS, app.MAX_EVERY_HUNDREDTHS] as Array<Number>;
+        return [app.MIN_EVERY_MILLIS, app.MAX_EVERY_MILLIS] as Array<Number>;
     }
     if (row == Rows.PACE) {
         return [app.MIN_PACE_HUNDREDTHS, app.MAX_PACE_HUNDREDTHS] as Array<Number>;
@@ -47,18 +47,18 @@ function rowRange(row as Number) as Array<Number> {
 
 // How far apart two DISPLAYABLE values of a row are, for the sweeps above.
 //
-// One is right for every row but PACE, and the reason is the note on rowRange:
-// clamping makes every integer in a band reachable, so a row can end up showing
-// any of them. PACE is the exception -- its displayed value never comes from
-// Storage directly, it comes through CandleMath.everyToPace, which snaps to the
-// nearest 0.1 bpm rung. A pace of 2.01 bpm cannot be drawn by any interval the
-// app can hold.
+// It is 1 for every row today, PACE included, so this changes nothing right
+// now -- and it stays because the reason it exists is a live coupling, not a
+// historical one. PACE's displayed value never comes out of Storage directly;
+// it comes through CandleMath.everyToPace, which rounds to the nearest rung.
+// Its rungs are one hundredth of a bpm apart, so every integer in its band IS
+// drawable and the sweep is honest by luck of the step being 1.
 //
-// Sweeping PACE by 1 would therefore measure strings the screen never draws,
-// and they are not harmless fiction: "PACE 2.01bpm" is a character wider than
-// anything real, so the sweep would be policing a budget against a string that
-// does not exist while missing nothing that does. Measure-what-you-draw cuts
-// both ways.
+// Coarsen PACE_STEP and that stops being true immediately: at the 0.1 bpm step
+// this row shipped with for one day, "PACE 2.01bpm" was a string no interval
+// could produce -- and a character wider than anything real, so the sweep would
+// have policed a budget against fiction while missing nothing that existed.
+// Reading the step from the app is what keeps the two in step.
 function rowSweepStep(row as Number) as Number {
     return row == Rows.PACE ? getApp().PACE_STEP : 1;
 }
@@ -201,7 +201,7 @@ function layoutAnchorsAreOnScreen(logger as Test.Logger) as Boolean {
 
     for (var i = 0; i < heights.size(); i += 1) {
         var fontHeight = heights[i] as Number;
-        var y = Layout.clockY(fontHeight, rowsTop);
+        var y = Layout.topSlotY(fontHeight, rowsTop);
         logger.debug("font " + fontHeight + "px -> clock y=" + y + " bottom=" + (y + fontHeight));
 
         Test.assertMessage(y >= 0, "clock for a " + fontHeight + "px font is off the top: " + y);
@@ -213,7 +213,7 @@ function layoutAnchorsAreOnScreen(logger as Test.Logger) as Boolean {
 
     // A taller font must grow the clock upwards, never down into the rows.
     Test.assertMessage(
-        Layout.clockY(54, rowsTop) < Layout.clockY(20, rowsTop),
+        Layout.topSlotY(54, rowsTop) < Layout.topSlotY(20, rowsTop),
         "a taller font must raise the clock anchor"
     );
 
@@ -244,7 +244,7 @@ function layoutVersionClearsTheBottomEdgeForAnyFont(logger as Test.Logger) as Bo
 
     for (var i = 0; i < heights.size(); i += 1) {
         var fontHeight = heights[i] as Number;
-        var y = Layout.versionY(h, fontHeight);
+        var y = Layout.bottomSlotY(h, fontHeight);
         var bottom = y + fontHeight;
         logger.debug("font " + fontHeight + "px -> version y=" + y + " bottom=" + bottom);
 
@@ -254,14 +254,14 @@ function layoutVersionClearsTheBottomEdgeForAnyFont(logger as Test.Logger) as Bo
             "version for a " + fontHeight + "px font runs off the bottom: " + bottom + " > " + h
         );
         Test.assertMessage(
-            bottom <= h - Layout.VERSION_BOTTOM_MARGIN,
+            bottom <= h - Layout.BOTTOM_SLOT_MARGIN,
             "version for a " + fontHeight + "px font eats into the bottom margin"
         );
     }
 
     // A taller font must move the line up, never push it down into the edge.
     Test.assertMessage(
-        Layout.versionY(h, 54) < Layout.versionY(h, 20),
+        Layout.bottomSlotY(h, 54) < Layout.bottomSlotY(h, 20),
         "a taller font must raise the version anchor"
     );
     return true;
@@ -443,7 +443,7 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     // layoutEveryClockMinuteFits is the exhaustive version of this line.
     var mainRowsTop = Layout.editorRowsTop(Rows.forScreen(Rows.SCREEN_MAIN).size(), h);
     assertLineFits(
-        dc, Layout.clockY(clockHeight, mainRowsTop),
+        dc, Layout.topSlotY(clockHeight, mainRowsTop),
         ClockText.formatTime(23, 59, true), clockFont, "clock");
 
     // Each screen's rows at their widest reachable value, composed exactly as
@@ -489,7 +489,7 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     // Display.showsBuildVersion(), which always answers true here: tests compile
     // with -t and that is a debug build. Passing the flag is what keeps the
     // release strings measured by something.
-    var versionY = Layout.versionY(h, textHeight);
+    var bottomSlotY = Layout.bottomSlotY(h, textHeight);
     var appVersion = getApp().APP_VERSION;
     var flags = [ true, false ];
     for (var f = 0; f < flags.size(); f += 1) {
@@ -498,13 +498,29 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
         var warning = Display.vibeWarning(flag);
         logger.debug("main slot: vibrate=" + flag + " -> \"" + warning + "\"");
         assertLineFits(
-            dc, versionY, warning, textFont, "main bottom slot (vibrate=" + flag + ")");
+            dc, bottomSlotY, warning, textFont, "main bottom slot (vibrate=" + flag + ")");
 
+        // The version moved to the settings screen's TOP band when the BACK
+        // button took the bottom one, so it is measured up there now -- against
+        // a different chord, and at the text font's height rather than the
+        // clock's.
         var build = Display.buildLine(appVersion, flag);
-        logger.debug("settings slot: version=" + flag + " -> \"" + build + "\"");
+        var settingsRowsTop = Layout.editorRowsTop(
+            Rows.forScreen(Rows.SCREEN_SETTINGS).size(), h);
+        logger.debug("settings top slot: version=" + flag + " -> \"" + build + "\"");
         assertLineFits(
-            dc, versionY, build, textFont, "settings bottom slot (version=" + flag + ")");
+            dc, Layout.topSlotY(textHeight, settingsRowsTop), build, textFont,
+            "settings top slot (version=" + flag + ")");
     }
+
+    // The BACK button, which is drawn in EVERY build -- unlike the version
+    // above it. On a Store install it is the only way off this screen that
+    // anything on the glass tells you about, so a clipped one would strand a
+    // wearer on the settings screen with a Back key that has stopped working.
+    var back = Display.backLabel();
+    logger.debug(
+        "BACK label \"" + back + "\" is " + dc.getTextWidthInPixels(back, textFont) + "px");
+    assertLineFits(dc, bottomSlotY, back, textFont, "settings BACK button");
 
     // The exit hint takes the same slot for two seconds after a Back. Back does
     // not exit any more, so this string is the only feedback a Back produces --
@@ -517,7 +533,7 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     var hint = Display.exitHint();
     logger.debug(
         "exit hint \"" + hint + "\" is " + dc.getTextWidthInPixels(hint, textFont) + "px");
-    assertLineFits(dc, versionY, hint, textFont, "exit hint");
+    assertLineFits(dc, bottomSlotY, hint, textFont, "exit hint");
 
     // Every charge the battery line can show, not a sample of them. One digit,
     // two digits and three all render here, and the widest is not guessable
@@ -526,7 +542,7 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     var widestBatteryPx = 0;
     for (var p = 0; p <= 100; p += 1) {
         var line = Display.batteryLine(p);
-        assertLineFits(dc, versionY, line, textFont, "battery " + p);
+        assertLineFits(dc, bottomSlotY, line, textFont, "battery " + p);
         var px = dc.getTextWidthInPixels(line, textFont);
         if (px > widestBatteryPx) {
             widestBatteryPx = px;
@@ -542,7 +558,7 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     // this slot exists to prevent.
     var combined = widestBattery + "  " + Display.vibeWarning(false);
     var combinedPx = dc.getTextWidthInPixels(combined, textFont);
-    var chord = Layout.halfChordAt(versionY + textHeight, w, h) * 2;
+    var chord = Layout.halfChordAt(bottomSlotY + textHeight, w, h) * 2;
     logger.debug(
         "battery + warning on one line would be " + combinedPx +
         "px against a " + chord + "px chord");
@@ -563,8 +579,8 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     var lastRowBottom = Layout.editorRowCenter(mainRows.size() - 1, mainRows.size(), h) +
         Layout.CONTROL_RADIUS + Layout.CONTROL_PEN;
     Test.assertMessage(
-        versionY >= lastRowBottom,
-        "the version line overlaps the last editor row: version at " + versionY +
+        bottomSlotY >= lastRowBottom,
+        "the version line overlaps the last editor row: version at " + bottomSlotY +
             ", the row's controls end at " + lastRowBottom
     );
 
@@ -585,7 +601,7 @@ function layoutEveryClockMinuteFits(logger as Test.Logger) as Boolean {
     var dc = (bmp as Graphics.BufferedBitmap).getDc();
 
     var clockFont = Graphics.FONT_MEDIUM;
-    var y = Layout.clockY(
+    var y = Layout.topSlotY(
         dc.getFontHeight(clockFont),
         Layout.editorRowsTop(Rows.forScreen(Rows.SCREEN_MAIN).size(), h));
     var formats = [ true, false ];
@@ -897,5 +913,67 @@ function layoutControlGlyphsAreSymmetricAndCentred(logger as Test.Logger) as Boo
         Layout.GLYPH_LENGTH * 3 >= diameter,
         "the glyph is " + Layout.GLYPH_LENGTH + "px across a " + diameter +
             "px circle, which reads as a speck");
+    return true;
+}
+
+// The settings screen's BACK button: where it can be tapped, and where it
+// cannot.
+//
+// The zone is the whole band below the row block, which makes it a large target
+// for a thumb -- but "large" is only safe if it stops exactly where the rows
+// stop. A zone that crept up by a row height would eat the bottom row's
+// controls and a tap meant for "-" would leave the screen instead.
+//
+// It exists because Back is swallowed on this screen now. The firmware forges
+// KEY_ESC for a right swipe, so a sleeve across the glass was closing the
+// screen out from under a value being adjusted; this is the visible control
+// that replaced the gesture, and if it stops being tappable the screen's only
+// remaining exit is the upper button, which nothing on the glass mentions.
+(:test)
+function layoutBackTapCoversTheBandBelowTheRows(logger as Test.Logger) as Boolean {
+    var h = LayoutTestConst.VA5_H;
+    var rows = Rows.forScreen(Rows.SCREEN_SETTINGS);
+    var count = rows.size();
+    var rowsBottom = Layout.editorRowsTop(count, h) + (count * Layout.EDITOR_ROW_HEIGHT);
+    logger.debug("settings rows end at y=" + rowsBottom + ", BACK band is " +
+        (h - rowsBottom) + "px tall");
+
+    // The boundary is inclusive on the BACK side and exclusive on the rows'.
+    Test.assertMessage(
+        Layout.isBackTap(rowsBottom, h, count),
+        "the first row of pixels below the rows must be a BACK tap");
+    Test.assertMessage(
+        !Layout.isBackTap(rowsBottom - 1, h, count),
+        "the last row of pixels belonging to the rows must NOT be a BACK tap");
+    Test.assertMessage(
+        Layout.isBackTap(h - 1, h, count), "the bottom edge must be a BACK tap");
+
+    // Nothing above the row block is ever a BACK tap -- on the settings screen
+    // that band holds the version, and on the main screen the clock.
+    Test.assertMessage(
+        !Layout.isBackTap(0, h, count), "the top of the screen must not be a BACK tap");
+    Test.assertMessage(
+        !Layout.isBackTap(h / 2, h, count), "the centre row must not be a BACK tap");
+
+    // The band has to clear the bottom row's controls, which reach lower than
+    // its text does, or a thumb aiming at "-" would land on BACK.
+    var lastRowBottom = Layout.editorRowCenter(count - 1, count, h) +
+        Layout.CONTROL_RADIUS + Layout.CONTROL_PEN;
+    Test.assertMessage(
+        rowsBottom >= lastRowBottom,
+        "the BACK band starts at " + rowsBottom + " but the row controls reach " +
+            lastRowBottom);
+
+    // And the word drawn in it has to sit inside the band, not above it.
+    var ref = Graphics.createBufferedBitmap(
+        {:width => LayoutTestConst.VA5_W, :height => h});
+    var bmp = ref.get();
+    Test.assertMessage(bmp != null, "could not create a buffered bitmap to measure text with");
+    var dc = (bmp as Graphics.BufferedBitmap).getDc();
+    var textHeight = dc.getFontHeight(Graphics.FONT_XTINY);
+    Test.assertMessage(
+        Layout.bottomSlotY(h, textHeight) >= rowsBottom,
+        "the BACK label is drawn at " + Layout.bottomSlotY(h, textHeight) +
+            ", above its own tap band at " + rowsBottom);
     return true;
 }

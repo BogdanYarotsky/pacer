@@ -30,68 +30,88 @@ module CandleMath {
         return value;
     }
 
-    // Milliseconds between vibration cues.
+    // THE STORED UNIT IS MILLISECONDS, and that is forced arithmetic rather
+    // than taste. It was hundredths of a second until the PACE row's step went
+    // to 0.01 bpm, which is the precision Yudemon reports a resonance frequency
+    // at, and hundredths cannot hold it: 205 of the 801 rungs between 2.00 and
+    // 10.00 bpm collide with their neighbour, the first pair being 5.53 and
+    // 5.54 bpm, which both round to 5.42 s. Two hundred dead taps, starting in
+    // the middle of the resonance band. In milliseconds all 801 are distinct
+    // with 3 ms to spare at the tightest, which is 8.75 bpm.
     //
-    // The setting IS the cue interval, in hundredths of a second, so this is a
-    // straight unit conversion with no rounding to go wrong. It used to be a
-    // division -- the setting was breaths per minute and the screen translated
-    // -- and retiring that translation is the point: the EVERY row shows the
-    // bare number this function is fed.
+    // The cue timer takes milliseconds, so the stored number is now the number
+    // the timer runs and `intervalMillis` is gone -- it converted hundredths to
+    // milliseconds and would be the identity today.
     //
     // Each breath still gets two cues, one at each turn-around, so the interval
-    // is half a breath: EVERY 5s is 10 s per breath, 0.1 Hz.
-    //
-    // The two cues are identical on purpose. With an equal I:E ratio the
-    // boundaries are interchangeable, so what the wrist feels is a metronome at
-    // twice the breath rate, carrying no phase at all -- which is exactly what
-    // lets you rejoin on any pulse. Read AGENTS.md before "improving" that.
-    function intervalMillis(everyHundredths as Number) as Number {
-        return everyHundredths * 10;
-    }
+    // is half a breath: EVERY 5s is 10 s per breath, 0.1 Hz. The two cues are
+    // identical on purpose -- with an equal I:E ratio the boundaries are
+    // interchangeable, so the wrist feels a metronome at twice the breath rate
+    // carrying no phase at all, which is what lets you rejoin on any pulse.
+    // Read AGENTS.md before "improving" that.
 
-    // Interval hundredths from breaths-per-minute hundredths.
+    // Interval milliseconds from breaths-per-minute hundredths.
     //
-    // Two cues per breath, so seconds between cues = 30 / bpm, and in
-    // hundredths of each unit:
-    //     (3000000 / paceHundredths) ms / 10  ==  300000 / paceHundredths
+    // Two cues per breath, so seconds between cues = 30 / bpm, and in each
+    // unit's own hundredths and milliseconds:
+    //     everyMillis = 3000000 / paceHundredths
     // The + 0.5 rounds to nearest, because Float.toNumber() truncates.
     //
-    // The constant is the same in both directions -- everyToPace below divides
-    // by the same 300000 -- because the relationship is a reciprocal and not a
-    // scale. That is also why no pair of fixed steps can be even in both units,
-    // and why each row gets the step that suits its own.
+    // The constant is the same in both directions -- everyToPace divides by the
+    // same 3000000 -- because the relationship is a reciprocal and not a scale.
+    // That is also why no pair of fixed steps can be even in both units, and
+    // why each row gets the step that suits its own.
     //
     // This was `legacyPaceToEvery`, the one-time bridge from the retired pace
     // model whose STORED unit was bpm hundredths. That model came back on
     // 2026-08-25 as a second view rather than a second key, and the migration
-    // now calls the same function the PACE row does. There was never a second
+    // calls the same function the PACE row does. There was never a second
     // formula here, only a second caller.
     function paceToEvery(paceHundredths as Number) as Number {
-        return ((300000.0 / paceHundredths) + 0.5).toNumber();
+        return ((3000000.0 / paceHundredths) + 0.5).toNumber();
     }
 
-    // The PACE row's value for a given interval, snapped to the 0.1 bpm ladder.
+    // The PACE row's value for a given interval, to the nearest 0.01 bpm.
     //
-    // The snap is what makes the row displayable: an interval the EVERY row set
-    // is under no obligation to sit on a bpm rung -- 5.26 s is 5.7034 bpm --
-    // and the row shows one decimal. Rounding to the nearest rung is also what
-    // makes a PACE tap reversible, because candleApp.stepRow steps from the
-    // value on the glass rather than from the one in Storage. Stepping from the
-    // stored interval instead would let "+" then "-" land somewhere else.
+    // Rounding to the nearest rung is what makes a PACE tap reversible, because
+    // candleApp.stepRow steps from the value on the glass rather than from the
+    // one in Storage. Stepping from the stored interval instead would let "+"
+    // then "-" land somewhere else.
+    //
+    // It rounds ONCE, at the resolution the row shows. The earlier 0.1 bpm
+    // version had to round to a hundredth and then snap to a tenth, and got 60
+    // of 1201 intervals wrong by a whole rung for it. At 0.01 bpm the rung IS
+    // the hundredth, so there is nothing to snap and nothing to double-round --
+    // the step going finer made this function simpler, not harder.
     //
     // Every rung from 2.00 to 10.00 bpm maps to a distinct interval and
-    // survives the round trip back -- settingsPaceAndEveryAreOneSettingTwoViews
-    // walks all 81 of them rather than sampling.
+    // survives the round trip back; settingsPaceAndEveryAreOneSettingTwoViews
+    // walks all 801 of them rather than sampling.
+    function everyToPace(everyMillis as Number) as Number {
+        return ((3000000.0 / everyMillis) + 0.5).toNumber();
+    }
+
+    // One tap of the EVERY row's "-" or "+", SNAPPED to the ladder.
     //
-    // **It rounds ONCE, and that is not a micro-optimisation.** The obvious
-    // spelling is to round to the nearest hundredth of a bpm and then snap that
-    // to the nearest rung, and it is wrong 60 times in the 1201 intervals this
-    // range holds: an interval of 3.11 s is 9.646 bpm, which the double round
-    // lifts to 9.65 and then to 9.7, a whole rung past the nearest one. So
-    // 30000/everyHundredths is taken as the pace in TENTHS of a bpm, rounded
-    // there, and scaled up -- one rounding, at the resolution the row shows.
-    function everyToPace(everyHundredths as Number) as Number {
-        return ((30000.0 / everyHundredths) + 0.5).toNumber() * 10;
+    // This is the same shape as strengthUp/strengthDown below and exists for a
+    // sharper version of the same reason. Adding the step to the current value
+    // is only sound while the current value is on the ladder, and the PACE row
+    // guarantees it is not: dial 5.73 bpm and the interval is 5237 ms, so a
+    // plain +50 walks 5287, 5337, 5387 and never touches a round tenth again.
+    // The wearer's own words for it: "I can't make it EVERY 5.1s without
+    // guessing a proper PACE before that."
+    //
+    // Integer division snaps to the rung below, and the tap's own direction
+    // decides which side of it you land: up from 5237 ms is 5250, down is 5200.
+    // From then on the value is on the ladder and the steps are plain again.
+    // The ladder is anchored at zero rather than at the floor, which is what
+    // keeps both range endpoints on it -- 3000 and 15000 are both multiples.
+    function everyUp(everyMillis as Number, step as Number) as Number {
+        return ((everyMillis / step) + 1) * step;
+    }
+
+    function everyDown(everyMillis as Number, step as Number) as Number {
+        return ((everyMillis - 1) / step) * step;
     }
 
     // Render an integer number of hundredths as a decimal, with no trailing
@@ -136,8 +156,16 @@ module CandleMath {
     // circles, so it drew on top of both of them. The budget is
     // Layout.editorTextMaxWidth and the guard is layoutEveryReachableValueFits
     // -- this is not a free string to lengthen.
-    function formatEvery(everyHundredths as Number) as String {
-        return formatHundredths(everyHundredths) + "s";
+    // It reads at hundredths of a second, where the stored value is
+    // milliseconds. That is a readout rounding and not a loss: the EVERY ladder
+    // is 50 ms, so every value this row can set itself shows exactly. Only an
+    // interval the PACE row put there can land between two hundredths -- 5.73
+    // bpm is 5237 ms, drawn as "5.24s" -- and the underlying number stays
+    // exact underneath it. Three decimals would be honest and would also make
+    // this the widest line on the screen to report a millisecond nobody is
+    // pacing to.
+    function formatEvery(everyMillis as Number) as String {
+        return formatHundredths(((everyMillis / 10.0) + 0.5).toNumber()) + "s";
     }
 
     // The PACE row's value: the same cue rate in breaths per minute.

@@ -60,26 +60,41 @@ clock and the battery — and both are repainted once a minute:
 The bottom line shows the charge left, `VIBE OFF` if the watch cannot vibrate,
 or `HOLD TO EXIT` for two seconds after you press Back.
 
-**Press the upper button for the interval.** It is the one setting you measure
-once and then leave alone, so it lives on a screen of its own rather than costing
-the other two a third of the glass. Press the upper button again, or Back, or
-swipe right, to return.
+**Press the upper button for the pace.** It is the setting you measure once and
+then leave alone, so it lives on a screen of its own rather than costing the
+other two a third of the glass. **Tap `BACK` to return** — the whole bottom of
+the screen is the button, not just the word — or press the upper button again.
+
+Back and a right swipe do nothing here, exactly as on the main screen. That is
+the same firmware quirk described below: a right swipe arrives as a real button
+press, so a sleeve across the glass used to close this screen out from under the
+value you were adjusting.
 
 ```
+                    v0.29
 
 
         (−)      EVERY 5s        (+)
 
+        (−)     PACE 6bpm        (+)
 
-                    v0.24
+
+                    BACK
 ```
 
 | Setting | Where | Default | Range | Step per tap |
 | --- | --- | ---: | ---: | ---: |
 | Vibration strength — the `POWER` row | main | 20% | 1–100% | 5%, and 1% at 5% and below |
 | Vibration length — the `PULSE` row | main | 100 ms | 10–250 ms | 10 ms |
-| Seconds between cues — the `EVERY` row | upper button | 5.00 s | 3–15 s | 0.05 s |
-| Breaths per minute — the `PACE` row | upper button | 6.0 bpm | 2–10 bpm | 0.1 bpm |
+| Seconds between cues — the `EVERY` row | upper button | 5.00 s | 3–15 s | 0.05 s, snapped |
+| Breaths per minute — the `PACE` row | upper button | 6.00 bpm | 2–10 bpm | 0.01 bpm |
+
+**The two steps do different jobs.** `PACE` is the precision instrument: 0.01 bpm
+is what an assessment tool like Yudemon reports, so whatever number it hands you
+goes in verbatim. `EVERY` is the coarse one, and its taps **snap to the ladder**
+rather than adding to the current value — so after `PACE` leaves the interval at
+5.236 s, one tap down gives you 5.20 s and the next 5.15 s, instead of walking
+5.186, 5.136 and never touching a round tenth again.
 
 `EVERY` is the number the timer runs, exposed with no translation: one buzz
 every that many seconds. It is half a breath, since there are two cues per

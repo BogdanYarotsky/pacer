@@ -89,17 +89,21 @@ module Layout {
 
     // The tap zone reaches as far inward as the widest row line allows: the
     // centre text must stay inert (reading a value can never change it), so the
-    // zone edge stops short of where that text begins. The widest line either
-    // screen can show is "PULSE 250ms" at 171 px, whose left edge measures
-    // x=110 -- so 108 leaves two pixels and nothing more.
+    // zone edge stops short of where that text begins.
     //
-    // That is one pixel tighter than the 110 this constant held while the
-    // screen had three rows, and 110 was already wrong: the guardrail test
-    // measured only the EVERY row, and PULSE at its ceiling is 3 px wider than
-    // EVERY at its own. layoutHitZonesClearRealisticText now sweeps every row
-    // of every screen, and its failure message says how far back the edge has
-    // to go.
-    const CONTROL_HIT_EDGE = 108;
+    // The widest line either screen can show is now a PACE row -- "PACE
+    // 2.01bpm" at 181 px, whose left edge measures x=105, so 104 leaves one
+    // pixel and nothing more. It was 108 against "PULSE 250ms" at 171 px until
+    // the pace step went to 0.01 bpm and gave that row a second decimal.
+    //
+    // Four pixels off a zone 104 px wide costs nothing that matters: a control
+    // ring ends at x=92, so the zone still reaches 12 px past it. This is the
+    // gap between the text and the ring being audited, not the target.
+    //
+    // Every value of every row on every screen is swept, and the guardrail's
+    // failure message says exactly how far back the edge has to go -- which is
+    // how this number was picked both times it moved.
+    const CONTROL_HIT_EDGE = 104;
 
     // Clearance either side of a row's centred text, between it and the "-" and
     // "+" circles. See editorTextMaxWidth.
@@ -110,7 +114,7 @@ module Layout {
     // code used offsets of 74/46/24 from the bottom, i.e. gaps of 28 and 22 px,
     // while the fonts are 48-54 px tall. Every line overlapped the one above it
     // and all three were clipped by the curve of the display.
-    const VERSION_BOTTOM_MARGIN = 34;
+    const BOTTOM_SLOT_MARGIN = 34;
 
     // editorHitAt encodes its answer as (row * 2) + direction: a POSITION on
     // the screen and which side of it was touched, and deliberately nothing
@@ -126,6 +130,24 @@ module Layout {
     const HIT_NONE = 0;
     const DIRECTION_DECREASE = 1;
     const DIRECTION_INCREASE = 2;
+
+    // The settings screen's BACK button: the whole band below the row block,
+    // edge to edge.
+    //
+    // It is a separate question from editorHitAt rather than another code in
+    // that encoding, and deliberately so -- editorHitAt answers "which row, and
+    // which side of it", and BACK is not a row. Folding it in would put a
+    // non-position into an encoding whose entire point is that it carries
+    // position and nothing else.
+    //
+    // The zone is far larger than the word drawn in it, for the same reason the
+    // control zones are far larger than their rings: this is a thumb on a
+    // 390 px round screen, and the band is empty otherwise. It starts where the
+    // rows end, which on a two-row screen is 93 px of height -- and the row
+    // controls reach only 10 px into that gap, so nothing above it is at risk.
+    function isBackTap(y as Number, height as Number, rowCount as Number) as Boolean {
+        return y >= editorRowsTop(rowCount, height) + (rowCount * EDITOR_ROW_HEIGHT);
+    }
 
     function centerX(width as Number) as Number {
         return width / 2;
@@ -159,7 +181,7 @@ module Layout {
     // The band is passed in rather than read from a constant because it is the
     // main screen's row block that defines it, and Layout does not know which
     // screen it is drawing.
-    function clockY(fontHeight as Number, rowsTop as Number) as Number {
+    function topSlotY(fontHeight as Number, rowsTop as Number) as Number {
         return (rowsTop - fontHeight) / 2;
     }
 
@@ -198,8 +220,8 @@ module Layout {
     // Top edge of the bottom-anchored version line, given the height of the font
     // it will be drawn in. Taking the measured height is what keeps the line
     // clear of the bottom edge whatever font the device ships.
-    function versionY(height as Number, fontHeight as Number) as Number {
-        return height - VERSION_BOTTOM_MARGIN - fontHeight;
+    function bottomSlotY(height as Number, fontHeight as Number) as Number {
+        return height - BOTTOM_SLOT_MARGIN - fontHeight;
     }
 
     // Map only the large edge hit zones to a row and a direction. The centre

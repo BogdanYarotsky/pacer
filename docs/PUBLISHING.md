@@ -10,15 +10,21 @@ file is the order to run it in.
 `just deploy` a debug build and confirm, on the watch:
 
 - [ ] The launcher lists **Candle** with the candle icon.
-- [ ] The version on the **`EVERY` screen** (upper button) matches what deploy
-      printed (the ONLY proof a sideload landed — MTP cannot be verified from
-      the host). The main screen no longer shows it.
-- [ ] The upper button opens the `EVERY` screen and the same button closes it;
-      Back and a right swipe close it too, and **none of the three ends the
-      session** — the cue keeps arriving throughout.
-- [ ] A migrated interval: if the watch previously ran Pacer, the `EVERY`
-      value equals the old pace's cue interval (e.g. 5.71 bpm → `EVERY 5.25s`,
-      which the `PACE` row alongside it reads back as `5.7bpm`).
+- [ ] The version at the **TOP of the settings screen** (upper button) matches
+      what deploy printed (the ONLY proof a sideload landed — MTP cannot be
+      verified from the host). The main screen does not show it.
+- [ ] The upper button opens the settings screen and the same button closes it;
+      **tapping `BACK` closes it too** — anywhere in the bottom band, not just
+      on the word. Neither ends the session; the cue keeps arriving throughout.
+- [ ] **A right swipe and a lower-button press do NOTHING on the settings
+      screen.** This is the fix for the swipe that was closing it mid-adjustment.
+      Adjust a value, brush right across the glass, and the screen must stay put
+      with the value intact.
+- [ ] **A migrated interval.** The stored unit has changed twice, and both
+      conversions still run, so a measured frequency must survive an upgrade
+      rather than reset to `5s`. From the previous build (hundredths of a
+      second) the value carries over unchanged; from the original Pacer build
+      (hundredths of a bpm) 5.71 bpm arrives as `EVERY 5.25s` / `PACE 5.71bpm`.
 - [ ] **The two views of one setting.** On the settings screen a `PACE` tap
       moves `EVERY` and vice versa, in OPPOSITE directions — `PACE +` shortens
       the interval, because more breaths per minute is less time between cues.
@@ -26,6 +32,11 @@ file is the order to run it in.
       `PACE +` and `PACE −` and it must come back to `5.5bpm` exactly, from
       wherever `EVERY` had been left. Both ends clamp, and the two rows' ends
       are the same two places: `2bpm` is `15s`, `10bpm` is `3s`.
+- [ ] **`PACE` steps by 0.01 bpm** — every tap moves it, all the way to
+      `10bpm`. There must be no tap anywhere in the range that changes nothing.
+- [ ] **`EVERY` taps SNAP to the ladder.** Set `PACE 5.73bpm` (`EVERY` reads
+      `5.24s`), then tap `EVERY −` three times: `5.2s`, `5.15s`, `5.1s`. Landing
+      on a round tenth from an off-ladder value is the whole point of this.
 - [ ] The default cadence counts right against a clock: at `EVERY 5s`,
       one buzz per five seconds, twelve per minute.
 - [ ] Tap steps once per tap on all four rows, `PACE` included; hold repeats
@@ -33,7 +44,7 @@ file is the order to run it in.
       range clamp. Nothing on either screen is a fat-finger away from the wrong
       row now that the controls are this large — check that with a thumb, not
       a fingertip.
-- [ ] The clock is current after closing the `EVERY` screen, not a minute stale.
+- [ ] The clock is current after closing the settings screen, not a minute stale.
 - [ ] The bottom line reads `BATTERY nn%` and matches what the watch's own
       controls menu says.
 - [ ] System vibration off → bottom line reads `VIBE OFF` and the battery
@@ -44,7 +55,7 @@ file is the order to run it in.
       the single most important line on this list; if either still closes the
       app, stop and say so rather than working around it.
 - [ ] **HOLDING the lower button exits**, from the main screen and from the
-      `EVERY` screen.
+      settings screen.
 
 The phantom swipe-exit hunt is **CLOSED** and its instrument is gone — the
 `ExitForensics` breadcrumb was deleted on 2026-08-25, once it had caught the
@@ -56,7 +67,7 @@ breadcrumb is a thing to rebuild deliberately, not to go looking for.
 ## 2. Build the artifacts
 
 ```
-just test          # 48 unit tests, must be green
+just test          # 49 unit tests, must be green
 just input-test    # 24 real-input checks, must be green
 just icons         # regenerates publish/store-icon-500.png + launcher icon
 just shot-release  # the screen a Store install shows: no version line
@@ -71,7 +82,7 @@ whatever settings the previous run left it holding, so the shot is of a watch
 someone has already fiddled with — today's read `POWER 100%` and `PULSE 240ms`
 against defaults of 20% and 100 ms. A listing screenshot should show the
 defaults a new install starts on: `POWER 20%`, `PULSE 100ms`, `EVERY 5s` and
-`PACE 6bpm` on the second screen. Tap them back in the simulator and re-shoot;
+`PACE 6bpm` on the settings screen. Tap them back in the simulator and re-shoot;
 the tests restore what they find and cannot be blamed for this.
 
 ## 3. The store form
@@ -97,8 +108,9 @@ Description — cover, in roughly this order:
    Lehrer protocol's canonical frequency.
 3. That resonance frequency is individual: measure yours with a tool built
    for it — **Yudemon** or **Elite HRV** — and type the breathing rate it
-   reports straight into the `PACE` row. No arithmetic: `PACE` (2–10 bpm in
-   0.1 steps) and `EVERY` (3–15 s in 0.05 s steps) are the same setting in the
+   reports straight into the `PACE` row. No arithmetic, and no rounding: `PACE`
+   matches the 0.01 bpm precision those tools report. `PACE` (2–10 bpm in
+   0.01 steps) and `EVERY` (3–15 s in 0.05 s steps) are the same setting in the
    two units, on one screen, each following the other. Pulse length and
    strength adjust down to the hardware's own floor.
 4. How to drive it, because two things here are unguessable: strength and
@@ -106,8 +118,10 @@ Description — cover, in roughly this order:
    the interval, and **quitting is a HOLD of the lower button** — Back does not
    exit, because this watch's firmware fakes a button press for a right swipe
    and Candle would otherwise end your session when a sleeve touched the glass.
-5. Lock the screen during a session (**hold** the upper button → Lock Screen).
-6. Free, open source, MIT.
+5. Getting back from the settings screen is a tap on `BACK` along its bottom,
+   or the upper button again — Back and swipes do nothing on either screen.
+6. Lock the screen during a session (**hold** the upper button → Lock Screen).
+7. Free, open source, MIT.
 
 ## 4. After approval
 
@@ -115,8 +129,9 @@ Description — cover, in roughly this order:
       sideload — note: uninstalling wipes stored settings; same-key signed
       store install over the sideload upgrades in place instead).
 - [ ] Launcher name and icon are Candle's.
-- [ ] Main screen's bottom line is the battery (or `VIBE OFF`); the `EVERY`
-      screen's slot is empty — no version line, no mark.
+- [ ] Main screen's bottom line is the battery (or `VIBE OFF`). The settings
+      screen shows `BACK` along the bottom and NOTHING at the top — the version
+      is debug-only, so a Store install draws an empty top band.
 - [ ] The Connect IQ phone app reports the installed version (the release
       build's substitute for the on-screen version).
 - [ ] Tag the repo with the released version and update the README's store

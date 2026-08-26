@@ -397,8 +397,9 @@ immediately before it and never arrives for touch.
 |---|---|---|
 | upper button (press) | push the settings screen | pop back |
 | upper button (held) | the watch's controls menu — never reaches the app | same |
-| lower button (press → Back) | swallowed, shows `HOLD TO EXIT` | pop back |
-| right-swipe (arrives as Back) | swallowed, shows `HOLD TO EXIT` | pop back |
+| lower button (press → Back) | swallowed, shows `HOLD TO EXIT` | **swallowed, does nothing** |
+| right-swipe (arrives as Back) | swallowed, shows `HOLD TO EXIT` | **swallowed, does nothing** |
+| tap the bottom band | nothing — it holds the battery | **pop back (the `BACK` button)** |
 | **lower button (held → Menu)** | **exit the app** | **exit the app** |
 
 **Back never exits. A held lower button is the only way out, from either
@@ -412,9 +413,30 @@ handler serves both screens. Restricting the exit to the main screen would have
 cost a branch, not saved one — and "hold the lower button to quit, from
 anywhere" is one rule rather than two.
 
-A right-swipe is still honoured on the settings screen, where it pops. It costs
-a wearer nothing there — the cue timer lives in the app and never stopped — and
-swallowing it would break the one gesture every other app on the watch honours.
+**Back is now swallowed on BOTH screens, and the settings screen grew a `BACK`
+button to pay for it.** It used to pop on Back, on the reasoning that landing on
+the main screen costs a wearer nothing. That reasoning was about *deliberate*
+Backs, and the forged ones are the problem: a right swipe raises the same
+synthesized `KEY_ESC` there as anywhere, so a sleeve across the glass closed the
+screen out from under a value being adjusted. Losing your place mid-adjustment
+costs more than honouring the gesture was worth.
+
+The replacement is a visible target rather than another gesture, and the
+asymmetry with the main screen is deliberate. The main screen answers a
+swallowed Back with a *hint* — `HOLD TO EXIT` — because there is a held gesture
+that means "quit" and nothing on the glass to point at. The settings screen has
+no held gesture meaning "go back", and inventing one would be a hidden control
+on a screen with room for a visible one. So it answers with the `BACK` button,
+drawn permanently along the bottom band, and needs no hint: a hint would have to
+cover the very control it was describing.
+
+`BACK` is drawn in **every** build, unlike the version above it. On a Store
+install the upper button still pops the screen, but nothing on the glass says
+so, which makes `BACK` the only exit a first-time wearer can see. Its tap zone
+is the whole band below the rows (`Layout.isBackTap`), not the width of the
+word — and `layoutBackTapCoversTheBandBelowTheRows` pins that it stops exactly
+where the rows stop, because a zone that crept up a row height would eat the
+bottom row's `-` control.
 
 ## Palm safety belongs to the watch, not to Candle
 
