@@ -84,17 +84,32 @@ just deploy-nobump # sideload THAT build -- a bump would verify a number nobody 
                    # ... now walk section 1 on the watch ...
 just input-test    # the real-input checks, on a machine you are not also using
 just icons         # regenerates publish/store-icon-500.png + launcher icon
-just shot-release  # the screen a Store install shows -- the title is on it now
+just shot-release  # main screen, as a Store install draws it
+just shot-settings # settings screen -- takes the pointer for a moment
 just package       # publish/Candle.iq -- signed release, and prints the form version
 ```
+
+Both shots are RELEASE builds, which is the only way to see what a stranger
+gets: unit tests compile with `-t`, so anything behind a `(:release)`
+annotation is invisible to them. `shot-settings` presses the upper button to
+get there, because nothing on the glass navigates (ADR-0036).
 
 `just release` stops after the version because the wrist pass cannot be
 automated; it prints these commands rather than running them. If §1 fails, fix
 it and sideload with plain `just deploy` (which iterates to `1.4.1` and leaves
 `1.4` free), then `just release -SetVersion 1.4` when it is clean.
 
-Screenshots for the listing: `shots/vivoactive5.png` from `just shot-release`
-(crop the round screen out of the simulator bezel capture).
+Screenshots for the listing, both cropped to the round screen out of the
+simulator's bezel capture:
+
+- `shots/vivoactive5.png` — the main screen: clock, `POWER`, `PULSE`, battery.
+- `shots/vivoactive5-settings.png` — the settings screen: the `Candle v1.0`
+  title, `EVERY 5s`, `6 BPM`, and an empty bottom band.
+
+Lead with the settings shot if the store only takes one. The main screen is
+four lines of text and says little; the settings screen shows the two units
+following each other, which is the thing worth looking at, and it carries the
+version a reviewer will want to match against the form.
 
 **Check the values in that capture before you use it, and reset them properly.**
 A listing screenshot has to show the defaults a new install starts on —

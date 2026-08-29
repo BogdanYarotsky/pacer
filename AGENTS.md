@@ -279,6 +279,7 @@ name). They have not caused a problem so far.
 | `just sim` | Launch simulator and load the app |
 | `just shot` | Run in sim, capture window → `shots/vivoactive5.png` |
 | `just shot-release` | Same, of the **release** build — the only way to see `(:release)` code (ADR-0031) |
+| `just shot-settings` | Release build's **settings** screen → `shots/<device>-settings.png`. Presses the upper button to get there, so it takes the pointer briefly |
 | `just deploy` | Bump the **iteration**, build, push to watch over MTP |
 | `just deploy-nobump` | Same without bumping — for verifying a finalised release, or after a failed deploy (ADR-0034) |
 | `just release` | Finalise the version for the store (`1.3.12` → `1.4`) and stop. Builds nothing, touches no watch |

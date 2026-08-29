@@ -53,9 +53,15 @@ shot-keep device=device typecheck=typecheck:
 
 # Capture the RELEASE build (monkeyc -r). The only way to see what a Store
 # install draws: unit tests compile with -t, so (:release) code is invisible to
-# them. This is what proves the build version really is gone.
+# them.
 shot-release device=device typecheck=typecheck:
     pwsh -NoProfile -File tools/shot.ps1 -Device {{device}} -Typecheck {{typecheck}} -Release
+
+# The RELEASE build's SETTINGS screen -> shots/<device>-settings.png. Presses the
+# upper button to get there, which is the only way in (ADR-0036), so it takes
+# the mouse pointer for a moment the way `just input-test` does.
+shot-settings device=device typecheck=typecheck:
+    pwsh -NoProfile -File tools/shot.ps1 -Device {{device}} -Typecheck {{typecheck}} -Release -Settings
 
 # Finalise the version for a store release (1.3.12 -> 1.4) and stop. Builds
 # nothing and touches no watch: the wrist pass comes next and cannot be
