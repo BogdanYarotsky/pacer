@@ -37,7 +37,7 @@ Two more that bite this app specifically:
 | Version | whatever `just package` printed |
 | Price | Free |
 | Permissions | none — `<iq:permissions/>` is empty |
-| Source | https://github.com/BogdanYarotsky/pacer |
+| Source | https://github.com/BogdanYarotsky/candle-rfb |
 
 ---
 

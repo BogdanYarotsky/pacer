@@ -193,7 +193,11 @@ swallowed a Back in silence and had a `BACK` button in its bottom band until
 ADR-0036 noticed the upper button already went both ways.
 
 Why Back is trusted with nothing: ADR-0008, ADR-0009. Why nothing is drawn to
-replace it: ADR-0036.
+replace it: ADR-0036. **Why the screens are custom at all rather than `Menu2`,
+and what that decision cost: ADR-0044** — written after v1.0 shipped, from use
+rather than prediction. It also records the one flaw that shipped knowingly: the
+lower button's press does nothing and its hold quits, separated only by
+duration, so a lingering thumb ends a session.
 
 ### Open, and NOT yet diagnosed: a queued upper-button press
 

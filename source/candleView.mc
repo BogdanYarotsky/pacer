@@ -7,6 +7,11 @@ import Toybox.WatchUi;
 // Candle's two screens, drawn by one class. The difference between them is a
 // row list and what fills the two bands above and below it. ADR-0028
 //
+// BOTH SCREENS ARE CUSTOM, not Menu2 or a native settings page, and ADR-0044
+// is why -- along with the honest account of what that cost, written after the
+// app had been used rather than before. Read it before proposing a rewrite to
+// native widgets; the argument for one is real but it is half an argument.
+//
 // Nothing here animates and nothing paces you -- the cue is haptic. ADR-0001
 //
 // Every coordinate comes from Layout, every string from Display, every row

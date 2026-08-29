@@ -8,6 +8,12 @@ import Toybox.WatchUi;
 // Back and onBack no longer asks it to. What is left has one job: onSelect,
 // where it still works. Do not give it KEY_ESC work back without new evidence
 // from a wrist. ADR-0008
+//
+// THIS CLASS IS A COST OF THE CUSTOM UI. A native Menu2 handles its own input
+// and would need none of it -- telling a physical KEY_ENTER from a tap-derived
+// onSelect is only a problem because both screens are ours. ADR-0044 weighs
+// that against what native would have cost, and the deferred queued-button bug
+// (AGENTS.md) lives here too.
 class MainInputGate {
     private var _latchedKey as WatchUi.Key? = null;
 
