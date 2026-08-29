@@ -137,7 +137,7 @@ module CandleMath {
         if (row == Rows.PACE) {
             return formatPace(value);
         }
-        if (row == Rows.PULSE) {
+        if (row == Rows.BUZZ) {
             return formatDuration(value);
         }
         return formatStrength(value);

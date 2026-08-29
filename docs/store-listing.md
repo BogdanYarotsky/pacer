@@ -71,7 +71,7 @@ Two more that bite this app specifically:
 > pauses. That is the design, not a missing feature.
 >
 > **Controls**
-> - Vibration strength (`POWER`) and pulse length (`PULSE`) are on the main
+> - Vibration strength (`POWER`) and buzz length (`BUZZ`) are on the main
 >   screen. Both adjust down to the hardware's own floor.
 > - **Press the upper button** for the interval screen. The same press brings
 >   you back. It is the only way between the two screens.

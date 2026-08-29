@@ -131,7 +131,7 @@ try {
     # Every setting is changed directly through its edge controls; tapping the
     # centre text is intentionally inert.
     #
-    # MAIN carries two rows, POWER over PULSE, centred on the glass: y=144 and
+    # MAIN carries two rows, POWER over BUZZ, centred on the glass: y=144 and
     # y=246, with the edge zones out past x=108 / x=282. The traces name the row
     # through its own caption, so these checks read exactly as the screen does --
     # a re-ordered screen that still passes them is editing the setting a thumb
@@ -139,8 +139,8 @@ try {
     # here is what these lines exist to catch.
     Check "power plus"      { Inject @{ Action='tap'; X=340; Y=144 } }              'onSelect from tap -> awaiting coordinates.*tap POWER \+'
     Check "power minus"     { Inject @{ Action='tap'; X=50;  Y=144 } }              'onSelect from tap -> awaiting coordinates.*tap POWER -'
-    Check "pulse plus"      { Inject @{ Action='tap'; X=340; Y=246 } }              'onSelect from tap -> awaiting coordinates.*tap PULSE \+'
-    Check "pulse minus"     { Inject @{ Action='tap'; X=50;  Y=246 } }              'onSelect from tap -> awaiting coordinates.*tap PULSE -'
+    Check "buzz plus"       { Inject @{ Action='tap'; X=340; Y=246 } }              'onSelect from tap -> awaiting coordinates.*tap BUZZ \+'
+    Check "buzz minus"      { Inject @{ Action='tap'; X=50;  Y=246 } }              'onSelect from tap -> awaiting coordinates.*tap BUZZ -'
     Check "tap value"       { Inject @{ Action='tap'; X=195; Y=246 } }              'onSelect from tap -> awaiting coordinates.*tap outside controls -> ignored'
 
     # Hold-to-repeat: a held control steps immediately, keeps stepping while

@@ -26,9 +26,14 @@ class candleApp extends Application.AppBase {
     // Defaults are where a wearer starts looking, never answers. One person's
     // measured resonance frequency dressed as a default would be a wrong number
     // wearing a right number's clothes. ADR-0022
+    //
+    // POWER and BUZZ both start at 50, which is a statement about the SCREEN as
+    // much as about the cue: two rows reading the same number say "these are
+    // yours to move" more plainly than a pair of tuned-looking values, and
+    // neither number is a recommendation. ADR-0041
     const DEFAULT_EVERY_MILLIS = 5000;
-    const DEFAULT_VIBE_STRENGTH = 20;
-    const DEFAULT_VIBE_DURATION = 100;
+    const DEFAULT_VIBE_STRENGTH = 50;
+    const DEFAULT_VIBE_DURATION = 50;
 
     // The interval in MILLISECONDS, and the pace in hundredths of a breath per
     // minute: ONE range in two units. Read the two together -- neither is free
@@ -239,7 +244,7 @@ class candleApp extends Application.AppBase {
         if (row == Rows.PACE) {
             return CandleMath.rowValueText(row, CandleMath.everyToPace(_everyMillis));
         }
-        if (row == Rows.PULSE) {
+        if (row == Rows.BUZZ) {
             return CandleMath.rowValueText(row, _vibeDuration);
         }
         return CandleMath.rowValueText(row, _vibeStrength);
@@ -258,7 +263,7 @@ class candleApp extends Application.AppBase {
             // SHORTENS the interval where "+" on EVERY lengthens it. ADR-0019
             setPaceHundredths(
                 CandleMath.everyToPace(_everyMillis) + (increase ? PACE_STEP : -PACE_STEP));
-        } else if (row == Rows.PULSE) {
+        } else if (row == Rows.BUZZ) {
             setVibrationDuration(_vibeDuration + (increase ? DURATION_STEP : -DURATION_STEP));
         } else {
             setVibrationStrength(increase

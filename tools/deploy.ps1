@@ -15,12 +15,13 @@
 #
 # WHERE THE VERSION IS DRAWN IS NOT WRITTEN DOWN HERE.
 #
-# It moved twice -- off the main screen, then from the settings screen's bottom
-# band to its top -- and the closing message below did not move with it either
-# time, so this script spent a stretch of versions sending someone to look at a
-# band that had never shown one. That is the worst possible thing for this file
-# to be wrong about: the message IS the verification procedure (ADR-0034), and a
-# wrong one reads as "the sideload did not land".
+# It has moved repeatedly -- off the main screen, to the settings screen's
+# bottom band, up to its top, and back down again when the logo took the top
+# (ADR-0040) -- and for a stretch of those moves the closing message below did
+# not move with it, so this script sent someone to look at a band that had never
+# shown a version. That is the worst possible thing for this file to be wrong
+# about: the message IS the verification procedure (ADR-0034), and a wrong one
+# reads as "the sideload did not land".
 #
 # So the sentence has one home, next to the draw call that decides it:
 # source/candleView.mc carries a `// DEPLOY-VERIFY:` marker and this script
@@ -160,7 +161,7 @@ if ($seen) {
 Write-Host ""
 Write-Host "THE COPY CANNOT BE VERIFIED FROM HERE." -ForegroundColor Yellow
 Write-Host "Disconnect the watch and open Candle. The main screen shows the clock," -ForegroundColor Yellow
-Write-Host "POWER, PULSE and the battery -- no version. Press the UPPER BUTTON and" -ForegroundColor Yellow
+Write-Host "POWER, BUZZ and the battery -- no version. Press the UPPER BUTTON and" -ForegroundColor Yellow
 Write-Host "read $whereToLook." -ForegroundColor Yellow
 Write-Host "It must say v$nextVersion." -ForegroundColor Yellow
 Write-Host "If it shows an older version, the watch is still running the previous build." -ForegroundColor Yellow

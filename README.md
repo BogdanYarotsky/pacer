@@ -61,10 +61,10 @@ clock and the battery — and both are repainted once a minute:
                     07:42
 
 
-        (−)      POWER 20%       (+)
+        (−)      POWER 50%       (+)
 
 
-        (−)      PULSE 100ms     (+)
+        (−)      BUZZ 50ms       (+)
 
 
                  BATTERY 80%
@@ -84,7 +84,7 @@ a right swipe arrives as a real button press, so a sleeve across the glass used
 to close this screen out from under the value you were adjusting.
 
 ```
-                 Candle v1.0
+                      🕯
 
 
         (−)      EVERY 5s        (+)
@@ -92,18 +92,22 @@ to close this screen out from under the value you were adjusting.
         (−)      6 BPM           (+)
 
 
+                     v1.0
 ```
 
-The title at the top is drawn in every build, store installs included — it is
-the version to quote in a bug report. Nothing is drawn along the bottom until a
-swallowed Back puts `HOLD TO EXIT` there for two seconds. Otherwise the screen
-is its two rows and the two physical buttons, which is the point: there is no
-control here small enough to mis-tap while you are adjusting a value.
+One small thing at each end: the candle mark above, the version below, the two
+rows between them. Both are drawn in every build, store installs included — the
+version is the one to quote in a bug report, and it matches the store listing
+exactly.
+
+A swallowed Back replaces the version with `HOLD TO EXIT` for two seconds.
+Nothing else on this screen is a control: there is no target here small enough
+to mis-tap while you are adjusting a value.
 
 | Setting | Where | Default | Range | Step per tap |
 | --- | --- | ---: | ---: | ---: |
-| Vibration strength — the `POWER` row | main | 20% | 1–100% | 5%, and 1% at 5% and below |
-| Vibration length — the `PULSE` row | main | 100 ms | 10–250 ms | 10 ms |
+| Vibration strength — the `POWER` row | main | 50% | 1–100% | 5%, and 1% at 5% and below |
+| Vibration length — the `BUZZ` row | main | 50 ms | 10–250 ms | 10 ms |
 | Seconds between cues — the `EVERY` row | upper button | 5.00 s | 3–15 s | 0.05 s, snapped |
 | Breaths per minute — the `BPM` row | upper button | 6.00 bpm | 2–10 bpm | 0.01 bpm |
 
@@ -155,9 +159,14 @@ range hides:
   10–250 ms is entirely this app's choice. Published vibrotactile work puts the
   shortest perceivable pulse near 30 ms and rhythmic patterns nearer 50 ms, and
   actuator rise time is the harder limit at 50–100 ms to full amplitude. The
-  ceiling is 250 because a pulse long enough to be felt as a buzz rather than a
-  tick has stopped being a metronome beat, and use in practice stays under
+  ceiling is 250 because a cue long enough to be felt as a *rumble* rather than
+  a tap has stopped being a metronome beat, and use in practice stays under
   ~200 ms.
+
+  **The default sits at 50 ms, right where rise time bites** (ADR-0041). The
+  motor may not reach the amplitude `POWER 50%` asks for in that time, so the
+  two defaults do not simply add up — a shorter, stronger cue can land softer
+  than a longer, weaker one. This is a wrist question, not a reasoning one.
 
 None of that is verifiable from a computer: `Attention.vibrate` does nothing
 observable in the simulator. Sweep it on your own wrist.

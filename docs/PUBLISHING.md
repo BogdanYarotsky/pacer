@@ -10,15 +10,18 @@ file is the order to run it in.
 `just deploy` a debug build and confirm, on the watch:
 
 - [ ] The launcher lists **Candle** with the candle icon.
-- [ ] The title **`Candle v<n>` at the TOP of the settings screen** (upper
-      button) matches what deploy printed — the ONLY proof a sideload landed,
-      since MTP cannot be verified from the host. The main screen does not show
-      it. It is drawn in release builds too now (ADR-0037), so this line also
-      checks what a Store install will show.
+- [ ] **`v<n>` along the BOTTOM of the settings screen** (upper button) matches
+      what deploy printed — the ONLY proof a sideload landed, since MTP cannot
+      be verified from the host. The main screen does not show it. It is drawn
+      in release builds too (ADR-0037), so this line also checks what a Store
+      install will show.
+- [ ] **The candle mark is at the TOP of the settings screen**, and the two
+      bands balance — a small thing at each end with the rows between
+      (ADR-0040). It is the launcher icon, at the launcher's size.
 - [ ] **The upper button is the ONLY way between the screens** — it opens the
       settings screen and the same press closes it. Neither ends the session;
       the cue keeps arriving throughout. There is no `BACK` button any more
-      (ADR-0036), so the bottom band of the settings screen is empty.
+      (ADR-0036).
 - [ ] **A right swipe and a lower-button press do NOTHING on the settings
       screen**, and both show `HOLD TO EXIT` there exactly as on the main
       screen. This is the fix for the swipe that was closing it mid-adjustment.
@@ -102,9 +105,9 @@ it and sideload with plain `just deploy` (which iterates to `1.4.1` and leaves
 Screenshots for the listing, both cropped to the round screen out of the
 simulator's bezel capture:
 
-- `shots/vivoactive5.png` — the main screen: clock, `POWER`, `PULSE`, battery.
-- `shots/vivoactive5-settings.png` — the settings screen: the `Candle v1.0`
-  title, `EVERY 5s`, `6 BPM`, and an empty bottom band.
+- `shots/vivoactive5.png` — the main screen: clock, `POWER`, `BUZZ`, battery.
+- `shots/vivoactive5-settings.png` — the settings screen: the candle mark,
+  `EVERY 5s`, `6 BPM`, and the version along the bottom.
 
 Lead with the settings shot if the store only takes one. The main screen is
 four lines of text and says little; the settings screen shows the two units
@@ -113,14 +116,14 @@ version a reviewer will want to match against the form.
 
 **Check the values in that capture before you use it, and reset them properly.**
 A listing screenshot has to show the defaults a new install starts on —
-`POWER 20%`, `PULSE 100ms`, `EVERY 5s`, `6 BPM` — and by default it will not.
+`POWER 50%`, `BUZZ 50ms`, `EVERY 5s`, `6 BPM` — and by default it will not.
 
 The simulator persists app Storage **keyed by the app UUID in `manifest.xml`**,
 not by the PRG name. That UUID has never changed, so every build shares one
 store: the unit tests, the debug sideload and the release capture all read and
 write the same values, and the file is still named from the Pacer era. The
-2026-08-29 capture read `POWER 100%` / `PULSE 240ms` for exactly this reason —
-values a test sweep left behind, in a file called `PACER-VIVOACTIVE5-TEST.DAT`.
+first release capture read maxed-out values for exactly this reason — a test
+sweep's leftovers, in a file called `PACER-VIVOACTIVE5-TEST.DAT`.
 
 Do not tap the values back. **Delete the store and re-shoot**, which is the only
 way to photograph a genuinely fresh install:

@@ -7,7 +7,7 @@ module Display {
     // Display words only, deliberately decoupled from the storage keys these
     // settings are saved under. ADR-0029, ADR-0025
     const LABEL_EVERY = "EVERY";
-    const LABEL_PULSE = "PULSE";
+    const LABEL_BUZZ = "BUZZ";
     const LABEL_POWER = "POWER";
     const LABEL_PACE = "PACE";
     const LABEL_BATTERY = "BATTERY";
@@ -21,8 +21,8 @@ module Display {
         if (row == Rows.PACE) {
             return LABEL_PACE;
         }
-        if (row == Rows.PULSE) {
-            return LABEL_PULSE;
+        if (row == Rows.BUZZ) {
+            return LABEL_BUZZ;
         }
         return LABEL_POWER;
     }

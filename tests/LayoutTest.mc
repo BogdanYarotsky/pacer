@@ -42,7 +42,7 @@ function rowRange(row as Number) as Array<Number> {
     if (row == Rows.PACE) {
         return [app.MIN_PACE_HUNDREDTHS, app.MAX_PACE_HUNDREDTHS] as Array<Number>;
     }
-    if (row == Rows.PULSE) {
+    if (row == Rows.BUZZ) {
         return [app.MIN_VIBE_DURATION, app.MAX_VIBE_DURATION] as Array<Number>;
     }
     return [app.MIN_VIBE_STRENGTH, app.MAX_VIBE_STRENGTH] as Array<Number>;
@@ -134,8 +134,8 @@ function layoutDisplayWidthMatchesTheDevice(logger as Test.Logger) as Boolean {
 // of identities this app actually handles.
 (:test)
 function rowsReachEverySettingAtLeastOnce(logger as Test.Logger) as Boolean {
-    var settings = [Rows.EVERY, Rows.PULSE, Rows.POWER] as Array<Number>;
-    var knownRows = [Rows.EVERY, Rows.PULSE, Rows.POWER, Rows.PACE] as Array<Number>;
+    var settings = [Rows.EVERY, Rows.BUZZ, Rows.POWER] as Array<Number>;
+    var knownRows = [Rows.EVERY, Rows.BUZZ, Rows.POWER, Rows.PACE] as Array<Number>;
     var screens = everyScreen();
 
     for (var s = 0; s < settings.size(); s += 1) {
@@ -757,8 +757,8 @@ function editorLayoutMapsEveryControlOnEveryScreen(logger as Test.Logger) as Boo
         (Rows.forScreen(Rows.SCREEN_MAIN)[0] as Number), Rows.POWER,
         "the main screen's first row is no longer POWER");
     Test.assertEqualMessage(
-        (Rows.forScreen(Rows.SCREEN_MAIN)[1] as Number), Rows.PULSE,
-        "the main screen's second row is no longer PULSE");
+        (Rows.forScreen(Rows.SCREEN_MAIN)[1] as Number), Rows.BUZZ,
+        "the main screen's second row is no longer BUZZ");
     Test.assertEqualMessage(
         (Rows.forScreen(Rows.SCREEN_SETTINGS)[0] as Number), Rows.EVERY,
         "the settings screen's only row is no longer EVERY");
@@ -816,8 +816,8 @@ function editorLayoutHitZoneEdgesAreInclusive(logger as Test.Logger) as Boolean 
 // far back it has to go.
 //
 // It used to measure the EVERY row alone, and that was not conservative, it was
-// wrong: PULSE at its 250 ms ceiling is 3 px wider than EVERY at 14.95 s, so
-// the edge sat under the PULSE line the whole time the test called it clear.
+// wrong: BUZZ at its 250 ms ceiling is 3 px wider than EVERY at 14.95 s, so
+// the edge sat under the BUZZ line the whole time the test called it clear.
 (:test)
 function layoutHitZonesClearRealisticText(logger as Test.Logger) as Boolean {
     var w = LayoutTestConst.VA5_W;
