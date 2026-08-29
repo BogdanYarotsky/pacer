@@ -253,9 +253,27 @@ enforced rather than remembered.
    simulator dies the moment it draws text.
 3. A 4096-bit RSA developer key at `%USERPROFILE%\.garmin-keys\developer_key.der`,
    pointed to by `$env:GARMIN_DEVELOPER_KEY`. The key is machine-level and shared
-   by every Connect IQ app; it never lives in this repo. Generate one with
-   `Monkey C: Generate a Developer Key` in VS Code and back it up — losing it
-   makes Store updates for anything signed with it impossible.
+   by every Connect IQ app; it never lives in this repo.
+
+   **This key is the only thing that can ever sign an update to the published
+   listing.** Lose it and Candle cannot be updated at all — the recovery is to
+   publish a second app under a new id and ask every user to reinstall, losing
+   their settings. Back it up somewhere off this machine before the first
+   submission, not after.
+
+   Its **public** fingerprint is recorded here so a future machine can prove it
+   restored the right key rather than a right-looking one:
+
+   ```
+   SHA-256  ab49a1c555fc6ce355a99cf652371c9f02e09009429d19abad339e2679514750
+
+   openssl pkey -in ~/.garmin-keys/developer_key.pem -pubout -outform DER \
+     | openssl dgst -sha256
+   ```
+
+   A mismatch means a *different* key, and a build signed with a different key
+   is a different app to the store — it must be uninstalled from the watch
+   before it will install, which wipes the wearer's settings.
 4. `just link-docs` to point `sdk-docs`/`sdk-samples` at the active SDK.
 
 On a fresh machine, `~/bin/garmin-bootstrap.ps1` does 1–3 idempotently and prints

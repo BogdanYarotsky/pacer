@@ -96,54 +96,52 @@ it and sideload with plain `just deploy` (which iterates to `1.4.1` and leaves
 Screenshots for the listing: `shots/vivoactive5.png` from `just shot-release`
 (crop the round screen out of the simulator bezel capture).
 
-**Check the values in that capture before you use it.** The simulator keeps
-whatever settings the previous run left it holding, so the shot is of a watch
-someone has already fiddled with — today's read `POWER 100%` and `PULSE 240ms`
-against defaults of 20% and 100 ms. A listing screenshot should show the
-defaults a new install starts on: `POWER 20%`, `PULSE 100ms`, `EVERY 5s` and
-`6 BPM` on the settings screen. Tap them back in the simulator and re-shoot;
-the tests restore what they find and cannot be blamed for this.
+**Check the values in that capture before you use it, and reset them properly.**
+A listing screenshot has to show the defaults a new install starts on —
+`POWER 20%`, `PULSE 100ms`, `EVERY 5s`, `6 BPM` — and by default it will not.
+
+The simulator persists app Storage **keyed by the app UUID in `manifest.xml`**,
+not by the PRG name. That UUID has never changed, so every build shares one
+store: the unit tests, the debug sideload and the release capture all read and
+write the same values, and the file is still named from the Pacer era. The
+2026-08-29 capture read `POWER 100%` / `PULSE 240ms` for exactly this reason —
+values a test sweep left behind, in a file called `PACER-VIVOACTIVE5-TEST.DAT`.
+
+Do not tap the values back. **Delete the store and re-shoot**, which is the only
+way to photograph a genuinely fresh install:
+
+```
+Remove-Item "$env:TEMP\com.garmin.connectiq\GARMIN\APPS\DATA\*.DAT", `
+            "$env:TEMP\com.garmin.connectiq\GARMIN\APPS\DATA\*.IDX"
+just shot-release
+```
+
+The simulator must not be running. It recreates the store on the next launch,
+and the app falls back to `DEFAULT_*` in `candleApp.mc` — which is what a
+stranger's watch does on first launch, so this is the honest picture.
 
 ## 3. The store form
 
-| Field | Value |
-| --- | --- |
-| App name | `Candle: Haptic Resonance Breathing Frequency Pacer` (50 chars) |
-| On-device name | Stays **Candle** — it comes from the manifest's AppName resource, not the form |
-| Version | **Whatever `just package` printed.** The manifest carries no app-version field, so this is a free-text box and the only thing keeping the listing honest is typing what the bundle draws (ADR-0037) |
-| Type | Watch App |
-| Category | Health & Fitness |
-| Devices | vívoactive 5 |
-| Icon | `publish/store-icon-500.png` (500×500 sRGB, ~10 px padding) |
-| Permissions | None — the manifest's `<iq:permissions/>` is empty; say so if asked |
-| Price | Free |
-| Source | Link the public repository (MIT) |
+**The copy lives in `store-listing.md` — paste from there, not from here.**
+Every field and the full description are in that one file, so the listing has a
+single home that changes when the app does. What follows is only what the *form*
+needs that the copy cannot carry.
 
-Description — cover, in roughly this order:
+- **On-device name** is not a form field. It stays **Candle**, and it comes from
+  the manifest's `AppName` resource.
+- **Version** is a free-text box: type **whatever `just package` printed**. The
+  manifest has no app-version field, so nothing but a person typing correctly
+  keeps the listing and the glass in agreement (ADR-0037, ADR-0039).
+- **Icon** is `publish/store-icon-500.png` (500×500 sRGB, ~10 px padding), from
+  `just icons`.
+- **Permissions**: none. `<iq:permissions/>` is empty; say so if asked.
 
-1. What it is: a haptic metronome for resonance-frequency (coherent)
-   breathing. Two identical vibrations per breath, one at each turn-around.
-   The screen never signals the breath; the wrist does.
-2. The default: one cue every 5 seconds — 10 s per breath, 0.1 Hz, the
-   Lehrer protocol's canonical frequency.
-3. That resonance frequency is individual: measure yours with a tool built
-   for it — **Yudemon** or **Elite HRV** — and type the breathing rate it
-   reports straight into the `BPM` row. No arithmetic, and no rounding: it
-   matches the 0.01 bpm precision those tools report. `BPM` (2–10 in 0.01 steps)
-   and `EVERY` (3–15 s in 0.05 s steps) are the same setting in the two units,
-   on one screen, each following the other — so if bpm means nothing to you,
-   work `EVERY` and watch the other follow. Pulse length and strength adjust
-   down to the hardware's own floor.
-4. How to drive it, because two things here are unguessable: strength and
-   pulse length are on the main screen, a **press of the upper button** opens
-   the interval, and **quitting is a HOLD of the lower button** — Back does not
-   exit, because this watch's firmware fakes a button press for a right swipe
-   and Candle would otherwise end your session when a sleeve touched the glass.
-5. The **same upper button** brings you back — one press cycles the two
-   screens, in both directions, and it is the only thing that does. Back and
-   swipes do nothing on either screen; nothing on the glass navigates.
-6. Lock the screen during a session (**hold** the upper button → Lock Screen).
-7. Free, open source, MIT.
+**Read the top of `store-listing.md` before editing a word of the description.**
+It records the rule the copy is written under — Garmin's Medical Apps guideline,
+which requires regulatory documentation for any app whose description indicates
+use in treating or preventing a condition. Candle is a metronome and is
+described as one. A sentence about what resonance breathing *does to a body* is
+the sentence that turns a 72-hour review into a rejection.
 
 ## 4. After approval
 
