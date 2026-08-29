@@ -34,45 +34,25 @@ param(
 )
 
 . "$PSScriptRoot\env.ps1"
-
-$appFile = Join-Path $RepoRoot "source\candleApp.mc"
+. "$PSScriptRoot\version.ps1"
 
 # --- resolve the version ------------------------------------------------------
-$content = Get-Content $appFile -Raw
-if ($content -notmatch 'APP_VERSION\s*=\s*"(\d+)\.(\d+)"') {
-    throw "deploy: could not find 'const APP_VERSION = `"X.Y`";' in $appFile"
-}
-$currentVersion = "$($Matches[1]).$($Matches[2])"
-$major = $Matches[1]
-$minor = $Matches[2]
+# A sideload bumps the ITERATION, never the public number: 1.4 -> 1.4.1 -> 1.4.2.
+# So a deploy is free. It also means every build that reaches this watch carries
+# a three-segment version a wearer will never see on a store install, which is
+# the whole point of the shape. ADR-0039
+#
+# -NoBump is for the one case that must NOT get an iteration: verifying the
+# exact build `just release` finalised, before it is packaged.
+$version = Get-AppVersion
+$currentVersion = $version.Text
 
 if ($SetVersion -ne "") {
     $nextVersion = $SetVersion
 } elseif ($NoBump) {
     $nextVersion = $currentVersion
 } else {
-    # ONE DIGIT EACH SIDE OF THE DOT, so the minor ROLLS: 1.9 -> 2.0. ADR-0037
-    #
-    # Not semantic versioning, on purpose. The major carries nothing about
-    # compatibility -- it is the tens digit of a plain odometer, and the whole
-    # scheme exists so that every number a wearer ever reads out is four
-    # characters they can say down a phone. "1.10" and "1.30" are the strings
-    # this rule is written to prevent, and it also stops the layout budget being
-    # sized for versions nobody will ever ship.
-    $nextMinor = [int]$minor + 1
-    $nextMajor = [int]$major
-    if ($nextMinor -gt 9) { $nextMinor = 0; $nextMajor += 1 }
-
-    # 9.9 is the end of the odometer. Failing here is deliberate: rolling to
-    # "10.0" would silently break both the one-digit rule and the width budget
-    # the layout test pins, and it is a decision for a person -- wrap, widen, or
-    # start again -- not for a bump.
-    if ($nextMajor -gt 9) {
-        throw ("deploy: the version is at $currentVersion and the scheme is one digit " +
-            "each side of the dot (ADR-0037), so there is no next version. Decide what " +
-            "comes after 9.9 and set it with -SetVersion.")
-    }
-    $nextVersion = "$nextMajor.$nextMinor"
+    $nextVersion = Next-DevVersion $version
 }
 
 # --- where the wearer has to look ---------------------------------------------
@@ -86,8 +66,7 @@ if ((Get-Content $viewFile -Raw) -notmatch '(?m)^\s*//\s*DEPLOY-VERIFY:\s*(\S.*?
 $whereToLook = $Matches[1]
 
 if ($nextVersion -ne $currentVersion) {
-    $content = $content -replace "APP_VERSION\s*=\s*`"$([regex]::Escape($currentVersion))`"", "APP_VERSION = `"$nextVersion`""
-    Set-Content -Path $appFile -Value $content -NoNewline
+    Set-AppVersion -From $currentVersion -To $nextVersion
     Write-Host "version  $currentVersion -> $nextVersion" -ForegroundColor Cyan
 } else {
     Write-Host "version  $currentVersion (unchanged)" -ForegroundColor Cyan

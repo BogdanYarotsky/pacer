@@ -279,10 +279,39 @@ name). They have not caused a problem so far.
 | `just sim` | Launch simulator and load the app |
 | `just shot` | Run in sim, capture window → `shots/vivoactive5.png` |
 | `just shot-release` | Same, of the **release** build — the only way to see `(:release)` code (ADR-0031) |
-| `just deploy` | Bump version, build, push to watch over MTP |
-| `just deploy-nobump` | Same without bumping — use after a failed deploy (ADR-0034) |
+| `just deploy` | Bump the **iteration**, build, push to watch over MTP |
+| `just deploy-nobump` | Same without bumping — for verifying a finalised release, or after a failed deploy (ADR-0034) |
+| `just release` | Finalise the version for the store (`1.3.12` → `1.4`) and stop. Builds nothing, touches no watch |
+| `just package` | Signed `publish/Candle.iq`. **Refuses a three-segment dev version** |
 | `just link-docs` | Re-point `sdk-docs`/`sdk-samples` after an SDK change |
 | `just clean` | Remove `bin/` and `shots/` |
+
+### The version scheme, and why a deploy is free
+
+**The shape of the string says what the build is** (ADR-0039). `tools/version.ps1`
+is the only file that knows the rules; `deploy`, `release` and `package` all
+dot-source it.
+
+| shape | meaning |
+|---|---|
+| `1.4` | a **public** version — one digit each side, the minor rolls `1.9` → `2.0`. The only shape the store sees |
+| `1.4.12` | a **dev** build, the 12th sideload since `1.4`. Never published |
+
+`just deploy` bumps only the iteration, so **a deploy costs nothing** — which
+matters because a deploy against an unplugged watch used to burn a public
+number, and did so twice. `just release` finalises; a version that is *already*
+public is left alone, which is what lets a first release ship as `1.0` rather
+than `1.1`.
+
+The rule nobody has to remember is the one `package` enforces: there is exactly
+one route to `publish/Candle.iq` and it refuses three segments. Ceilings are
+`9.9` for the public part and three digits of iteration — both are layout facts
+(`layoutRealLinesFitOnVivoactive5` measures all 700 strings), and both fail with
+a sentence rather than clipped pixels.
+
+**`just release` deliberately stops before packaging.** The wrist pass sits in
+that gap and cannot be automated (ADR-0034), so it prints the next command
+instead of running it.
 
 **`just` arguments are POSITIONAL, not `name=value`.** `just test test_name=foo`
 silently passes the whole string as the *device* and fails with "not in

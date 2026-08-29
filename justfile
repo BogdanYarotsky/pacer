@@ -57,8 +57,15 @@ shot-keep device=device typecheck=typecheck:
 shot-release device=device typecheck=typecheck:
     pwsh -NoProfile -File tools/shot.ps1 -Device {{device}} -Typecheck {{typecheck}} -Release
 
+# Finalise the version for a store release (1.3.12 -> 1.4) and stop. Builds
+# nothing and touches no watch: the wrist pass comes next and cannot be
+# automated, so this prints the commands rather than running them.
+release:
+    pwsh -NoProfile -File tools/release.ps1
+
 # Build the signed store bundle: publish/Candle.iq (release, all products).
-# The submission walk-through is docs/PUBLISHING.md.
+# REFUSES a three-segment dev version -- run `just release` first. The
+# submission walk-through is docs/PUBLISHING.md.
 package:
     pwsh -NoProfile -File tools/package.ps1
 

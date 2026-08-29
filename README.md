@@ -230,11 +230,20 @@ just test       # build with -t, run the unit tests in the simulator, fail loudl
 just sim        # launch the simulator and load the app
 just shot       # capture the simulator window to shots/vivoactive5.png
 just shot-release # same, of the release build -- the only way to see (:release) code
-just deploy     # bump the on-screen version, build, push to the watch over MTP
+just deploy     # bump the iteration, build, push to the watch over MTP
 just input-test # drive real taps and button presses into the simulator (~40s)
+just release    # finalise the version for the store (1.3.12 -> 1.4) and stop
+just package    # signed publish/Candle.iq -- refuses a dev version
 ```
 
 `just build` and `just test` are the loop. Nothing is finished until both pass.
+
+**Two version shapes, and the shape is the meaning.** `1.4` is public — one
+digit each side of the dot, the minor rolling `1.9` → `2.0` — and it is the only
+form the store ever sees. `1.4.12` is the 12th sideload since `1.4`, never
+published. `just deploy` bumps only the iteration, so deploying is free;
+`just package` refuses three segments, which is the one place the rule is
+enforced rather than remembered.
 
 ### First-time setup
 

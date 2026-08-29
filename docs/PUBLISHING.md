@@ -72,15 +72,26 @@ the six wrist chains and the reasoning. Do not re-derive it, and do not spend a
 session provoking exits to reproduce it. If the app closes itself anyway, the
 breadcrumb is a thing to rebuild deliberately, not to go looking for.
 
-## 2. Build the artifacts
+## 2. Finalise the version, then build the artifacts
+
+The order matters, and §1 sits **inside** it: a dev version cannot be packaged
+(`package` refuses three segments, ADR-0039), and a finalised one has to be
+worn before it is bundled.
 
 ```
-just test          # the unit suite, must be green
-just input-test    # the real-input checks, must be green
+just release       # 1.3.12 -> 1.4, unit suite green. Builds nothing.
+just deploy-nobump # sideload THAT build -- a bump would verify a number nobody ships
+                   # ... now walk section 1 on the watch ...
+just input-test    # the real-input checks, on a machine you are not also using
 just icons         # regenerates publish/store-icon-500.png + launcher icon
 just shot-release  # the screen a Store install shows -- the title is on it now
-just package       # publish/Candle.iq -- signed release, every product
+just package       # publish/Candle.iq -- signed release, and prints the form version
 ```
+
+`just release` stops after the version because the wrist pass cannot be
+automated; it prints these commands rather than running them. If §1 fails, fix
+it and sideload with plain `just deploy` (which iterates to `1.4.1` and leaves
+`1.4` free), then `just release -SetVersion 1.4` when it is clean.
 
 Screenshots for the listing: `shots/vivoactive5.png` from `just shot-release`
 (crop the round screen out of the simulator bezel capture).

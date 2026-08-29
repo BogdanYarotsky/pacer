@@ -12,6 +12,20 @@ param(
 )
 
 . "$PSScriptRoot\env.ps1"
+. "$PSScriptRoot\version.ps1"
+
+# --- THE GUARD ----------------------------------------------------------------
+# The store never sees a three-segment version, and this is the one place that
+# is enforced rather than remembered. Everything else about the scheme can stay
+# loose because a dev build physically cannot become a submission artifact:
+# there is exactly one route to publish/Candle.iq and it runs through here.
+# ADR-0039
+$version = Get-AppVersion
+if (-not $version.IsPublic) {
+    throw ("package: $($version.Text) is a DEV version -- three segments mean a " +
+        "build that has never been published and must not be. Run 'just release' " +
+        "to finalise it, walk the wrist pass, then package. (ADR-0039)")
+}
 
 $outDir = Join-Path $RepoRoot "publish"
 if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir | Out-Null }
@@ -36,16 +50,10 @@ Write-Host ("    ok  {0}  ({1:N1} KB)" -f $out, ($size / 1KB)) -ForegroundColor 
 # as free text on the upload form. So the listing agrees with the glass only if
 # someone types the right thing, and the only defence against typing the wrong
 # thing is printing it here, read from the same constant the app draws.
-# ADR-0037
-$appFile = Join-Path $RepoRoot "source\candleApp.mc"
-if ((Get-Content $appFile -Raw) -notmatch 'APP_VERSION\s*=\s*"([^"]+)"') {
-    throw "package: could not find APP_VERSION in $appFile"
-}
-$version = $Matches[1]
-
+# ADR-0037, ADR-0039
 Write-Host ""
-Write-Host "VERSION FOR THE STORE FORM:  $version" -ForegroundColor Cyan
-Write-Host "The bundle draws 'Candle v$version' on its settings screen. Type the same" -ForegroundColor Yellow
-Write-Host "string into the form's Version box -- nothing else checks that they agree." -ForegroundColor Yellow
+Write-Host "VERSION FOR THE STORE FORM:  $($version.Text)" -ForegroundColor Cyan
+Write-Host "The bundle draws 'Candle v$($version.Text)' on its settings screen. Type the" -ForegroundColor Yellow
+Write-Host "same string into the form's Version box -- nothing else checks they agree." -ForegroundColor Yellow
 Write-Host ""
 Write-Host "Upload at https://apps.garmin.com/developer/dashboard -- see docs/PUBLISHING.md." -ForegroundColor Yellow

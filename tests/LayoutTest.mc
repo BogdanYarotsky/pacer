@@ -500,32 +500,45 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     // there is no second state to pass in and no release string that goes
     // unmeasured.
     //
-    // EVERY version this app can ever show, all hundred of them, because the
-    // scheme is one digit each side of the dot and rolls 1.9 -> 2.0 (ADR-0037).
-    // That closed domain is the point of the rule: an open-ended counter would
-    // force this budget to be sized for strings nobody will ship, and the font
-    // would be smaller for the realistic case to buy room for a fictional one.
-    // A hundred strings can just be swept, so nothing here is a guess about a
-    // worst case -- the worst case is measured along with the rest.
+    // EVERY version this app can ever show, public and dev.
     //
-    // deploy.ps1 refuses to bump past 9.9 rather than rolling to "10.0", which
-    // is the string that would walk out of this budget. If that guard ever goes,
-    // this test is what notices.
+    // The scheme is closed on purpose (ADR-0039), and that is what makes this a
+    // sweep rather than a guess at a worst case. A public version is one digit
+    // each side of the dot and rolls 1.9 -> 2.0: a hundred strings. A dev build
+    // adds an iteration of one to three digits, capped there because a fourth
+    // walks out of this band -- so the widest string that can ever be drawn
+    // here is "Candle v9.9.999" and it is measured below along with the rest.
+    //
+    // An open-ended counter is what this replaced, and the cost of one was not
+    // hypothetical: the budget would have to be sized for versions nobody will
+    // ship, which buys room for fiction by taking font size off the realistic
+    // case.
+    //
+    // version.ps1 refuses to bump past either ceiling. If a guard ever goes,
+    // this is what notices.
     var settingsRowsTop = Layout.editorRowsTop(
         Rows.forScreen(Rows.SCREEN_SETTINGS).size(), h);
     var titleY = Layout.topSlotY(textHeight, settingsRowsTop);
     var widest = "";
     var widestPx = 0;
+
+    // "" is the public shape; the rest are the iteration's digit counts at their
+    // widest, since every digit is the same width in this font.
+    var iterations = [ "", ".1", ".9", ".12", ".99", ".123", ".999" ];
     for (var major = 0; major <= 9; major += 1) {
         for (var minor = 0; minor <= 9; minor += 1) {
-            var title = Display.settingsTitle(major.toString() + "." + minor.toString());
-            var px = dc.getTextWidthInPixels(title, textFont);
-            if (px > widestPx) { widestPx = px; widest = title; }
-            assertLineFits(dc, titleY, title, textFont, "settings title");
+            var base = major.toString() + "." + minor.toString();
+            for (var i = 0; i < iterations.size(); i += 1) {
+                var title = Display.settingsTitle(base + (iterations[i] as String));
+                var px = dc.getTextWidthInPixels(title, textFont);
+                if (px > widestPx) { widestPx = px; widest = title; }
+                assertLineFits(dc, titleY, title, textFont, "settings title");
+            }
         }
     }
-    logger.debug("settings title: widest of 100 is \"" + widest + "\" at " +
-        widestPx + "px, y=" + titleY);
+    logger.debug("settings title: widest of " + (100 * iterations.size()) +
+        " is \"" + widest + "\" at " + widestPx + "px in a band of " +
+        (Layout.halfChordAt(titleY, w, h) * 2) + "px, y=" + titleY);
 
     // And the string the source actually holds, which must be one of them --
     // a hand-set version that does not fit the scheme is a broken deploy.
