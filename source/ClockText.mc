@@ -4,17 +4,13 @@ import Toybox.Lang;
 // by a test rather than sampled. ADR-0030
 module ClockText {
 
-    // ONE LETTER, not "AM"/"PM", and that is forced by the band rather than
-    // chosen. The clock sits in the top slot at FONT_MEDIUM, which is the
-    // narrowest place this app draws text: the budget there is 166 px and
-    // "12:48 PM" is 189, "12:48pm" 175, "10:08 PM" 189. Every full form clips.
-    // "12:48a" is 135. ADR-0042
-    //
-    // Lower case on purpose. The screen's other words are upper-case captions
-    // (EVERY, POWER, BUZZ, BPM) and a capital P beside the clock would read as
-    // one of them rather than as part of the time.
-    const SUFFIX_AM = "a";
-    const SUFFIX_PM = "p";
+    // The full "AM"/"PM", spaced, because that is what a clock says. It fits
+    // only because the clock is FONT_SMALL rather than FONT_MEDIUM: one size
+    // down buys 12 px of chord at the top slot's tightest point, and
+    // "12:48 PM" needs it. ADR-0043 has the measurements and why a one-letter
+    // suffix was tried first.
+    const SUFFIX_AM = " AM";
+    const SUFFIX_PM = " PM";
 
     function formatTime(hour as Number, minute as Number, is24Hour as Boolean) as String {
         var minuteText = minute.format("%02d");

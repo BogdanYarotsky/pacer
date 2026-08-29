@@ -1,7 +1,8 @@
 ---
 id: 0042
 title: The 12-hour clock carries a one-letter meridiem
-status: accepted
+status: superseded
+superseded-by: 0043
 ---
 
 ## Context

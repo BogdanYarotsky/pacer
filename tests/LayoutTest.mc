@@ -66,6 +66,17 @@ function rowSweepStep(row as Number) as Number {
     return row == Rows.PACE ? getApp().PACE_STEP : 1;
 }
 
+// The clock's font, READ FROM THE VIEW rather than named again here.
+//
+// It was `Graphics.FONT_MEDIUM`, written out in two tests, and that is a
+// coupling with no tripwire on it: the view could drop a font size and both
+// sweeps would go on measuring the old one, cheerfully proving that a string
+// nobody draws still fits. Which is exactly what happened when the clock moved
+// to FONT_SMALL for the meridiem (ADR-0043).
+function clockFontFromTheView() as Graphics.FontType {
+    return (new candleView(Rows.SCREEN_MAIN)).FONT_CLOCK;
+}
+
 // The line a row draws at a given value, composed through the same two
 // functions candleView draws it with. Hardcoding the string here is how the
 // test came to be checking "v0.22  UNLOCKED" for a screen that had said
@@ -436,7 +447,7 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     Test.assertMessage(bmp != null, "could not create a buffered bitmap to measure text with");
     var dc = (bmp as Graphics.BufferedBitmap).getDc();
 
-    var clockFont = Graphics.FONT_MEDIUM;
+    var clockFont = clockFontFromTheView();
     var textFont = Graphics.FONT_XTINY;
     var clockHeight = dc.getFontHeight(clockFont);
     var textHeight = dc.getFontHeight(textFont);
@@ -629,7 +640,7 @@ function layoutEveryClockMinuteFits(logger as Test.Logger) as Boolean {
     Test.assertMessage(bmp != null, "could not create a buffered bitmap to measure text with");
     var dc = (bmp as Graphics.BufferedBitmap).getDc();
 
-    var clockFont = Graphics.FONT_MEDIUM;
+    var clockFont = clockFontFromTheView();
     var y = Layout.topSlotY(
         dc.getFontHeight(clockFont),
         Layout.editorRowsTop(Rows.forScreen(Rows.SCREEN_MAIN).size(), h));

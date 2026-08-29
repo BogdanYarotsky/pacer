@@ -13,19 +13,19 @@ function clockTextPadsHoursAndMinutes(logger as Test.Logger) as Boolean {
 // 12 rather than 0, and hour 12 must stay 12 rather than wrap to 0.
 (:test)
 function clockTextWrapsTwelveHourMidnightAndNoon(logger as Test.Logger) as Boolean {
-    Test.assertEqualMessage(ClockText.formatTime(0, 0, false), "12:00a", "midnight is 12:00a, not 0:00");
-    Test.assertEqualMessage(ClockText.formatTime(12, 0, false), "12:00p", "noon is 12:00p -- the wrapped hour cannot tell it from midnight");
-    Test.assertEqualMessage(ClockText.formatTime(13, 5, false), "1:05p", "13:05 is 1:05p");
-    Test.assertEqualMessage(ClockText.formatTime(23, 59, false), "11:59p", "23:59 is 11:59p");
-    Test.assertEqualMessage(ClockText.formatTime(9, 7, false), "9:07a", "12-hour mode does not pad the hour");
+    Test.assertEqualMessage(ClockText.formatTime(0, 0, false), "12:00 AM", "midnight is 12:00 AM, not 0:00");
+    Test.assertEqualMessage(ClockText.formatTime(12, 0, false), "12:00 PM", "noon is 12:00 PM -- the wrapped hour cannot tell it from midnight");
+    Test.assertEqualMessage(ClockText.formatTime(13, 5, false), "1:05 PM", "13:05 is 1:05 PM");
+    Test.assertEqualMessage(ClockText.formatTime(23, 59, false), "11:59 PM", "23:59 is 11:59 PM");
+    Test.assertEqualMessage(ClockText.formatTime(9, 7, false), "9:07 AM", "12-hour mode does not pad the hour");
     return true;
 }
 
 // Every minute of every day, in both formats. A format that only breaks at
 // 03:04 is exactly the kind that a handful of spot checks misses.
 //
-// 24-hour is hh:mm. 12-hour is h:mm or hh:mm plus a ONE-LETTER meridiem
-// (ADR-0042), so its strings run one longer and end in a letter rather than a
+// 24-hour is hh:mm. 12-hour is h:mm or hh:mm plus a spaced AM/PM meridiem
+// (ADR-0043), so its strings run three longer and end in a letter rather than a
 // digit -- both asserted, because a suffix silently dropped in some branch is
 // the failure this now has to catch as well.
 (:test)
@@ -37,15 +37,15 @@ function clockTextFormatsEveryMinuteOfTheDay(logger as Test.Logger) as Boolean {
             for (var minute = 0; minute < 60; minute += 1) {
                 var s = ClockText.formatTime(hour, minute, is24Hour);
                 var digits = is24Hour ? 5 : (hour % 12 == 0 || hour % 12 > 9 ? 5 : 4);
-                var expectedLength = is24Hour ? digits : digits + 1;
+                var expectedLength = is24Hour ? digits : digits + 3;
                 Test.assertEqualMessage(
                     s.length(), expectedLength,
                     "formatTime(" + hour + "," + minute + "," + is24Hour + ") = '" + s + "'"
                 );
 
-                // The colon sits third-from-last in 24-hour and fourth-from-last
+                // The colon sits third-from-last in 24-hour and sixth-from-last
                 // in 12-hour, because the suffix comes after the minutes.
-                var colonAt = is24Hour ? s.length() - 3 : s.length() - 4;
+                var colonAt = is24Hour ? s.length() - 3 : s.length() - 6;
                 var colon = s.substring(colonAt, colonAt + 1);
                 Test.assertMessage(
                     colon != null && (colon as String).equals(":"),
@@ -54,7 +54,7 @@ function clockTextFormatsEveryMinuteOfTheDay(logger as Test.Logger) as Boolean {
                 );
 
                 if (!is24Hour) {
-                    var tail = s.substring(s.length() - 1, s.length()) as String;
+                    var tail = s.substring(s.length() - 3, s.length()) as String;
                     var wanted = hour < 12 ? ClockText.SUFFIX_AM : ClockText.SUFFIX_PM;
                     Test.assertEqualMessage(
                         tail, wanted,

@@ -14,7 +14,12 @@ import Toybox.WatchUi;
 // order in this file puts it beyond the tests that cover it. ADR-0029, ADR-0030
 class candleView extends WatchUi.View {
 
-    const FONT_CLOCK = Graphics.FONT_MEDIUM;
+    // FONT_SMALL, not MEDIUM, and the difference is 6 px of glyph height
+    // against 12 px of chord at the top slot's tightest point -- which is what
+    // lets the 12-hour clock carry a full " PM" instead of a single letter.
+    // ADR-0043. Still comfortably larger than FONT_TEXT, so the hierarchy that
+    // makes the clock glanceable survives.
+    const FONT_CLOCK = Graphics.FONT_SMALL;
     const FONT_TEXT = Graphics.FONT_XTINY;
     // ...and no third: the "-" and "+" are drawn bars. ADR-0015
 

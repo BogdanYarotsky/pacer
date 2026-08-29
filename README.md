@@ -73,10 +73,11 @@ clock and the battery — and both are repainted once a minute:
 The bottom line shows the charge left, `VIBE OFF` if the watch cannot vibrate,
 or `HOLD TO EXIT` for two seconds after you press Back.
 
-The clock follows the watch's own 12/24-hour setting. On a 12-hour watch it
-reads `4:12p` — a single letter, because the clock is the largest text on either
-screen and sits where the round edge is tightest, and a full `PM` does not fit
-there at that size (ADR-0042).
+The clock follows the watch's own 12/24-hour setting, and on a 12-hour watch it
+reads `4:12 PM`. The meridiem is not decoration: without it noon and midnight
+render identically, since both wrap to 12. Fitting it is why the clock is one
+font size down from the largest — a shorter box sits lower on a round screen,
+where the glass is wider (ADR-0043).
 
 **Press the upper button for the pace.** It is the setting you measure once and
 then leave alone, so it lives on a screen of its own rather than costing the
