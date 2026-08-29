@@ -1,8 +1,11 @@
 <strings>
-    <!-- The launcher name. The store listing carries the full title,
-         "Candle: Haptic Resonance Breathing Frequency Pacer", but a device
-         menu truncates long names, so on the watch it is just Candle. Every
-         other string Candle draws is a compile-time constant in
-         source/Display.mc, where the layout tests can measure it. -->
+    <!-- The launcher name, and the ONLY name this app draws for itself.
+         The store listing carries a longer title; it is not repeated here,
+         because a copy of it in this comment went stale the first time that
+         title changed. It lives in docs/store-listing.md alone.
+
+         A device menu truncates long names, which is why the watch gets the
+         short one. Every other string Candle draws is a compile-time constant
+         in source/Display.mc, where the layout tests can measure it. -->
     <string id="AppName">Candle</string>
 </strings>

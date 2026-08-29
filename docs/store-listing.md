@@ -30,7 +30,7 @@ Two more that bite this app specifically:
 
 | Field | Value |
 | --- | --- |
-| App name | `Candle: Haptic Resonance Breathing Frequency Pacer` (exactly 50 chars) |
+| App name | `Candle: Resonance Breathing Pacer` (33 chars) |
 | Type | Watch App |
 | Category | Health & Fitness |
 | Devices | vívoactive 5 |

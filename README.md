@@ -1,7 +1,16 @@
 # Candle
 
-**Candle: Haptic Resonance Breathing Frequency Pacer**, for the Garmin
-vívoactive 5. Free and open source under the [MIT license](LICENSE).
+A haptic resonance-breathing pacer for the Garmin vívoactive 5. Free and open
+source under the [MIT license](LICENSE).
+
+<!-- Deliberately NOT the store title. That string lives in
+     docs/store-listing.md and nowhere else -- it changed once already, and
+     this line and a comment in resources/strings/strings.xml were both still
+     quoting the old one. A description in this repo's own words cannot drift
+     from a form field it never claimed to be. -->
+
+Published on the Connect IQ store; the listing's exact title, description and
+every other field are in [`docs/store-listing.md`](docs/store-listing.md).
 
 Candle is a resonance-frequency breathing pacer. It vibrates twice per breathing
 cycle — once at each turn-around — and does nothing else. There are two screens
