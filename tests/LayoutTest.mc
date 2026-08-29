@@ -3,6 +3,9 @@ import Toybox.Math;
 import Toybox.Test;
 import Toybox.Graphics;
 import Toybox.System;
+// For the settings logo, the one drawn thing here that is a resource rather
+// than a string. ADR-0040
+import Toybox.WatchUi;
 
 // Layout tests for the vivoactive 5.
 //
@@ -500,14 +503,13 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     // there is no second state to pass in and no release string that goes
     // unmeasured.
     //
-    // EVERY version this app can ever show, public and dev.
+    // EVERY version this app can ever show, public and dev, in the BOTTOM band
+    // it moved to when the logo took the top one (ADR-0040).
     //
     // The scheme is closed on purpose (ADR-0039), and that is what makes this a
     // sweep rather than a guess at a worst case. A public version is one digit
     // each side of the dot and rolls 1.9 -> 2.0: a hundred strings. A dev build
-    // adds an iteration of one to three digits, capped there because a fourth
-    // walks out of this band -- so the widest string that can ever be drawn
-    // here is "Candle v9.9.999" and it is measured below along with the rest.
+    // adds an iteration of one to three digits.
     //
     // An open-ended counter is what this replaced, and the cost of one was not
     // hypothetical: the budget would have to be sized for versions nobody will
@@ -515,10 +517,10 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     // case.
     //
     // version.ps1 refuses to bump past either ceiling. If a guard ever goes,
-    // this is what notices.
-    var settingsRowsTop = Layout.editorRowsTop(
-        Rows.forScreen(Rows.SCREEN_SETTINGS).size(), h);
-    var titleY = Layout.topSlotY(textHeight, settingsRowsTop);
+    // this is what notices -- and it is a tighter net now than when the string
+    // carried the app's name, so it will not catch a regression by width alone.
+    // It is still the thing that fails if the version is drawn somewhere it
+    // does not fit.
     var widest = "";
     var widestPx = 0;
 
@@ -529,23 +531,23 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
         for (var minor = 0; minor <= 9; minor += 1) {
             var base = major.toString() + "." + minor.toString();
             for (var i = 0; i < iterations.size(); i += 1) {
-                var title = Display.settingsTitle(base + (iterations[i] as String));
-                var px = dc.getTextWidthInPixels(title, textFont);
-                if (px > widestPx) { widestPx = px; widest = title; }
-                assertLineFits(dc, titleY, title, textFont, "settings title");
+                var line = Display.settingsVersion(base + (iterations[i] as String));
+                var px = dc.getTextWidthInPixels(line, textFont);
+                if (px > widestPx) { widestPx = px; widest = line; }
+                assertLineFits(dc, bottomSlotY, line, textFont, "settings version");
             }
         }
     }
-    logger.debug("settings title: widest of " + (100 * iterations.size()) +
+    logger.debug("settings version: widest of " + (100 * iterations.size()) +
         " is \"" + widest + "\" at " + widestPx + "px in a band of " +
-        (Layout.halfChordAt(titleY, w, h) * 2) + "px, y=" + titleY);
+        (Layout.halfChordAt(bottomSlotY, w, h) * 2) + "px, y=" + bottomSlotY);
 
     // And the string the source actually holds, which must be one of them --
     // a hand-set version that does not fit the scheme is a broken deploy.
-    var shipping = Display.settingsTitle(getApp().APP_VERSION);
-    logger.debug("settings title: shipping \"" + shipping + "\" is " +
+    var shipping = Display.settingsVersion(getApp().APP_VERSION);
+    logger.debug("settings version: shipping \"" + shipping + "\" is " +
         dc.getTextWidthInPixels(shipping, textFont) + "px");
-    assertLineFits(dc, titleY, shipping, textFont, "settings title (shipping version)");
+    assertLineFits(dc, bottomSlotY, shipping, textFont, "settings version (shipping)");
 
     // The exit hint takes this slot for two seconds after a Back, on BOTH
     // screens since ADR-0036 -- the settings screen's bottom band held a BACK
@@ -940,6 +942,51 @@ function layoutControlGlyphsAreSymmetricAndCentred(logger as Test.Logger) as Boo
         Layout.GLYPH_LENGTH * 3 >= diameter,
         "the glyph is " + Layout.GLYPH_LENGTH + "px across a " + diameter +
             "px circle, which reads as a speck");
+    return true;
+}
+
+// The settings screen's logo fits its band, and the band is the round screen's
+// narrowest.
+//
+// A bitmap is the one thing on either screen that no other test can see. Every
+// string goes through assertLineFits, which measures against the chord; the
+// logo is placed by arithmetic on its own dimensions and would simply be drawn
+// off the glass, or over the rows, if either changed. tools/make-icons.ps1
+// emits it at a fixed size, so this pins the two together: shrink the band or
+// grow the mark and this is what says so. ADR-0040
+(:test)
+function layoutSettingsLogoFitsItsBand(logger as Test.Logger) as Boolean {
+    var w = LayoutTestConst.VA5_W;
+    var h = LayoutTestConst.VA5_H;
+
+    var logo = WatchUi.loadResource(Rez.Drawables.LauncherIcon) as WatchUi.BitmapResource;
+    var lw = logo.getWidth();
+    var lh = logo.getHeight();
+    var rowsTop = Layout.editorRowsTop(Rows.forScreen(Rows.SCREEN_SETTINGS).size(), h);
+    var y = Layout.topSlotY(lh, rowsTop);
+    var x = Layout.centerX(w) - (lw / 2);
+
+    logger.debug("settings logo: " + lw + "x" + lh + " at " + x + "," + y +
+        "  band is 0.." + rowsTop);
+
+    // Wholly on the screen, vertically, and clear of the rows below it.
+    Test.assertMessage(y >= 0, "the logo starts above the top edge, at y=" + y);
+    Test.assertMessage(
+        (y + lh) <= rowsTop,
+        "the logo reaches y=" + (y + lh) + " but the rows start at " + rowsTop);
+
+    // And inside the CHORD at both its edges, which is the constraint a square
+    // bitmap near the top of a round screen actually runs into -- the corners
+    // are off the glass long before the centre line is.
+    Test.assertMessage(
+        Layout.fitsOnRoundScreen(y, lw, lh, w, h),
+        "the logo is " + lw + "px wide at y=" + y + ", outside the chord there (" +
+            (Layout.halfChordAt(y, w, h) * 2) + "px at its top edge, " +
+            (Layout.halfChordAt(y + lh, w, h) * 2) + "px at its bottom)");
+
+    // Centred, to the pixel the integer division allows.
+    Test.assertEqualMessage(
+        x + (lw / 2), Layout.centerX(w), "the logo must be horizontally centred");
     return true;
 }
 

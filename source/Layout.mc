@@ -72,11 +72,14 @@ module Layout {
         return editorRowTop(index, rowCount, height) + (EDITOR_ROW_HEIGHT / 2);
     }
 
-    // The band above the rows, centred: the clock on the main screen, the build
-    // version on the settings screen. Taller fonts grow away from the rows
-    // rather than into them, which a test asserts as a direction. ADR-0011
-    function topSlotY(fontHeight as Number, rowsTop as Number) as Number {
-        return (rowsTop - fontHeight) / 2;
+    // The band above the rows, centred: the clock on the main screen, the
+    // candle mark on the settings screen (ADR-0040). Taller content grows away
+    // from the rows rather than into them, which a test asserts as a direction.
+    //
+    // It takes a HEIGHT and does not care whose. A font's and a bitmap's centre
+    // the same way, which is why the logo needed no anchor of its own. ADR-0011
+    function topSlotY(contentHeight as Number, rowsTop as Number) as Number {
+        return (rowsTop - contentHeight) / 2;
     }
 
     function editorControlX(width as Number, increase as Boolean) as Number {
@@ -97,9 +100,9 @@ module Layout {
     }
 
     // The band below the rows: the battery, warning or hint on the main screen,
-    // and on the settings screen the same hint and nothing else. One anchor for
+    // and on the settings screen the same hint or the version. One anchor for
     // both, whose one geometric duty is to clear the bottom row's controls --
-    // a test pins that. ADR-0005, ADR-0036
+    // a test pins that. ADR-0005, ADR-0036, ADR-0040
     function bottomSlotY(height as Number, fontHeight as Number) as Number {
         return height - BOTTOM_SLOT_MARGIN - fontHeight;
     }

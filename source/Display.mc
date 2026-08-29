@@ -74,22 +74,20 @@ module Display {
     // control it labelled: the upper button cycles the screens, so the bottom
     // band it occupied is the exit hint's now.
 
-    const APP_NAME = "Candle";
-
-    // The settings screen's TITLE, in every build. ADR-0037
+    // The settings screen's version, along its BOTTOM band, in every build.
+    // ADR-0037 for why it is drawn at all, ADR-0040 for why it is down there
+    // and why it is no longer the app's name.
     //
-    // It was `buildLine`, and it came with an annotated predicate that hid the
-    // version from release builds -- the version was a developer's instrument
-    // then, and drawing it for a wearer was duplication of what the Connect IQ
-    // phone app already reports (ADR-0003). What changed is who reads it: a
-    // wearer writing a bug report has the watch in hand and the phone app three
-    // taps away on another device, and this band was empty anyway.
+    // It read "Candle v1.0" and lived at the top until the logo took that band.
+    // The name went with the move rather than being duplicated beside the mark:
+    // a logo that needs its own name written next to it is not doing its job,
+    // and the two bands are meant to balance -- one small thing at each end of
+    // the screen, with the rows between them.
     //
-    // So there is no predicate any more, no (:debug)/(:release) pair, and no
-    // way for a release build to draw a different string from the one the tests
-    // measure. The name is here because this is a title and titles are named;
-    // it is NOT here to identify the app to its own wearer.
-    function settingsTitle(appVersion as String) as String {
-        return APP_NAME + " v" + appVersion;
+    // There is no annotated predicate here and there must not be one: a
+    // (:debug)/(:release) pair would let a store build draw a string no test
+    // ever measured.
+    function settingsVersion(appVersion as String) as String {
+        return "v" + appVersion;
     }
 }

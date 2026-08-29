@@ -31,6 +31,13 @@ class candleView extends WatchUi.View {
     private var _topTextY as Number = 0;
     private var _bottomSlotY as Number = 0;
 
+    // The settings screen's logo, and where it goes. Loaded once in onLayout
+    // rather than per draw: loadResource decodes the PNG, and the cue timer
+    // repaints this view every minute. ADR-0040
+    private var _logo as WatchUi.BitmapResource? = null;
+    private var _logoX as Number = 0;
+    private var _logoY as Number = 0;
+
     function initialize(screen as Number) {
         View.initialize();
         _screen = screen;
@@ -54,6 +61,17 @@ class candleView extends WatchUi.View {
         _topTextY = Layout.topSlotY(
             dc.getFontHeight(FONT_TEXT), Layout.editorRowsTop(_rows.size(), height));
         _bottomSlotY = Layout.bottomSlotY(height, dc.getFontHeight(FONT_TEXT));
+
+        // The logo is centred in the same band the clock and the version text
+        // use, by the same arithmetic -- topSlotY takes a HEIGHT, and a bitmap
+        // has one just as a font does. Only the settings screen draws it, but
+        // it is resolved on both for the same reason the two top anchors above
+        // are: the arithmetic is cheaper than the branch.
+        var logo = WatchUi.loadResource(Rez.Drawables.LauncherIcon) as WatchUi.BitmapResource;
+        _logo = logo;
+        _logoX = _centerX - (logo.getWidth() / 2);
+        _logoY = Layout.topSlotY(
+            logo.getHeight(), Layout.editorRowsTop(_rows.size(), height));
     }
 
     // Also called when the settings screen above is popped, which is measured
@@ -110,31 +128,41 @@ class candleView extends WatchUi.View {
         drawCentered(dc, _bottomSlotY, FONT_TEXT, line);
     }
 
-    // The settings screen's title, drawn in EVERY build. ADR-0037
+    // The settings screen's top band: the candle mark, in EVERY build.
+    //
+    // A logo and not a name. The band held "Candle v1.0" as text until the two
+    // bands were made to balance -- a small thing at the top, a small thing at
+    // the bottom, the rows between -- and writing the app's name beside its own
+    // mark would be saying it twice. ADR-0040
+    private function drawSettingsTopSlot(dc as Dc) as Void {
+        var logo = _logo;
+        if (logo != null) {
+            dc.drawBitmap(_logoX, _logoY, logo);
+        }
+    }
+
+    // The settings screen's bottom band: the exit hint, else the version.
+    //
+    // Strict precedence, one line, no sharing -- the same shape as the main
+    // screen's bottom slot (ADR-0005), and for the same reason. A swallowed
+    // Back has two seconds to say what does work, and an input that changes
+    // nothing on screen otherwise reads as a frozen app. The version is the
+    // resting state and can wait.
     //
     // TRIPWIRE: the marker line below is READ by tools/deploy.ps1 and printed as
     // the last thing a sideload says. That sentence is the whole verification
     // procedure (ADR-0034) -- it is what someone follows while holding the
     // watch -- and it has rotted once already: it went on naming the bottom
-    // band after the version moved out of it, sending a wearer to look at a
-    // slot that had never shown one. It lives here, beside the draw call that
-    // decides it, so that moving the version edits the instruction in the same
-    // breath. deploy.ps1 refuses to run if the marker is gone.
-    // DEPLOY-VERIFY: the TOP of the settings screen, ABOVE the EVERY and BPM rows
-    private function drawSettingsTopSlot(dc as Dc) as Void {
-        drawCentered(
-            dc, _topTextY, FONT_TEXT, Display.settingsTitle(getApp().APP_VERSION));
-    }
-
-    // The same answer the main screen gives a swallowed Back, and nothing at
-    // rest. This band was a BACK button until ADR-0036 handed navigation back
-    // to the upper button; it speaks only when a Back has just been swallowed,
-    // which leaves the title above (ADR-0037) as the only thing this screen
-    // draws outside its two rows.
+    // band after the version moved to the top, sending a wearer to look at a
+    // slot that had never shown one. The version has now moved back down here
+    // (ADR-0040) and this line moved with it, in the same commit, which is
+    // exactly what it exists to force. deploy.ps1 refuses to run without it.
+    // DEPLOY-VERIFY: the BOTTOM of the settings screen, BELOW the EVERY and BPM rows
     private function drawSettingsBottomSlot(dc as Dc) as Void {
-        if (getApp().showsExitHint()) {
-            drawCentered(dc, _bottomSlotY, FONT_TEXT, Display.exitHint());
-        }
+        var line = getApp().showsExitHint()
+            ? Display.exitHint()
+            : Display.settingsVersion(getApp().APP_VERSION);
+        drawCentered(dc, _bottomSlotY, FONT_TEXT, line);
     }
 
     private function drawCentered(

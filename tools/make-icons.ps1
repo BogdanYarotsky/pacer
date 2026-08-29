@@ -9,10 +9,16 @@
 #   resources/drawables/launcher_icon.png 56x56, the vivoactive 5 launcher size
 #                                         (from the device compiler.json)
 #
-# It used to emit a third size, a 40x40 logo_small.png for the main screen's
-# bottom slot in release builds. That slot is empty now -- the screen you
-# breathe on ends in empty space -- so the mark lives only where it identifies
-# the app: the launcher and the store listing.
+# THERE IS NO THIRD SIZE, and that is deliberate. The settings screen's top band
+# draws the launcher icon itself (ADR-0040) rather than a logo of its own: it is
+# the same mark at the same size, so a second file would be a second thing to
+# keep in step for no gain. It also reads correctly -- the mark on the screen is
+# the mark you tapped to get here.
+#
+# A 40x40 logo_small.png did exist once, in the MAIN screen's bottom slot on
+# release builds, and it was deleted because that slot must hold a fact about
+# the session in progress (ADR-0005): the screen you breathe on is not a place
+# to advertise. That still holds. The settings screen is not that screen.
 #
 # The script IS the versioned artwork: publish/ is gitignored, so regenerate
 # the store icon before a submission. Tweak the shape here, re-run, rebuild.
