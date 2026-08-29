@@ -28,7 +28,6 @@ class candleView extends WatchUi.View {
     private var _controlRightX as Number = 0;
     private var _screenHeight as Number = 0;
     private var _clockY as Number = 0;
-    private var _topTextY as Number = 0;
     private var _bottomSlotY as Number = 0;
 
     // The settings screen's logo, and where it goes. Loaded once in onLayout
@@ -53,20 +52,18 @@ class candleView extends WatchUi.View {
         _controlLeftX = Layout.editorControlX(width, false);
         _controlRightX = Layout.editorControlX(width, true);
 
-        // The same band at two font sizes: the clock on the main screen, the
-        // build version on the settings screen. Both resolved on both screens
-        // because the arithmetic is cheaper than the branch.
+        // The top band holds the clock on the main screen and the logo on the
+        // settings screen -- so it is anchored twice, once per screen, and both
+        // are resolved on both because the arithmetic is cheaper than the
+        // branch. There used to be a third anchor here for the version as TEXT
+        // in this band; it went with the text (ADR-0040), and the compiler
+        // caught it sitting unused at -w.
         _clockY = Layout.topSlotY(
             dc.getFontHeight(FONT_CLOCK), Layout.editorRowsTop(_rows.size(), height));
-        _topTextY = Layout.topSlotY(
-            dc.getFontHeight(FONT_TEXT), Layout.editorRowsTop(_rows.size(), height));
         _bottomSlotY = Layout.bottomSlotY(height, dc.getFontHeight(FONT_TEXT));
 
-        // The logo is centred in the same band the clock and the version text
-        // use, by the same arithmetic -- topSlotY takes a HEIGHT, and a bitmap
-        // has one just as a font does. Only the settings screen draws it, but
-        // it is resolved on both for the same reason the two top anchors above
-        // are: the arithmetic is cheaper than the branch.
+        // The logo centres by the same arithmetic the clock does: topSlotY takes
+        // a HEIGHT, and a bitmap has one just as a font does.
         var logo = WatchUi.loadResource(Rez.Drawables.LauncherIcon) as WatchUi.BitmapResource;
         _logo = logo;
         _logoX = _centerX - (logo.getWidth() / 2);
