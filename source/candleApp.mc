@@ -13,9 +13,15 @@ import Toybox.Timer;
 // how an endpoint becomes unreachable. ADR-0026
 class candleApp extends Application.AppBase {
 
+    // ONE number for two jobs: what a wearer reads out in a bug report, and the
+    // proof a sideload landed. The minor is a plain integer and the store
+    // version is whatever this says on the day -- so store versions skip, and
+    // that is the deal. ADR-0037, ADR-0034
+    //
     // Bumped by deploy.ps1 on every sideload; that script greps this constant,
-    // so the two move together. ADR-0032, ADR-0034
-    const APP_VERSION = "0.31";
+    // so the two move together. Reset here to 1.0 for the first store release,
+    // deliberately abandoning the 0.x sideload count.
+    const APP_VERSION = "1.0";
 
     // Defaults are where a wearer starts looking, never answers. One person's
     // measured resonance frequency dressed as a default would be a wrong number

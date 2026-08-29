@@ -110,7 +110,7 @@ class candleView extends WatchUi.View {
         drawCentered(dc, _bottomSlotY, FONT_TEXT, line);
     }
 
-    // Debug builds only, so a Store install draws an empty top band. ADR-0032
+    // The settings screen's title, drawn in EVERY build. ADR-0037
     //
     // TRIPWIRE: the marker line below is READ by tools/deploy.ps1 and printed as
     // the last thing a sideload says. That sentence is the whole verification
@@ -120,19 +120,17 @@ class candleView extends WatchUi.View {
     // slot that had never shown one. It lives here, beside the draw call that
     // decides it, so that moving the version edits the instruction in the same
     // breath. deploy.ps1 refuses to run if the marker is gone.
-    // DEPLOY-VERIFY: the TOP of the settings screen, ABOVE the EVERY and PACE rows
+    // DEPLOY-VERIFY: the TOP of the settings screen, ABOVE the EVERY and BPM rows
     private function drawSettingsTopSlot(dc as Dc) as Void {
-        var version = Display.buildLine(getApp().APP_VERSION, Display.showsBuildVersion());
-        if (version.length() > 0) {
-            drawCentered(dc, _topTextY, FONT_TEXT, version);
-        }
+        drawCentered(
+            dc, _topTextY, FONT_TEXT, Display.settingsTitle(getApp().APP_VERSION));
     }
 
     // The same answer the main screen gives a swallowed Back, and nothing at
     // rest. This band was a BACK button until ADR-0036 handed navigation back
-    // to the upper button, which leaves the settings screen with two empty
-    // bands in a release build -- the version above is debug-only (ADR-0032)
-    // and this one speaks only when a Back has just been swallowed.
+    // to the upper button; it speaks only when a Back has just been swallowed,
+    // which leaves the title above (ADR-0037) as the only thing this screen
+    // draws outside its two rows.
     private function drawSettingsBottomSlot(dc as Dc) as Void {
         if (getApp().showsExitHint()) {
             drawCentered(dc, _bottomSlotY, FONT_TEXT, Display.exitHint());

@@ -1,7 +1,8 @@
 ---
 id: 0032
 title: The build version is debug-only and lives on the settings screen
-status: accepted
+status: superseded
+superseded-by: 0037
 ---
 
 ## Context

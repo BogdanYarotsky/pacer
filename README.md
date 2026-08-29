@@ -28,15 +28,19 @@ is where to start looking, not an answer.
 Resonance frequency is individual: measure your own and dial it in on the watch
 rather than in code. Tools built for exactly that measurement include
 **Yudemon** and **Elite HRV** — run an assessment there and type the breathing
-rate it settles on straight into the `PACE` row. A measured 5.5 breaths/min is
-`PACE 5.5bpm`, and there is no arithmetic to do.
+rate it settles on straight into the `BPM` row. A measured 5.5 breaths/min is
+`5.5 BPM`, and there is no arithmetic to do.
 
-There is no arithmetic because the same screen carries both units. `PACE` is
-breaths per minute, `EVERY` is seconds between cues, and they are one setting
+There is no arithmetic because the same screen carries both units. The `BPM` row
+is breaths per minute, `EVERY` is seconds between cues, and they are one setting
 seen twice — move either and the other follows. Use whichever your tool speaks:
-assessments report bpm, so `PACE` is usually the one you type into, and `EVERY`
-is the finer nudge afterwards (in the resonance band one `PACE` tap is worth
+assessments report bpm, so `BPM` is usually the one you type into, and `EVERY`
+is the finer nudge afterwards (in the resonance band one `BPM` tap is worth
 several `EVERY` taps).
+
+That row carries no caption of its own — the unit is the caption. If "5.88 BPM"
+means nothing to you, ignore it and work the `EVERY` row above: the number below
+will follow along, which explains the pair better than a label could.
 
 ## Using it
 
@@ -71,39 +75,40 @@ a right swipe arrives as a real button press, so a sleeve across the glass used
 to close this screen out from under the value you were adjusting.
 
 ```
-                    v0.30
+                 Candle v1.0
 
 
         (−)      EVERY 5s        (+)
 
-        (−)     PACE 6bpm        (+)
+        (−)      6 BPM           (+)
 
 
 ```
 
-Nothing is drawn along the bottom, and on a Store install nothing is drawn along
-the top either — the version is debug-only. The screen is its two rows and the
-two physical buttons, which is the point: there is no control here small enough
-to mis-tap while you are adjusting a value.
+The title at the top is drawn in every build, store installs included — it is
+the version to quote in a bug report. Nothing is drawn along the bottom until a
+swallowed Back puts `HOLD TO EXIT` there for two seconds. Otherwise the screen
+is its two rows and the two physical buttons, which is the point: there is no
+control here small enough to mis-tap while you are adjusting a value.
 
 | Setting | Where | Default | Range | Step per tap |
 | --- | --- | ---: | ---: | ---: |
 | Vibration strength — the `POWER` row | main | 20% | 1–100% | 5%, and 1% at 5% and below |
 | Vibration length — the `PULSE` row | main | 100 ms | 10–250 ms | 10 ms |
 | Seconds between cues — the `EVERY` row | upper button | 5.00 s | 3–15 s | 0.05 s, snapped |
-| Breaths per minute — the `PACE` row | upper button | 6.00 bpm | 2–10 bpm | 0.01 bpm |
+| Breaths per minute — the `BPM` row | upper button | 6.00 bpm | 2–10 bpm | 0.01 bpm |
 
-**The two steps do different jobs.** `PACE` is the precision instrument: 0.01 bpm
+**The two steps do different jobs.** `BPM` is the precision instrument: 0.01 bpm
 is what an assessment tool like Yudemon reports, so whatever number it hands you
 goes in verbatim. `EVERY` is the coarse one, and its taps **snap to the ladder**
-rather than adding to the current value — so after `PACE` leaves the interval at
+rather than adding to the current value — so after `BPM` leaves the interval at
 5.236 s, one tap down gives you 5.20 s and the next 5.15 s, instead of walking
 5.186, 5.136 and never touching a round tenth again.
 
 `EVERY` is the number the timer runs, exposed with no translation: one buzz
 every that many seconds. It is half a breath, since there are two cues per
 breath — and you can check it against any clock by counting one gap between
-buzzes. `PACE` is that same number as a breathing rate, and the two rows are one
+buzzes. `BPM` is that same number as a breathing rate, and the two rows are one
 setting: 3–15 s and 2–10 bpm are the same range in two units, endpoints included.
 
 Note that `+` moves them in opposite directions, and that is not a bug — more
@@ -195,17 +200,21 @@ to tell that apart from a dead app. It is the only warning in the app, and it
 takes the whole line: the two do not fit side by side down there, and a warning
 clipped at both ends would be worse than no warning at all.
 
-**The version on screen is the point — on a sideload.** A sideload to this watch
-goes over MTP and *cannot* be verified from the host — see the deploy section of
-`AGENTS.md`. Reading the version off the watch is the only proof of which build
-is running, which is why `just deploy` bumps it before every build. It sits at
-the bottom of the **`EVERY` screen**, one button press away: you read it once
-after a deploy and never again while breathing.
+**The version is the settings screen's title, in every build.** `Candle v1.0`
+sits at the **top** of that screen, one button press away — you read it after a
+deploy, or when you are writing a bug report, and never while breathing.
 
-A Store install has no such problem: the Connect IQ app reports the installed
-version. So the version is drawn in **debug builds only**, which is every
-sideload; on a Store install the `EVERY` screen carries its one row and nothing
-else. Release builds once drew a small candle mark at the bottom of the main
+It is one number doing two jobs. A sideload to this watch goes over MTP and
+*cannot* be verified from the host (see the deploy section of `AGENTS.md`), so
+reading the version off the glass is the only proof of which build is running —
+which is why `just deploy` bumps it before every build. And it is the number to
+quote in a bug report, matching the store listing exactly, because the minor is
+that same sideload counter and whatever it says on submission day is what gets
+typed into the store form. Store versions therefore skip: 1.0, then 1.7. That is
+the deal, and the alternative is a tidy number that traces to nothing.
+
+The minor is a plain integer, so it counts 1.9 → 1.10 and never grows a trailing
+zero. Release builds once drew a small candle mark at the bottom of the main
 screen; it is gone, because the screen you breathe on is not a place to
 advertise, and the battery has that slot now. The mark still identifies the app on
 the launcher and in the store listing, which is where identifying it is the job.

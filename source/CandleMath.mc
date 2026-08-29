@@ -79,8 +79,12 @@ module CandleMath {
         return formatHundredths(((everyMillis / 10.0) + 0.5).toNumber()) + "s";
     }
 
+    // "5.88 BPM", and the unit is doing two jobs: it is the reading AND the
+    // row's caption. This row draws no "PACE" label -- ADR-0038 -- so the unit
+    // has to carry the sentence on its own, which is why it is spaced off the
+    // number and set in capitals like the labels on the other three rows.
     function formatPace(paceHundredths as Number) as String {
-        return formatHundredths(paceHundredths) + "bpm";
+        return formatHundredths(paceHundredths) + " BPM";
     }
 
     // --- the POWER ladder ------------------------------------------------------

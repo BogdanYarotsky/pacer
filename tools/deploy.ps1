@@ -51,9 +51,28 @@ if ($SetVersion -ne "") {
 } elseif ($NoBump) {
     $nextVersion = $currentVersion
 } else {
-    # Keep the zero padding: 0.08 -> 0.09, not 0.9.
-    $width = $minor.Length
-    $nextVersion = "$major." + ([int]$minor + 1).ToString().PadLeft($width, '0')
+    # ONE DIGIT EACH SIDE OF THE DOT, so the minor ROLLS: 1.9 -> 2.0. ADR-0037
+    #
+    # Not semantic versioning, on purpose. The major carries nothing about
+    # compatibility -- it is the tens digit of a plain odometer, and the whole
+    # scheme exists so that every number a wearer ever reads out is four
+    # characters they can say down a phone. "1.10" and "1.30" are the strings
+    # this rule is written to prevent, and it also stops the layout budget being
+    # sized for versions nobody will ever ship.
+    $nextMinor = [int]$minor + 1
+    $nextMajor = [int]$major
+    if ($nextMinor -gt 9) { $nextMinor = 0; $nextMajor += 1 }
+
+    # 9.9 is the end of the odometer. Failing here is deliberate: rolling to
+    # "10.0" would silently break both the one-digit rule and the width budget
+    # the layout test pins, and it is a decision for a person -- wrap, widen, or
+    # start again -- not for a bump.
+    if ($nextMajor -gt 9) {
+        throw ("deploy: the version is at $currentVersion and the scheme is one digit " +
+            "each side of the dot (ADR-0037), so there is no next version. Decide what " +
+            "comes after 9.9 and set it with -SetVersion.")
+    }
+    $nextVersion = "$nextMajor.$nextMinor"
 }
 
 # --- where the wearer has to look ---------------------------------------------

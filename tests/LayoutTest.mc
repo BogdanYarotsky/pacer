@@ -55,9 +55,9 @@ function rowRange(row as Number) as Array<Number> {
 // drawable and the sweep is honest by luck of the step being 1.
 //
 // Coarsen PACE_STEP and that stops being true immediately: at the 0.1 bpm step
-// this row shipped with for one day, "PACE 2.01bpm" was a string no interval
-// could produce -- and a character wider than anything real, so the sweep would
-// have policed a budget against fiction while missing nothing that existed.
+// this row shipped with for one day, "2.01 BPM" was a string no interval could
+// produce -- and a character wider than anything real, so the sweep would have
+// policed a budget against fiction while missing nothing that existed.
 // Reading the step from the app is what keeps the two in step.
 function rowSweepStep(row as Number) as Number {
     return row == Rows.PACE ? getApp().PACE_STEP : 1;
@@ -480,37 +480,59 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
         }
     }
 
-    // Every form of both bottom slots, because they sit where the round screen
-    // is at its tightest -- the chord under this anchor is roughly half the
-    // display width -- and a warning nobody can read because it is clipped at
-    // both ends is worse than no warning.
-    //
-    // Both showVersion states are passed explicitly rather than through
-    // Display.showsBuildVersion(), which always answers true here: tests compile
-    // with -t and that is a debug build. Passing the flag is what keeps the
-    // release strings measured by something.
+    // Every form of the main screen's bottom slot, because it sits where the
+    // round screen is at its tightest -- the chord under this anchor is roughly
+    // half the display width -- and a warning nobody can read because it is
+    // clipped at both ends is worse than no warning.
     var bottomSlotY = Layout.bottomSlotY(h, textHeight);
-    var appVersion = getApp().APP_VERSION;
     var flags = [ true, false ];
     for (var f = 0; f < flags.size(); f += 1) {
         var flag = flags[f] as Boolean;
-
         var warning = Display.vibeWarning(flag);
         logger.debug("main slot: vibrate=" + flag + " -> \"" + warning + "\"");
         assertLineFits(
             dc, bottomSlotY, warning, textFont, "main bottom slot (vibrate=" + flag + ")");
-
-        // The version lives in the settings screen's TOP band, so it is
-        // measured up there -- against a different chord, and at the text
-        // font's height rather than the clock's. ADR-0032
-        var build = Display.buildLine(appVersion, flag);
-        var settingsRowsTop = Layout.editorRowsTop(
-            Rows.forScreen(Rows.SCREEN_SETTINGS).size(), h);
-        logger.debug("settings top slot: version=" + flag + " -> \"" + build + "\"");
-        assertLineFits(
-            dc, Layout.topSlotY(textHeight, settingsRowsTop), build, textFont,
-            "settings top slot (version=" + flag + ")");
     }
+
+    // The settings screen's TITLE, in its TOP band -- a different anchor from
+    // everything above, against a different chord, at the text font's height
+    // rather than the clock's. It is drawn in every build now (ADR-0037), so
+    // there is no second state to pass in and no release string that goes
+    // unmeasured.
+    //
+    // EVERY version this app can ever show, all hundred of them, because the
+    // scheme is one digit each side of the dot and rolls 1.9 -> 2.0 (ADR-0037).
+    // That closed domain is the point of the rule: an open-ended counter would
+    // force this budget to be sized for strings nobody will ship, and the font
+    // would be smaller for the realistic case to buy room for a fictional one.
+    // A hundred strings can just be swept, so nothing here is a guess about a
+    // worst case -- the worst case is measured along with the rest.
+    //
+    // deploy.ps1 refuses to bump past 9.9 rather than rolling to "10.0", which
+    // is the string that would walk out of this budget. If that guard ever goes,
+    // this test is what notices.
+    var settingsRowsTop = Layout.editorRowsTop(
+        Rows.forScreen(Rows.SCREEN_SETTINGS).size(), h);
+    var titleY = Layout.topSlotY(textHeight, settingsRowsTop);
+    var widest = "";
+    var widestPx = 0;
+    for (var major = 0; major <= 9; major += 1) {
+        for (var minor = 0; minor <= 9; minor += 1) {
+            var title = Display.settingsTitle(major.toString() + "." + minor.toString());
+            var px = dc.getTextWidthInPixels(title, textFont);
+            if (px > widestPx) { widestPx = px; widest = title; }
+            assertLineFits(dc, titleY, title, textFont, "settings title");
+        }
+    }
+    logger.debug("settings title: widest of 100 is \"" + widest + "\" at " +
+        widestPx + "px, y=" + titleY);
+
+    // And the string the source actually holds, which must be one of them --
+    // a hand-set version that does not fit the scheme is a broken deploy.
+    var shipping = Display.settingsTitle(getApp().APP_VERSION);
+    logger.debug("settings title: shipping \"" + shipping + "\" is " +
+        dc.getTextWidthInPixels(shipping, textFont) + "px");
+    assertLineFits(dc, titleY, shipping, textFont, "settings title (shipping version)");
 
     // The exit hint takes this slot for two seconds after a Back, on BOTH
     // screens since ADR-0036 -- the settings screen's bottom band held a BACK
