@@ -89,6 +89,7 @@ just input-test    # the real-input checks, on a machine you are not also using
 just icons         # regenerates publish/store-icon-500.png + launcher icon
 just shot-release  # main screen, as a Store install draws it
 just shot-settings # settings screen -- takes the pointer for a moment
+just store-shots   # -> publish/store-shot-*.png, square 500x500 for the listing
 just package       # publish/Candle.iq -- signed release, and prints the form version
 ```
 
@@ -102,17 +103,35 @@ automated; it prints these commands rather than running them. If §1 fails, fix
 it and sideload with plain `just deploy` (which iterates to `1.4.1` and leaves
 `1.4` free), then `just release -SetVersion 1.4` when it is clean.
 
-Screenshots for the listing, both cropped to the round screen out of the
-simulator's bezel capture:
+Screenshots for the listing. `just shot-release` and `just shot-settings` write
+raw simulator-window captures to `shots/`; **`just store-shots` turns them into
+the images you upload**, in `publish/`:
 
-- `shots/vivoactive5.png` — the main screen: clock, `POWER`, `BUZZ`, battery.
-- `shots/vivoactive5-settings.png` — the settings screen: the candle mark,
-  `EVERY 5s`, `6 BPM`, and the version along the bottom.
+| upload order | file | shows |
+| --- | --- | --- |
+| 1 | `publish/store-shot-1-main.png` | clock, `POWER`, `BUZZ`, battery |
+| 2 | `publish/store-shot-2-settings.png` | candle mark, `EVERY 5s`, `6 BPM`, version |
 
-Lead with the settings shot if the store only takes one. The main screen is
-four lines of text and says little; the settings screen shows the two units
-following each other, which is the thing worth looking at, and it carries the
-version a reviewer will want to match against the form.
+**Upload the main screen first** — it is the one shown in the store's app list,
+where the settings screen would read as an unexplained pair of numbers.
+
+### What the store wants from an image
+
+Garmin's submission page does not publish image specs. These are observed, from
+the developer forums and from what the upload form accepts, so if a future
+upload is rejected then the form's own message is better evidence than this
+list — fix it here rather than working around it.
+
+- **Square.** This is the one that actually bites: the store site stretches a
+  non-square image into a square slot, which is why so many listings show an
+  oval where a round watch should be.
+- **500×500 px**, and no larger.
+- **PNG, under ~150 KB** each. `store-shots` prints each size and warns past it.
+
+Cropping this by eye is what the script exists to prevent. Two images framed
+"about square, roughly centred" look fine one at a time and visibly mismatched
+side by side in a listing — the script finds the watch by its widest contiguous
+run against the white background, so both crops land at the same scale.
 
 **Check the values in that capture before you use it, and reset them properly.**
 A listing screenshot has to show the defaults a new install starts on —

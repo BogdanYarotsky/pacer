@@ -82,6 +82,12 @@ capture name device=device:
 release:
     pwsh -NoProfile -File tools/release.ps1
 
+# Crop the raw simulator captures in shots/ into square 500x500 listing images.
+# The store stretches non-square images into square slots, which is why so many
+# listings show oval watches. Run after the shot recipes, before uploading.
+store-shots:
+    pwsh -NoProfile -File tools/store-shots.ps1
+
 # Build the signed store bundle: publish/Candle.iq (release, all products).
 # REFUSES a three-segment dev version -- run `just release` first. The
 # submission walk-through is docs/PUBLISHING.md.
