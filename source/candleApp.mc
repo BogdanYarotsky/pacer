@@ -15,7 +15,7 @@ class candleApp extends Application.AppBase {
 
     // Bumped by deploy.ps1 on every sideload; that script greps this constant,
     // so the two move together. ADR-0032, ADR-0034
-    const APP_VERSION = "0.29";
+    const APP_VERSION = "0.31";
 
     // Defaults are where a wearer starts looking, never answers. One person's
     // measured resonance frequency dressed as a default would be a wrong number

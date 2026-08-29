@@ -111,6 +111,16 @@ class candleView extends WatchUi.View {
     }
 
     // Debug builds only, so a Store install draws an empty top band. ADR-0032
+    //
+    // TRIPWIRE: the marker line below is READ by tools/deploy.ps1 and printed as
+    // the last thing a sideload says. That sentence is the whole verification
+    // procedure (ADR-0034) -- it is what someone follows while holding the
+    // watch -- and it has rotted once already: it went on naming the bottom
+    // band after the version moved out of it, sending a wearer to look at a
+    // slot that had never shown one. It lives here, beside the draw call that
+    // decides it, so that moving the version edits the instruction in the same
+    // breath. deploy.ps1 refuses to run if the marker is gone.
+    // DEPLOY-VERIFY: the TOP of the settings screen, ABOVE the EVERY and PACE rows
     private function drawSettingsTopSlot(dc as Dc) as Void {
         var version = Display.buildLine(getApp().APP_VERSION, Display.showsBuildVersion());
         if (version.length() > 0) {
@@ -118,9 +128,15 @@ class candleView extends WatchUi.View {
         }
     }
 
-    // Drawn unconditionally -- it is the way out, not a diagnostic. ADR-0010
+    // The same answer the main screen gives a swallowed Back, and nothing at
+    // rest. This band was a BACK button until ADR-0036 handed navigation back
+    // to the upper button, which leaves the settings screen with two empty
+    // bands in a release build -- the version above is debug-only (ADR-0032)
+    // and this one speaks only when a Back has just been swallowed.
     private function drawSettingsBottomSlot(dc as Dc) as Void {
-        drawCentered(dc, _bottomSlotY, FONT_TEXT, Display.backLabel());
+        if (getApp().showsExitHint()) {
+            drawCentered(dc, _bottomSlotY, FONT_TEXT, Display.exitHint());
+        }
     }
 
     private function drawCentered(

@@ -109,6 +109,37 @@ function mainDelegateSwallowsBackAndArmsTheHint(logger as Test.Logger) as Boolea
     return true;
 }
 
+// The SETTINGS screen answers a Back exactly as the main screen does, and that
+// sameness is the assertion.
+//
+// It was not always so. The settings screen used to swallow a Back in silence,
+// because its bottom band was a BACK button and a hint would have covered the
+// control it described. ADR-0036 retired the button -- the upper button cycles
+// the screens -- which freed the band and collapsed onBack to one path. A
+// screen branch creeping back in here is the regression this catches: a wearer
+// who brushes the glass mid-adjustment must be told what still works, and the
+// held lower button works from this screen too.
+(:test)
+function settingsDelegateSwallowsBackAndArmsTheHint(logger as Test.Logger) as Boolean {
+    var delegate = new candleDelegate(Rows.SCREEN_SETTINGS);
+    var app = getApp();
+    try {
+        Test.assertMessage(
+            delegate.onBack(),
+            "Back must be consumed on the settings screen, never pop it"
+        );
+        Test.assertMessage(
+            app.showsExitHint(),
+            "a Back on the settings screen must arm the same hint the main screen arms"
+        );
+    } finally {
+        app.hintCallback();
+    }
+
+    Test.assertMessage(!app.showsExitHint(), "the hint must come back down");
+    return true;
+}
+
 // The hold-to-repeat arming logic, without a simulator: startRepeat and
 // stopRepeat own the timer and nothing else, so they can run here without a
 // Storage write. The stepping itself (onHold -> steps -> onRelease) is driven

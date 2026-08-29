@@ -7,7 +7,9 @@ import Toybox.System;
 //
 // The measured event chain is ADR-0007 -- do not re-derive it. Why Back is
 // swallowed everywhere and a held lower button is the only exit: ADR-0008,
-// ADR-0009, ADR-0010. Nothing here touches configureTouchEvents: ADR-0004.
+// ADR-0009. Why the two screens are navigated by the upper button and by
+// nothing on the glass: ADR-0036. Nothing here touches configureTouchEvents:
+// ADR-0004.
 class candleDelegate extends WatchUi.BehaviorDelegate {
 
     // Five steps a second: fast enough to cross a range in a reasonable hold,
@@ -120,6 +122,11 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
     // same press either way, so a screen opened by accident is undone by the
     // press that follows. Held, the button opens the watch's controls menu,
     // which never reaches the app; a hold and a press do not collide. ADR-0004
+    //
+    // **This is the ONLY way between the screens.** There is no drawn control
+    // and no gesture: Back is swallowed on both, and the `BACK` button that
+    // used to sit in the settings screen's bottom band was retired once it was
+    // noticed that this press already did its job in both directions. ADR-0036
     function onSelect() as Boolean {
         stopRepeat();
         if (_inputGate.consume(WatchUi.KEY_ENTER)) {
@@ -153,29 +160,24 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
             return true;
         }
 
-        // BACK owns the band below the rows, where the row map returns HIT_NONE
-        // anyway -- the order is about reading, not about resolving a clash.
-        // Settings only: the main screen's bottom band holds the battery, which
-        // nothing taps. ADR-0010
-        if (_screen != Rows.SCREEN_MAIN && isBackTap(clickEvent)) {
-            trace("tap BACK -> settings closed");
-            WatchUi.popView(WatchUi.SLIDE_RIGHT);
-            return true;
-        }
-
+        // Every tap is a row tap now, on both screens. The band below the rows
+        // held a BACK button until ADR-0036 retired it; the row map returned
+        // HIT_NONE down there then and still does, so a tap that lands in it is
+        // ignored rather than special-cased.
         adjustSetting(hitAt(clickEvent));
         return true;
     }
 
-    // **BACK NEVER DOES ANYTHING, ON EITHER SCREEN.** ADR-0009, ADR-0010
+    // **BACK NEVER DOES ANYTHING, ON EITHER SCREEN.** ADR-0009, ADR-0036
+    //
+    // One path, no screen branch. The two screens used to answer a swallowed
+    // Back differently because the settings screen's bottom band was a BACK
+    // button and a hint would have covered the control it described. The band
+    // is empty since ADR-0036, and the gesture the hint names -- a held lower
+    // button -- works from both screens, so the same answer is the right one in
+    // both places.
     function onBack() as Boolean {
         stopRepeat();
-
-        if (_screen != Rows.SCREEN_MAIN) {
-            trace("onBack on settings -> swallowed, tap BACK");
-            return true;
-        }
-
         trace("onBack -> swallowed, hold to exit");
         getApp().armExitHint();
         return true;
@@ -212,13 +214,8 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // Both map against Layout.DISPLAY_WIDTH while the view draws with
+    // Maps against Layout.DISPLAY_WIDTH while the view draws with
     // dc.getWidth(); a test asserts those are the same number.
-    private function isBackTap(clickEvent as WatchUi.ClickEvent) as Boolean {
-        var coordinates = clickEvent.getCoordinates();
-        return Layout.isBackTap(coordinates[1], Layout.DISPLAY_WIDTH, _rows.size());
-    }
-
     private function hitAt(clickEvent as WatchUi.ClickEvent) as Number {
         var coordinates = clickEvent.getCoordinates();
         return Layout.editorHitAt(

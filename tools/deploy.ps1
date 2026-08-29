@@ -13,10 +13,19 @@
 # the settings screen. That is why this script bumps the version before every
 # build.
 #
-# The version used to be on the main screen and moved on 2026-08-24. If it moves
-# again, the closing message at the bottom of this file has to move with it --
-# it is the instruction someone follows while holding the watch, and a wrong one
-# sends them to look at a slot that has never shown a version.
+# WHERE THE VERSION IS DRAWN IS NOT WRITTEN DOWN HERE.
+#
+# It moved twice -- off the main screen, then from the settings screen's bottom
+# band to its top -- and the closing message below did not move with it either
+# time, so this script spent a stretch of versions sending someone to look at a
+# band that had never shown one. That is the worst possible thing for this file
+# to be wrong about: the message IS the verification procedure (ADR-0034), and a
+# wrong one reads as "the sideload did not land".
+#
+# So the sentence has one home, next to the draw call that decides it:
+# source/candleView.mc carries a `// DEPLOY-VERIFY:` marker and this script
+# reads it. Moving the version edits the instruction in the same breath, and a
+# missing marker stops the deploy rather than letting it guess.
 
 param(
     [string]$Device = "vivoactive5",
@@ -46,6 +55,16 @@ if ($SetVersion -ne "") {
     $width = $minor.Length
     $nextVersion = "$major." + ([int]$minor + 1).ToString().PadLeft($width, '0')
 }
+
+# --- where the wearer has to look ---------------------------------------------
+# Read before anything is built, so a missing marker costs nothing.
+$viewFile = Join-Path $RepoRoot "source\candleView.mc"
+if ((Get-Content $viewFile -Raw) -notmatch '(?m)^\s*//\s*DEPLOY-VERIFY:\s*(\S.*?)\s*$') {
+    throw ("deploy: no '// DEPLOY-VERIFY: <where to look>' marker in $viewFile. " +
+        "The closing instruction has no source and this script will not guess one -- " +
+        "put the marker back beside the draw call that shows the version.")
+}
+$whereToLook = $Matches[1]
 
 if ($nextVersion -ne $currentVersion) {
     $content = $content -replace "APP_VERSION\s*=\s*`"$([regex]::Escape($currentVersion))`"", "APP_VERSION = `"$nextVersion`""
@@ -144,5 +163,6 @@ Write-Host ""
 Write-Host "THE COPY CANNOT BE VERIFIED FROM HERE." -ForegroundColor Yellow
 Write-Host "Disconnect the watch and open Candle. The main screen shows the clock," -ForegroundColor Yellow
 Write-Host "POWER, PULSE and the battery -- no version. Press the UPPER BUTTON and" -ForegroundColor Yellow
-Write-Host "confirm the settings screen reads v$nextVersion under the EVERY and PACE rows." -ForegroundColor Yellow
+Write-Host "read $whereToLook." -ForegroundColor Yellow
+Write-Host "It must say v$nextVersion." -ForegroundColor Yellow
 Write-Host "If it shows an older version, the watch is still running the previous build." -ForegroundColor Yellow

@@ -1,8 +1,9 @@
 ---
 id: 0010
 title: Back is swallowed on both screens; the settings screen has a BACK button
-status: accepted
+status: superseded
 supersedes: 0009
+superseded-by: 0036
 ---
 
 ## Context

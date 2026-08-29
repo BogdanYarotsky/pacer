@@ -49,12 +49,11 @@ module Layout {
     const DIRECTION_DECREASE = 1;
     const DIRECTION_INCREASE = 2;
 
-    // The settings screen's BACK band: everything below the row block, edge to
-    // edge. A separate question from editorHitAt because BACK is not a row.
-    // ADR-0010, ADR-0014
-    function isBackTap(y as Number, height as Number, rowCount as Number) as Boolean {
-        return y >= editorRowsTop(rowCount, height) + (rowCount * EDITOR_ROW_HEIGHT);
-    }
+    // There was an isBackTap() here, mapping the band below the rows to the
+    // settings screen's BACK button. ADR-0036 retired the button along with the
+    // only thing on either screen that a tap outside a row could do; the band
+    // is inert on both screens now, which is what editorHitAt already returned
+    // for it. ADR-0014
 
     function centerX(width as Number) as Number {
         return width / 2;
@@ -98,7 +97,9 @@ module Layout {
     }
 
     // The band below the rows: the battery, warning or hint on the main screen,
-    // the BACK button on the settings screen. ADR-0005, ADR-0010
+    // and on the settings screen the same hint and nothing else. One anchor for
+    // both, whose one geometric duty is to clear the bottom row's controls --
+    // a test pins that. ADR-0005, ADR-0036
     function bottomSlotY(height as Number, fontHeight as Number) as Number {
         return height - BOTTOM_SLOT_MARGIN - fontHeight;
     }

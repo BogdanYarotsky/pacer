@@ -62,16 +62,16 @@ or `HOLD TO EXIT` for two seconds after you press Back.
 
 **Press the upper button for the pace.** It is the setting you measure once and
 then leave alone, so it lives on a screen of its own rather than costing the
-other two a third of the glass. **Tap `BACK` to return** — the whole bottom of
-the screen is the button, not just the word — or press the upper button again.
+other two a third of the glass. **Press the same button again to come back** —
+that one press is the whole navigation, in both directions.
 
-Back and a right swipe do nothing here, exactly as on the main screen. That is
-the same firmware quirk described below: a right swipe arrives as a real button
-press, so a sleeve across the glass used to close this screen out from under the
-value you were adjusting.
+Back and a right swipe do nothing here, exactly as on the main screen, and both
+answer with the same `HOLD TO EXIT`. That is the firmware quirk described below:
+a right swipe arrives as a real button press, so a sleeve across the glass used
+to close this screen out from under the value you were adjusting.
 
 ```
-                    v0.29
+                    v0.30
 
 
         (−)      EVERY 5s        (+)
@@ -79,8 +79,12 @@ value you were adjusting.
         (−)     PACE 6bpm        (+)
 
 
-                    BACK
 ```
+
+Nothing is drawn along the bottom, and on a Store install nothing is drawn along
+the top either — the version is debug-only. The screen is its two rows and the
+two physical buttons, which is the point: there is no control here small enough
+to mis-tap while you are adjusting a value.
 
 | Setting | Where | Default | Range | Step per tap |
 | --- | --- | ---: | ---: | ---: |
@@ -159,14 +163,14 @@ was left without touch until it was rebooted — and Candle could not repair it,
 because relaunching Candle needs touch to reach the app list. The watch's own lock
 has none of that failure mode, because the OS owns the state and restores it.
 
-**Upper button — the interval.** Press it to open the `EVERY` screen and press it
-again to close. Held, it opens the watch's controls menu, which is where Lock
-Screen lives — a hold, not a press, so the two do not collide.
+**Upper button — the interval, and the only way between the screens.** Press it
+to open the `EVERY` screen and press it again to close. Held, it opens the
+watch's controls menu, which is where Lock Screen lives — a hold, not a press,
+so the two do not collide.
 
-**Lower button — Back, and it never exits.** On the `EVERY` screen it goes back
-to the main screen. On the main screen it does nothing except show
-`HOLD TO EXIT` for two seconds. Same for a right swipe, which arrives as the
-identical event.
+**Lower button — Back, and it never does anything.** On either screen it shows
+`HOLD TO EXIT` for two seconds and nothing else. Same for a right swipe, which
+arrives as the identical event.
 
 **To quit, hold the lower button.** From either screen.
 

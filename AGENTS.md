@@ -174,16 +174,47 @@ is. Every concern has exactly one home:
 
 ## What each button does, on each screen
 
+Two rules, and the table below is only their consequences: **a press of the
+upper button cycles the two screens, and a held lower button exits from either.**
+Nothing else navigates — no gesture, and nothing drawn on the glass. ADR-0036
+
 | | main screen | settings screen |
 |---|---|---|
 | upper button (press) | push the settings screen | pop back |
 | upper button (held) | the watch's controls menu — never reaches the app | same |
-| lower button (press → Back) | swallowed, shows `HOLD TO EXIT` | swallowed, does nothing |
-| right-swipe (arrives as Back) | swallowed, shows `HOLD TO EXIT` | swallowed, does nothing |
-| tap the bottom band | nothing — it holds the battery | pop back (the `BACK` button) |
+| lower button (press → Back) | swallowed, shows `HOLD TO EXIT` | same |
+| right-swipe (arrives as Back) | swallowed, shows `HOLD TO EXIT` | same |
+| tap the bottom band | nothing — it holds the battery | nothing — it is inert |
 | **lower button (held → Menu)** | **exit the app** | **exit the app** |
 
-Why Back is trusted with nothing: ADR-0008, ADR-0009, ADR-0010.
+The two screens answer every input identically except the upper button, which is
+the one that tells them apart. That is newer than it looks: the settings screen
+swallowed a Back in silence and had a `BACK` button in its bottom band until
+ADR-0036 noticed the upper button already went both ways.
+
+Why Back is trusted with nothing: ADR-0008, ADR-0009. Why nothing is drawn to
+replace it: ADR-0036.
+
+### Open, and NOT yet diagnosed: a queued upper-button press
+
+Observed on the wrist, 2026-08-29. **Hold the upper button** to open the watch's
+own controls menu, dismiss it, and come back to Candle — and the *next touch on
+the glass* switches screens, as though the press were sitting in a queue waiting
+to be delivered. It goes the other way too: the same thing happens returning to
+the settings screen.
+
+Nothing here is confirmed. The obvious reading is that the firmware delivers the
+`KEY_ENTER` from the hold after the app regains focus, and `MainInputGate`
+latches it, so the next `onSelect` — raised by a *tap*, which is the path that
+normally has no key behind it (ADR-0007) — consumes a key it did not earn and
+takes the screen change. That is a hypothesis with no measurement behind it.
+
+Do not fix it from that paragraph. Start by getting the event chain out of a
+real wrist session: `onKeyPressed`/`onKeyReleased`/`onSelect` traces across the
+controls-menu round trip, which is a case ADR-0007's measurements never covered
+because the app never lost focus in them. `MainInputGate.clear()` on resume is
+the first thing to try once the chain is known, and `onShow` is where it would
+go. Deferred deliberately until after the store submission.
 
 ---
 

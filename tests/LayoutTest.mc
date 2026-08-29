@@ -500,10 +500,9 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
         assertLineFits(
             dc, bottomSlotY, warning, textFont, "main bottom slot (vibrate=" + flag + ")");
 
-        // The version moved to the settings screen's TOP band when the BACK
-        // button took the bottom one, so it is measured up there now -- against
-        // a different chord, and at the text font's height rather than the
-        // clock's.
+        // The version lives in the settings screen's TOP band, so it is
+        // measured up there -- against a different chord, and at the text
+        // font's height rather than the clock's. ADR-0032
         var build = Display.buildLine(appVersion, flag);
         var settingsRowsTop = Layout.editorRowsTop(
             Rows.forScreen(Rows.SCREEN_SETTINGS).size(), h);
@@ -513,18 +512,11 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
             "settings top slot (version=" + flag + ")");
     }
 
-    // The BACK button, which is drawn in EVERY build -- unlike the version
-    // above it. On a Store install it is the only way off this screen that
-    // anything on the glass tells you about, so a clipped one would strand a
-    // wearer on the settings screen with a Back key that has stopped working.
-    var back = Display.backLabel();
-    logger.debug(
-        "BACK label \"" + back + "\" is " + dc.getTextWidthInPixels(back, textFont) + "px");
-    assertLineFits(dc, bottomSlotY, back, textFont, "settings BACK button");
-
-    // The exit hint takes the same slot for two seconds after a Back. Back does
-    // not exit any more, so this string is the only feedback a Back produces --
-    // one clipped at the edges would be worse than useless.
+    // The exit hint takes this slot for two seconds after a Back, on BOTH
+    // screens since ADR-0036 -- the settings screen's bottom band held a BACK
+    // button until then and holds nothing else now. Back does not exit any
+    // more, so this string is the only feedback a Back produces on either
+    // screen, and one clipped at the edges would be worse than useless.
     //
     // It was the widest thing this slot ever held until the battery caption was
     // spelled out: 175 px, against "BATTERY 100%" at 187. Which one is widest
@@ -916,64 +908,54 @@ function layoutControlGlyphsAreSymmetricAndCentred(logger as Test.Logger) as Boo
     return true;
 }
 
-// The settings screen's BACK button: where it can be tapped, and where it
-// cannot.
+// The bottom slot sits BELOW the rows, on both screens, with the row controls
+// fully clear of it.
 //
-// The zone is the whole band below the row block, which makes it a large target
-// for a thumb -- but "large" is only safe if it stops exactly where the rows
-// stop. A zone that crept up by a row height would eat the bottom row's
-// controls and a tap meant for "-" would leave the screen instead.
+// This used to pin the settings screen's BACK tap band to the row boundary.
+// ADR-0036 deleted the button, and with it the only tap outside a row either
+// screen ever answered -- but the geometry it was really guarding survives the
+// control, because the band still holds a drawn string: the battery or the
+// warning on the main screen, the exit hint on both. A slot that crept up by a
+// row height would draw over the bottom row's "-" and "+", which reach lower
+// than that row's text does.
 //
-// It exists because Back is swallowed on this screen now. The firmware forges
-// KEY_ESC for a right swipe, so a sleeve across the glass was closing the
-// screen out from under a value being adjusted; this is the visible control
-// that replaced the gesture, and if it stops being tappable the screen's only
-// remaining exit is the upper button, which nothing on the glass mentions.
+// Both screens carry two rows today, so the two checks are the same arithmetic.
+// They are still run separately, because the day one screen grows a row is the
+// day that stops being true and this is where it should fail.
 (:test)
-function layoutBackTapCoversTheBandBelowTheRows(logger as Test.Logger) as Boolean {
+function layoutBottomSlotClearsTheRowControls(logger as Test.Logger) as Boolean {
     var h = LayoutTestConst.VA5_H;
-    var rows = Rows.forScreen(Rows.SCREEN_SETTINGS);
-    var count = rows.size();
-    var rowsBottom = Layout.editorRowsTop(count, h) + (count * Layout.EDITOR_ROW_HEIGHT);
-    logger.debug("settings rows end at y=" + rowsBottom + ", BACK band is " +
-        (h - rowsBottom) + "px tall");
-
-    // The boundary is inclusive on the BACK side and exclusive on the rows'.
-    Test.assertMessage(
-        Layout.isBackTap(rowsBottom, h, count),
-        "the first row of pixels below the rows must be a BACK tap");
-    Test.assertMessage(
-        !Layout.isBackTap(rowsBottom - 1, h, count),
-        "the last row of pixels belonging to the rows must NOT be a BACK tap");
-    Test.assertMessage(
-        Layout.isBackTap(h - 1, h, count), "the bottom edge must be a BACK tap");
-
-    // Nothing above the row block is ever a BACK tap -- on the settings screen
-    // that band holds the version, and on the main screen the clock.
-    Test.assertMessage(
-        !Layout.isBackTap(0, h, count), "the top of the screen must not be a BACK tap");
-    Test.assertMessage(
-        !Layout.isBackTap(h / 2, h, count), "the centre row must not be a BACK tap");
-
-    // The band has to clear the bottom row's controls, which reach lower than
-    // its text does, or a thumb aiming at "-" would land on BACK.
-    var lastRowBottom = Layout.editorRowCenter(count - 1, count, h) +
-        Layout.CONTROL_RADIUS + Layout.CONTROL_PEN;
-    Test.assertMessage(
-        rowsBottom >= lastRowBottom,
-        "the BACK band starts at " + rowsBottom + " but the row controls reach " +
-            lastRowBottom);
-
-    // And the word drawn in it has to sit inside the band, not above it.
     var ref = Graphics.createBufferedBitmap(
         {:width => LayoutTestConst.VA5_W, :height => h});
     var bmp = ref.get();
     Test.assertMessage(bmp != null, "could not create a buffered bitmap to measure text with");
     var dc = (bmp as Graphics.BufferedBitmap).getDc();
     var textHeight = dc.getFontHeight(Graphics.FONT_XTINY);
-    Test.assertMessage(
-        Layout.bottomSlotY(h, textHeight) >= rowsBottom,
-        "the BACK label is drawn at " + Layout.bottomSlotY(h, textHeight) +
-            ", above its own tap band at " + rowsBottom);
+    var slotY = Layout.bottomSlotY(h, textHeight);
+
+    var screens = [ Rows.SCREEN_MAIN, Rows.SCREEN_SETTINGS ];
+    for (var s = 0; s < screens.size(); s += 1) {
+        var screen = screens[s] as Number;
+        var count = Rows.forScreen(screen).size();
+        var rowsBottom = Layout.editorRowsTop(count, h) + (count * Layout.EDITOR_ROW_HEIGHT);
+
+        // The row block's nominal bottom has to contain the circles the bottom
+        // row actually draws, which hang below its text.
+        var lastRowBottom = Layout.editorRowCenter(count - 1, count, h) +
+            Layout.CONTROL_RADIUS + Layout.CONTROL_PEN;
+        logger.debug("screen " + screen + ": " + count + " rows ending at y=" +
+            rowsBottom + ", controls reach " + lastRowBottom +
+            ", bottom slot drawn at " + slotY);
+        Test.assertMessage(
+            rowsBottom >= lastRowBottom,
+            "screen " + screen + ": the rows end at " + rowsBottom +
+                " but their controls reach " + lastRowBottom);
+
+        // And the string in the slot is drawn below all of it.
+        Test.assertMessage(
+            slotY >= rowsBottom,
+            "screen " + screen + ": the bottom slot is drawn at " + slotY +
+                ", above the rows that end at " + rowsBottom);
+    }
     return true;
 }

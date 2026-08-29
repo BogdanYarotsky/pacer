@@ -167,34 +167,44 @@ try {
 
     # --- the settings screen --------------------------------------------------
     #
-    # The upper button pushes it, and three separate things close it again. Each
-    # close is followed by re-opening, so every one of them is exercised from a
-    # screen that really is on the stack rather than from wherever the previous
-    # check left things.
+    # The upper button pushes it, and the SAME PRESS is the only thing that
+    # closes it. ADR-0036 retired the BACK button that used to sit in the bottom
+    # band, so nothing on the glass and no gesture pops this screen any more.
     #
-    # SETTINGS carries one row, so it sits ON the centre line at y=195. That is
-    # the whole reason this section cannot reuse the coordinates above: the same
-    # row is at a different height on a screen with fewer rows on it.
+    # SETTINGS carries two rows, EVERY over PACE, at the same two heights the
+    # main screen's rows sit at -- both screens hold two rows, so the row
+    # geometry is shared. It is spelled out again rather than reused because a
+    # screen that grows a third row moves its own rows and nothing else's.
     Check "enter opens"     { Inject @{ Action='press'; Target='enter' } }           'upper button -> settings'
-    Check "settings plus"   { Inject @{ Action='tap'; X=340; Y=195 } }               'onSelect from tap -> awaiting coordinates.*tap EVERY \+'
+    Check "every plus"      { Inject @{ Action='tap'; X=340; Y=144 } }               'onSelect from tap -> awaiting coordinates.*tap EVERY \+'
+    Check "every minus"     { Inject @{ Action='tap'; X=50;  Y=144 } }               'onSelect from tap -> awaiting coordinates.*tap EVERY -'
+    Check "pace plus"       { Inject @{ Action='tap'; X=340; Y=246 } }               'onSelect from tap -> awaiting coordinates.*tap PACE \+'
+    Check "pace minus"      { Inject @{ Action='tap'; X=50;  Y=246 } }               'onSelect from tap -> awaiting coordinates.*tap PACE -'
     Check "settings inert"  { Inject @{ Action='tap'; X=195; Y=195 } }               'onSelect from tap -> awaiting coordinates.*tap outside controls -> ignored'
 
-    # The button that opened it closes it: a press that opened the screen by
-    # accident is undone by the press that follows.
-    Check "enter closes"    { Inject @{ Action='press'; Target='enter' } }           'upper button -> settings closed'
+    # The band below the rows was the BACK button until ADR-0036. It is inert
+    # now, and a tap there must be ignored rather than pop the screen -- this is
+    # the check that would catch the control coming back by accident.
+    #
+    # x=320 is deliberately inside the "+" column and not on the centre line:
+    # only the y puts this tap outside a row, so the check fails if the row
+    # block ever grows downward into the band. It is also inside the round
+    # glass at that height -- the half-chord at y=320 stops around x=345.
+    Check "bottom band inert" { Inject @{ Action='tap'; X=320; Y=320 } }             'onSelect from tap -> awaiting coordinates.*tap outside controls -> ignored'
 
-    # A right-swipe pops it. On MAIN the same gesture is swallowed because it
-    # would end a session; here it costs a wearer nothing, so it is allowed to
-    # mean what it means everywhere else on the watch.
-    Check "reopen for swipe" { Inject @{ Action='press'; Target='enter' } }          'upper button -> settings'
-    Check "swipe closes"    { Inject @{ Action='swipe'; Target='right' } }           'onBack on settings -> settings closed'
-
-    # And the lower button pops it WITHOUT closing the app -- which is the whole
-    # reason Back needed a second meaning. The running check is the assertion;
-    # the trace line alone would pass just as well on an app that died.
-    Check "reopen for back" { Inject @{ Action='press'; Target='enter' } }           'upper button -> settings'
-    Check "back closes"     { Inject @{ Action='press'; Target='esc' } }             'onBack on settings -> settings closed'
+    # A swipe and a pressed lower button both arrive as Back, and this screen
+    # swallows both exactly as the main screen does -- same trace, same hint.
+    # Each is followed by a running check, because the trace line alone would
+    # pass just as well on an app that had died.
+    Check "swipe swallowed" { Inject @{ Action='swipe'; Target='right' } }           'onBack -> swallowed, hold to exit' -AllowNothing
+    Check-AppRunning "settings swipe kept it" "a swipe on the settings screen must not exit the app"
+    Check "back swallowed here" { Inject @{ Action='press'; Target='esc' } }         'onBack -> swallowed, hold to exit'
     Check-AppRunning "settings back kept it" "Back on the settings screen must not exit the app"
+
+    # The button that opened it closes it: a press that opened the screen by
+    # accident is undone by the press that follows, and this is now the ONLY
+    # way back to the main screen.
+    Check "enter closes"    { Inject @{ Action='press'; Target='enter' } }           'upper button -> settings closed'
 
     # --- the exit ---------------------------------------------------------------
     #

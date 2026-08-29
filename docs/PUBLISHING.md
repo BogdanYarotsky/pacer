@@ -13,13 +13,17 @@ file is the order to run it in.
 - [ ] The version at the **TOP of the settings screen** (upper button) matches
       what deploy printed (the ONLY proof a sideload landed — MTP cannot be
       verified from the host). The main screen does not show it.
-- [ ] The upper button opens the settings screen and the same button closes it;
-      **tapping `BACK` closes it too** — anywhere in the bottom band, not just
-      on the word. Neither ends the session; the cue keeps arriving throughout.
+- [ ] **The upper button is the ONLY way between the screens** — it opens the
+      settings screen and the same press closes it. Neither ends the session;
+      the cue keeps arriving throughout. There is no `BACK` button any more
+      (ADR-0036), so the bottom band of the settings screen is empty.
 - [ ] **A right swipe and a lower-button press do NOTHING on the settings
-      screen.** This is the fix for the swipe that was closing it mid-adjustment.
+      screen**, and both show `HOLD TO EXIT` there exactly as on the main
+      screen. This is the fix for the swipe that was closing it mid-adjustment.
       Adjust a value, brush right across the glass, and the screen must stay put
       with the value intact.
+- [ ] **A tap anywhere in the bottom band does nothing.** It was a `BACK` button
+      until ADR-0036; a tap that still navigates means the control came back.
 - [ ] **A migrated interval.** The stored unit has changed twice, and both
       conversions still run, so a measured frequency must survive an upgrade
       rather than reset to `5s`. From the previous build (hundredths of a
@@ -67,8 +71,8 @@ breadcrumb is a thing to rebuild deliberately, not to go looking for.
 ## 2. Build the artifacts
 
 ```
-just test          # 49 unit tests, must be green
-just input-test    # 24 real-input checks, must be green
+just test          # the unit suite, must be green
+just input-test    # the real-input checks, must be green
 just icons         # regenerates publish/store-icon-500.png + launcher icon
 just shot-release  # the screen a Store install shows: no version line
 just package       # publish/Candle.iq -- signed release, every product
@@ -118,8 +122,9 @@ Description — cover, in roughly this order:
    the interval, and **quitting is a HOLD of the lower button** — Back does not
    exit, because this watch's firmware fakes a button press for a right swipe
    and Candle would otherwise end your session when a sleeve touched the glass.
-5. Getting back from the settings screen is a tap on `BACK` along its bottom,
-   or the upper button again — Back and swipes do nothing on either screen.
+5. The **same upper button** brings you back — one press cycles the two
+   screens, in both directions, and it is the only thing that does. Back and
+   swipes do nothing on either screen; nothing on the glass navigates.
 6. Lock the screen during a session (**hold** the upper button → Lock Screen).
 7. Free, open source, MIT.
 
@@ -130,8 +135,9 @@ Description — cover, in roughly this order:
       store install over the sideload upgrades in place instead).
 - [ ] Launcher name and icon are Candle's.
 - [ ] Main screen's bottom line is the battery (or `VIBE OFF`). The settings
-      screen shows `BACK` along the bottom and NOTHING at the top — the version
-      is debug-only, so a Store install draws an empty top band.
+      screen draws NOTHING in either band — the version is debug-only
+      (ADR-0032) and the bottom band is the exit hint's, which only speaks for
+      two seconds after a Back (ADR-0036). Two empty bands is correct here.
 - [ ] The Connect IQ phone app reports the installed version (the release
       build's substitute for the on-screen version).
 - [ ] Tag the repo with the released version and update the README's store

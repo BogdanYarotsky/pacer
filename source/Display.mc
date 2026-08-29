@@ -33,11 +33,14 @@ module Display {
         return rowLabel(row) + " " + value;
     }
 
-    // --- the main screen's bottom slot, in precedence order ------------------
-    // ADR-0005
+    // --- the bottom slot ------------------------------------------------------
+    // Main screen: hint, then warning, then the battery, in that precedence
+    // (ADR-0005). Settings screen: the hint alone, and empty otherwise
+    // (ADR-0036).
 
     // The only feedback a Back produces, now that Back does nothing. It names
-    // the gesture that DOES work. ADR-0009
+    // the gesture that DOES work, and it says the same thing on both screens
+    // because a held lower button exits from either. ADR-0009, ADR-0036
     function exitHint() as String {
         return "HOLD TO EXIT";
     }
@@ -54,12 +57,11 @@ module Display {
     }
 
     // --- the settings screen -------------------------------------------------
-
-    // Drawn in EVERY build, unlike the version below: on a Store install this is
-    // the only exit anything on the glass mentions. ADR-0010
-    function backLabel() as String {
-        return "BACK";
-    }
+    //
+    // There was a backLabel() here, drawn in every build. ADR-0036 deleted the
+    // control it labelled: the upper button cycles the screens, so the band it
+    // occupied is the exit hint's now and this screen draws no caption of its
+    // own at all.
 
     function buildLine(appVersion as String, showVersion as Boolean) as String {
         return showVersion ? "v" + appVersion : "";
