@@ -63,6 +63,19 @@ shot-release device=device typecheck=typecheck:
 shot-settings device=device typecheck=typecheck:
     pwsh -NoProfile -File tools/shot.ps1 -Device {{device}} -Typecheck {{typecheck}} -Release -Settings
 
+# Photograph the simulator ALREADY RUNNING, exactly as it stands -> shots/<name>.png.
+# Builds nothing, launches nothing, presses nothing, kills nothing.
+#
+# This is how to get a shot with a chosen battery level or clock: those live in
+# the simulator's Simulation menu (shortcut `m`), are not persisted, and cannot
+# be scripted -- and every other shot recipe relaunches the simulator, throwing
+# away anything set by hand. So run `just sim`, set it up, then run this.
+#
+#   just capture main
+#   just capture settings
+capture name device=device:
+    pwsh -NoProfile -File tools/shot.ps1 -Device {{device}} -CaptureOnly -Name "{{name}}"
+
 # Finalise the version for a store release (1.3.12 -> 1.4) and stop. Builds
 # nothing and touches no watch: the wrist pass comes next and cannot be
 # automated, so this prints the commands rather than running them.

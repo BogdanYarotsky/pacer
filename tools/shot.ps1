@@ -35,7 +35,24 @@ param(
     # a second thing to fix when the simulator's chrome changes.
     #
     # It briefly takes the mouse pointer, exactly as `just input-test` does.
-    [switch]$Settings
+    [switch]$Settings,
+    # Photograph the simulator that is ALREADY running, exactly as it stands:
+    # no build, no launch, no button press, and no teardown afterwards.
+    #
+    # This is the escape hatch for everything the simulator can only be told
+    # through its own GUI. Battery level and the clock live in its Simulation
+    # menu (shortcut `m`), are not persisted in simulator.ini, and cannot be set
+    # from a script -- and every other mode here kills and relaunches the
+    # simulator, which throws away anything set by hand before the shutter
+    # opens. So: drive it yourself with `just sim`, set what you want, then take
+    # the picture with this.
+    #
+    # Safe for listing shots because a debug build now draws pixel-identical to
+    # a release one: since ADR-0037 the only annotated code left is the
+    # delegate's trace, which writes to the console and not the glass.
+    [switch]$CaptureOnly,
+    # Output basename, without .png. Defaults to the device name.
+    [string]$Name = ""
 )
 
 . "$PSScriptRoot\env.ps1"
@@ -56,6 +73,15 @@ public class Win32ShotApi {
 }
 
 # --- build + launch -----------------------------------------------------------
+if ($CaptureOnly) {
+    if (-not (Get-Process simulator -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 })) {
+        throw ("shot: -CaptureOnly photographs a simulator that is already running, " +
+            "and there is none. Start one with 'just sim', set up the screen you " +
+            "want, then run this.")
+    }
+    Write-Host "==> capturing the running simulator as it stands (no build, no launch)" -ForegroundColor Cyan
+} else {
+
 & "$PSScriptRoot\build.ps1" -Device $Device -Typecheck $Typecheck -Release:$Release
 if ($LASTEXITCODE -ne 0) { throw "shot: build failed" }
 
@@ -73,6 +99,8 @@ $doProc = Start-Process -FilePath $MonkeyDo -ArgumentList @($prg, $Device) `
     -RedirectStandardOutput (Join-Path $env:TEMP "candle-shot-out.txt") `
     -RedirectStandardError  (Join-Path $env:TEMP "candle-shot-err.txt")
 Start-Sleep -Seconds $SettleSec
+
+}   # end of the build-and-launch branch
 
 function Capture-Simulator {
     $sim = Get-Process simulator -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
@@ -188,7 +216,7 @@ $h = $bmp.Height
 
 $shotDir = Join-Path $RepoRoot "shots"
 New-Item -ItemType Directory -Path $shotDir -Force | Out-Null
-$name = if ($Settings) { "$Device-settings.png" } else { "$Device.png" }
+$name = if ($Name -ne "") { "$Name.png" } elseif ($Settings) { "$Device-settings.png" } else { "$Device.png" }
 $path = Join-Path $shotDir $name
 $bmp.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
 $bmp.Dispose()
