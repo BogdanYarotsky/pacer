@@ -21,7 +21,7 @@ class candleApp extends Application.AppBase {
     // Bumped by deploy.ps1 on every sideload; that script greps this constant,
     // so the two move together. Reset here to 1.0 for the first store release,
     // deliberately abandoning the 0.x sideload count.
-    const APP_VERSION = "1.0";
+    const APP_VERSION = "1.1";
 
     // Defaults are where a wearer starts looking, never answers. One person's
     // measured resonance frequency dressed as a default would be a wrong number

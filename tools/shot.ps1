@@ -146,6 +146,15 @@ function Capture-Simulator {
 # digit: main -> settings repaints nearly the whole face, a minute rolling over
 # moves a few hundred pixels. Sampled on a stride, because precision here buys
 # nothing.
+#
+# The fraction is OF THE DISPLAY, not of the window. It was of the window, with
+# a threshold read off the vívoactive 5, and the Forerunner 955 -- a smaller
+# glass in a smaller window, with smaller fonts -- changed the frame by less
+# than that on a press that HAD registered, so the recipe refused three good
+# captures in a row. Every pixel a screen change moves is inside the display,
+# and the display's share of the window is a device fact the config carries,
+# so the threshold is stated against the display and scaled from there.
+# ADR-0045
 function Measure-FrameDifference([System.Drawing.Bitmap]$a, [System.Drawing.Bitmap]$b) {
     if ($a.Width -ne $b.Width -or $a.Height -ne $b.Height) { return 1.0 }
     $differing = 0
@@ -165,9 +174,15 @@ function Measure-FrameDifference([System.Drawing.Bitmap]$a, [System.Drawing.Bitm
     return $differing / [double]$sampled
 }
 
-# 2% of sampled pixels. A screen change moves far more than that; a clock digit
-# and the battery arc move far less.
-$script:ChangedFraction = 0.02
+# 2% of the DISPLAY's pixels. A screen change moves far more than that; a clock
+# digit and the battery arc move far less. Converted to a fraction of the
+# window below, once the capture size is known.
+$script:ChangedDisplayFraction = 0.02
+
+function Get-DisplayArea([string]$deviceId) {
+    $cfg = Get-Content (Join-Path $env:APPDATA "Garmin\ConnectIQ\Devices\$deviceId\simulator.json") -Raw | ConvertFrom-Json
+    return [double]$cfg.display.location.width * [double]$cfg.display.location.height
+}
 
 # --- capture ------------------------------------------------------------------
 if ($Settings) {
@@ -180,6 +195,7 @@ if ($Settings) {
     $before = Capture-Simulator
     $bmp = $null
     $changed = 0.0
+    $threshold = $script:ChangedDisplayFraction * (Get-DisplayArea $Device) / ([double]$before.Width * $before.Height)
 
     for ($attempt = 1; $attempt -le 3; $attempt += 1) {
         Write-Host "==> pressing the upper button (attempt $attempt)" -ForegroundColor Cyan
@@ -190,15 +206,15 @@ if ($Settings) {
         if ($null -ne $bmp) { $bmp.Dispose() }
         $bmp = Capture-Simulator
         $changed = Measure-FrameDifference $before $bmp
-        if ($changed -ge $script:ChangedFraction) {
-            Write-Host ("    screen changed ({0:P1} of sampled pixels) -- settings screen reached" -f $changed) -ForegroundColor DarkGray
+        if ($changed -ge $threshold) {
+            Write-Host ("    screen changed ({0:P1} of sampled pixels, threshold {1:P1}) -- settings screen reached" -f $changed, $threshold) -ForegroundColor DarkGray
             break
         }
-        Write-Host ("    screen unchanged ({0:P1}) -- the press did not register" -f $changed) -ForegroundColor Yellow
+        Write-Host ("    screen unchanged ({0:P1}, threshold {1:P1}) -- the press did not register" -f $changed, $threshold) -ForegroundColor Yellow
     }
 
     $before.Dispose()
-    if ($changed -lt $script:ChangedFraction) {
+    if ($changed -lt $threshold) {
         $bmp.Dispose()
         Stop-MonkeyDo
         if (-not $KeepSim) { Stop-Simulator }

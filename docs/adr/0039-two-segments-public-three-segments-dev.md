@@ -58,8 +58,8 @@ artifact before the only test that matters had been taken.
 
 The iteration is capped at three digits, which is a layout fact rather than a
 taste one — `Candle v9.9.999` fits the title band and a fourth digit does not.
-`layoutRealLinesFitOnVivoactive5` pins it; `version.ps1` fails with a sentence
-before pixels get clipped.
+`layoutRealLinesFitTheGlass` (then named `layoutRealLinesFitOnVivoactive5`)
+pins it; `version.ps1` fails with a sentence before pixels get clipped.
 
 The unhappy path is named rather than automated: if a wrist pass sends you back
 after `release` has finalised `1.4`, iterating gives `1.4.1` and the next

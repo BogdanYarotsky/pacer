@@ -7,19 +7,26 @@ import Toybox.System;
 // than a string. ADR-0040
 import Toybox.WatchUi;
 
-// Layout tests for the vivoactive 5.
+// Layout tests, for whichever watch the runner is on.
 //
-// 390x390 round is not a guess: it comes from the SDK device config at
-// %APPDATA%\Garmin\ConnectIQ\Devices\vivoactive5\compiler.json
-// ("resolution": 390x390, "deviceFamily": "round-390x390").
+// Nothing in this file names a screen size. The glass comes from the device
+// (System.getDeviceSettings, the same call the delegate makes) and the font
+// metrics come from a Dc on that device, so `just test fr955` proves the
+// Forerunner 955 against its own fonts and `just test vivoactive5` the
+// vívoactive 5 against its own. Fonts do not scale with the glass by any rule
+// the SDK promises, which is why every device gets its own run rather than a
+// number extrapolated from another. ADR-0045
 //
 // Every sweep in this file walks BOTH screens. A row's anchor depends on how
 // many rows share the screen with it, so a value measured at the main screen's
 // row 0 says nothing about the same value on the settings screen -- and the
 // settings screen is the one carrying the widest string the app can produce.
-module LayoutTestConst {
-    const VA5_W = 390;
-    const VA5_H = 390;
+function glassWidth() as Number {
+    return System.getDeviceSettings().screenWidth;
+}
+
+function glassHeight() as Number {
+    return System.getDeviceSettings().screenHeight;
 }
 
 // Both screens, so a sweep that claims to cover every reachable value really
@@ -88,37 +95,103 @@ function rowLine(row as Number, value as Number) as String {
 (:test)
 function layoutCenterXIsHalfWidth(logger as Test.Logger) as Boolean {
     Test.assertEqualMessage(
-        Layout.centerX(LayoutTestConst.VA5_W), 195,
+        Layout.centerX(390), 195,
         "centerX(390) should be 195"
+    );
+    Test.assertEqualMessage(
+        Layout.centerX(260), 130,
+        "centerX(260) should be 130"
+    );
+    var w = glassWidth();
+    Test.assertEqualMessage(
+        Layout.centerX(w), w / 2,
+        "centerX must be half of this device's own glass"
     );
     return true;
 }
 
-// candleDelegate maps taps with Layout.DISPLAY_WIDTH while candleView draws with
-// dc.getWidth(). If those two ever disagree, the hit zones drift away from the
-// controls they are drawn under and every tap lands on the wrong thing. The
-// device itself is the arbiter.
+// The chord maths models a CIRCLE inscribed in a SQUARE, and candleDelegate
+// decodes taps against the device's reported width and height while candleView
+// draws with dc.getWidth(). Every device in the manifest has to satisfy the
+// premise, and this is where a watch that does not -- a semi-round or a
+// rectangular glass -- fails with a sentence instead of drawing text off the
+// edge. ADR-0045
 (:test)
-function layoutDisplayWidthMatchesTheDevice(logger as Test.Logger) as Boolean {
+function layoutGlassIsRoundAndSquare(logger as Test.Logger) as Boolean {
     var settings = System.getDeviceSettings();
-    logger.debug("device screen = " + settings.screenWidth + "x" + settings.screenHeight);
+    logger.debug("device screen = " + settings.screenWidth + "x" + settings.screenHeight +
+        ", shape " + settings.screenShape);
+
     Test.assertEqualMessage(
-        Layout.DISPLAY_WIDTH, settings.screenWidth,
-        "Layout.DISPLAY_WIDTH (" + Layout.DISPLAY_WIDTH +
-            ") must match the device screen width (" + settings.screenWidth + ")"
+        settings.screenShape, System.SCREEN_SHAPE_ROUND,
+        "this glass is not round: halfChordAt models a circle and would have to be " +
+            "taught the shape before anything drawn here could be trusted"
     );
     Test.assertEqualMessage(
         settings.screenWidth, settings.screenHeight,
         "the round-screen chord maths assumes a square bounding box"
     );
+    return true;
+}
 
-    // candleDelegate passes DISPLAY_WIDTH for the height too, which is only
-    // sound while the two are equal. This is the assertion that makes that
-    // shortcut safe rather than lucky.
+// scaled() is the identity on the reference glass -- which is what makes the
+// first device's shipped layout the reference rather than an approximation of
+// it -- rounds to nearest elsewhere, and grows with the glass. The glyph
+// extents come out odd on every glass, because an even bar has no middle pixel
+// to centre on. ADR-0045, ADR-0015
+(:test)
+function layoutScalingIsExactOnTheReferenceGlass(logger as Test.Logger) as Boolean {
+    var references = [
+        Layout.EDITOR_ROW_HEIGHT_REF, Layout.CONTROL_INSET_REF, Layout.CONTROL_RADIUS_REF,
+        Layout.CONTROL_PEN_REF, Layout.GLYPH_LENGTH_REF, Layout.GLYPH_THICKNESS_REF,
+        Layout.CONTROL_HIT_EDGE_REF, Layout.EDITOR_TEXT_GUTTER_REF, Layout.BOTTOM_SLOT_MARGIN_REF
+    ] as Array<Number>;
+    var ref = Layout.REFERENCE_WIDTH;
+
+    for (var i = 0; i < references.size(); i += 1) {
+        var value = references[i] as Number;
+        Test.assertEqualMessage(
+            Layout.scaled(value, ref), value,
+            "scaled(" + value + ") is not the identity on the reference glass");
+        Test.assertMessage(
+            Layout.scaled(value, ref / 2) < value,
+            "scaled(" + value + ") does not shrink with the glass");
+        Test.assertMessage(
+            Layout.scaled(value, ref) >= Layout.scaled(value, ref - 1),
+            "scaled(" + value + ") is not monotonic in the glass");
+    }
+
+    // Rounding, not truncation: two thirds of 102 is 68 and of 54 is 36, and
+    // both must come out that way rather than one short.
+    Test.assertEqualMessage(Layout.scaled(102, 260), 68, "scaled(102, 260) should round to 68");
+    Test.assertEqualMessage(Layout.scaled(54, 260), 36, "scaled(54, 260) should round to 36");
+    Test.assertEqualMessage(Layout.scaled(10, 260), 7, "scaled(10, 260) should round 6.67 up to 7");
+
+    // Odd stays odd, even goes up by one, and the reference values pass through.
     Test.assertEqualMessage(
-        Layout.DISPLAY_WIDTH, settings.screenHeight,
-        "the hit map passes DISPLAY_WIDTH as the height, so it must be the height"
-    );
+        Layout.oddScaled(Layout.GLYPH_LENGTH_REF, ref), Layout.GLYPH_LENGTH_REF,
+        "oddScaled must pass the odd reference length through unchanged");
+    Test.assertEqualMessage(
+        Layout.oddScaled(Layout.GLYPH_THICKNESS_REF, ref), Layout.GLYPH_THICKNESS_REF,
+        "oddScaled must pass the odd reference thickness through unchanged");
+    Test.assertEqualMessage(Layout.oddScaled(18, 390), 19, "an even result must round up to the next odd");
+
+    // And on this device: every size is at least a pixel, and the bars are odd.
+    var w = glassWidth();
+    var h = glassHeight();
+    logger.debug("this glass: row " + Layout.editorRowHeight(h) + ", inset " +
+        Layout.controlInset(w) + ", radius " + Layout.controlRadius(w) + ", pen " +
+        Layout.controlPen(w) + ", glyph " + Layout.glyphLength(w) + "x" +
+        Layout.glyphThickness(w) + ", hit edge " + Layout.controlHitEdge(w) +
+        ", gutter " + Layout.editorTextGutter(w) + ", bottom margin " +
+        Layout.bottomSlotMargin(h));
+    Test.assertMessage(Layout.controlPen(w) >= 1, "the ring's pen must be at least a pixel");
+    Test.assertMessage(Layout.controlRadius(w) > Layout.controlPen(w), "the ring has no inside");
+    Test.assertEqualMessage(Layout.glyphLength(w) % 2, 1, "the glyph length must be odd on this glass");
+    Test.assertEqualMessage(Layout.glyphThickness(w) % 2, 1, "the glyph thickness must be odd on this glass");
+    Test.assertMessage(
+        Layout.glyphLength(w) > Layout.glyphThickness(w),
+        "a bar must be longer than it is thick");
     return true;
 }
 
@@ -207,7 +280,7 @@ function rowsReachEverySettingAtLeastOnce(logger as Test.Logger) as Boolean {
 // into the row below whatever that font turns out to be.
 (:test)
 function layoutAnchorsAreOnScreen(logger as Test.Logger) as Boolean {
-    var h = LayoutTestConst.VA5_H;
+    var h = glassHeight();
     var rowCount = Rows.forScreen(Rows.SCREEN_MAIN).size();
     var rowsTop = Layout.editorRowsTop(rowCount, h);
     var heights = [20, 26, 35, 48, 54];
@@ -239,7 +312,7 @@ function layoutAnchorsAreOnScreen(logger as Test.Logger) as Boolean {
         var top = Layout.editorRowsTop(count, h);
         Test.assertMessage(top >= 0, "screen " + i + "'s row block starts off the top: " + top);
         Test.assertMessage(
-            top + (count * Layout.EDITOR_ROW_HEIGHT) <= h,
+            top + (count * Layout.editorRowHeight(h)) <= h,
             "screen " + i + "'s editor rows extend below the screen"
         );
     }
@@ -253,7 +326,7 @@ function layoutAnchorsAreOnScreen(logger as Test.Logger) as Boolean {
 // overlapped the one above it.
 (:test)
 function layoutVersionClearsTheBottomEdgeForAnyFont(logger as Test.Logger) as Boolean {
-    var h = LayoutTestConst.VA5_H;
+    var h = glassHeight();
     var heights = [20, 26, 35, 48, 54];
 
     for (var i = 0; i < heights.size(); i += 1) {
@@ -268,7 +341,7 @@ function layoutVersionClearsTheBottomEdgeForAnyFont(logger as Test.Logger) as Bo
             "version for a " + fontHeight + "px font runs off the bottom: " + bottom + " > " + h
         );
         Test.assertMessage(
-            bottom <= h - Layout.BOTTOM_SLOT_MARGIN,
+            bottom <= h - Layout.bottomSlotMargin(h),
             "version for a " + fontHeight + "px font eats into the bottom margin"
         );
     }
@@ -285,8 +358,8 @@ function layoutVersionClearsTheBottomEdgeForAnyFont(logger as Test.Logger) as Bo
 // poles. These are the properties every fit check depends on.
 (:test)
 function layoutHalfChordShapeIsCircular(logger as Test.Logger) as Boolean {
-    var w = LayoutTestConst.VA5_W;
-    var h = LayoutTestConst.VA5_H;
+    var w = glassWidth();
+    var h = glassHeight();
 
     Test.assertEqualMessage(
         Layout.halfChordAt(h / 2, w, h), w / 2,
@@ -310,8 +383,8 @@ function layoutHalfChordShapeIsCircular(logger as Test.Logger) as Boolean {
 // Anything outside the circle is off screen regardless of how wide the text is.
 (:test)
 function layoutRejectsTextOutsideTheCircle(logger as Test.Logger) as Boolean {
-    var w = LayoutTestConst.VA5_W;
-    var h = LayoutTestConst.VA5_H;
+    var w = glassWidth();
+    var h = glassHeight();
 
     Test.assertMessage(
         !Layout.fitsOnRoundScreen(-5, 10, 20, w, h),
@@ -333,8 +406,8 @@ function layoutRejectsTextOutsideTheCircle(logger as Test.Logger) as Boolean {
 // holds regardless of which fonts the device ships.
 (:test)
 function layoutFitIsExactAtTheChordBoundary(logger as Test.Logger) as Boolean {
-    var w = LayoutTestConst.VA5_W;
-    var h = LayoutTestConst.VA5_H;
+    var w = glassWidth();
+    var h = glassHeight();
     var fontHeight = 20;
     var y = h - 100;
 
@@ -366,8 +439,8 @@ function assertLineFits(
     font as Graphics.FontType,
     what as String
 ) as Void {
-    var w = LayoutTestConst.VA5_W;
-    var h = LayoutTestConst.VA5_H;
+    var w = glassWidth();
+    var h = glassHeight();
     var textWidth = dc.getTextWidthInPixels(text, font);
     var fontHeight = dc.getFontHeight(font);
     var lower = y + fontHeight;
@@ -394,7 +467,7 @@ function assertClearsControls(
     font as Graphics.FontType,
     what as String
 ) as Void {
-    var budget = Layout.editorTextMaxWidth(LayoutTestConst.VA5_W);
+    var budget = Layout.editorTextMaxWidth(glassWidth());
     var textWidth = dc.getTextWidthInPixels(text, font);
 
     Test.assertMessage(
@@ -412,18 +485,18 @@ function assertClearsControls(
 //
 // The pen is counted as if the whole stroke fell outside the radius. Where the
 // SDK puts a wide stroke relative to the radius is not documented, and the
-// conservative reading costs 3 px of a margin that has 4 to spare.
+// conservative reading costs a few pixels of a margin that has more to spare.
 function assertControlsAreOnTheGlass(
     rowCenter as Number, what as String
 ) as Void {
-    var w = LayoutTestConst.VA5_W;
-    var h = LayoutTestConst.VA5_H;
+    var w = glassWidth();
+    var h = glassHeight();
     var dy = (rowCenter - (h / 2.0)).abs();
     var leftDx = (w / 2.0) - Layout.editorControlX(w, false);
     var rightDx = Layout.editorControlX(w, true) - (w / 2.0);
     var worseDx = leftDx > rightDx ? leftDx : rightDx;
     var reach = Math.sqrt((worseDx * worseDx) + (dy * dy)) +
-        Layout.CONTROL_RADIUS + Layout.CONTROL_PEN;
+        Layout.controlRadius(w) + Layout.controlPen(w);
 
     Test.assertMessage(
         reach <= w / 2.0,
@@ -436,11 +509,11 @@ function assertControlsAreOnTheGlass(
 //
 // Every string here comes from Display or from the same formatter the app uses,
 // so this measures what the view actually draws -- on both screens, at each
-// one's own anchors.
+// one's own anchors, on the glass of the watch the runner is on.
 (:test)
-function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
-    var w = LayoutTestConst.VA5_W;
-    var h = LayoutTestConst.VA5_H;
+function layoutRealLinesFitTheGlass(logger as Test.Logger) as Boolean {
+    var w = glassWidth();
+    var h = glassHeight();
 
     var ref = Graphics.createBufferedBitmap({:width => w, :height => h});
     var bmp = ref.get();
@@ -451,7 +524,8 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     var textFont = Graphics.FONT_XTINY;
     var clockHeight = dc.getFontHeight(clockFont);
     var textHeight = dc.getFontHeight(textFont);
-    logger.debug("measured font heights: clock " + clockHeight + "px, text " + textHeight + "px");
+    logger.debug("glass " + w + "x" + h + ", measured font heights: clock " + clockHeight +
+        "px, text " + textHeight + "px");
 
     // 24-hour is the wider of the two clock formats, and 23:59 the widest hour.
     // layoutEveryClockMinuteFits is the exhaustive version of this line.
@@ -482,13 +556,15 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
 
         // Adjacent rows must not run their circles into each other. The chord
         // maths cannot see this either -- both circles are comfortably on the
-        // glass while overlapping one another.
+        // glass while overlapping one another. The air they need is a
+        // proportion of the glass like everything else here.
         if (rows.size() > 1) {
-            var gap = Layout.EDITOR_ROW_HEIGHT -
-                (2 * (Layout.CONTROL_RADIUS + Layout.CONTROL_PEN));
+            var gap = Layout.editorRowHeight(h) -
+                (2 * (Layout.controlRadius(w) + Layout.controlPen(w)));
+            var needed = Layout.scaled(12, h);
             logger.debug("screen " + screen + ": " + gap + "px of air between stacked controls");
             Test.assertMessage(
-                gap >= 12,
+                gap >= needed,
                 "controls on adjacent rows are " + gap + "px apart, which reads as one blob"
             );
         }
@@ -508,14 +584,11 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
             dc, bottomSlotY, warning, textFont, "main bottom slot (vibrate=" + flag + ")");
     }
 
-    // The settings screen's TITLE, in its TOP band -- a different anchor from
-    // everything above, against a different chord, at the text font's height
-    // rather than the clock's. It is drawn in every build now (ADR-0037), so
-    // there is no second state to pass in and no release string that goes
-    // unmeasured.
-    //
-    // EVERY version this app can ever show, public and dev, in the BOTTOM band
-    // it moved to when the logo took the top one (ADR-0040).
+    // EVERY version this app can ever show, public and dev, in the settings
+    // screen's BOTTOM band (ADR-0040) -- a different anchor from everything
+    // above, against a different chord, at the text font's height rather than
+    // the clock's. It is drawn in every build (ADR-0037), so there is no
+    // second state to pass in and no release string that goes unmeasured.
     //
     // The scheme is closed on purpose (ADR-0039), and that is what makes this a
     // sweep rather than a guess at a worst case. A public version is one digit
@@ -567,9 +640,9 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     // screen, and one clipped at the edges would be worse than useless.
     //
     // It was the widest thing this slot ever held until the battery caption was
-    // spelled out: 175 px, against "BATTERY 100%" at 187. Which one is widest
-    // does not matter, because every form of the slot is measured here -- but
-    // the comment that named a winner had gone stale, so it names none now.
+    // spelled out. Which one is widest does not matter, because every form of
+    // the slot is measured here -- but the comment that named a winner had
+    // gone stale, so it names none now.
     var hint = Display.exitHint();
     logger.debug(
         "exit hint \"" + hint + "\" is " + dc.getTextWidthInPixels(hint, textFont) + "px");
@@ -617,7 +690,7 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
     // The circles reach lower than the text does, so they are what is measured.
     var mainRows = Rows.forScreen(Rows.SCREEN_MAIN);
     var lastRowBottom = Layout.editorRowCenter(mainRows.size() - 1, mainRows.size(), h) +
-        Layout.CONTROL_RADIUS + Layout.CONTROL_PEN;
+        Layout.controlRadius(w) + Layout.controlPen(w);
     Test.assertMessage(
         bottomSlotY >= lastRowBottom,
         "the version line overlaps the last editor row: version at " + bottomSlotY +
@@ -632,8 +705,8 @@ function layoutRealLinesFitOnVivoactive5(logger as Test.Logger) as Boolean {
 // chord is tightest, so "23:59 fits" is worth proving rather than assuming.
 (:test)
 function layoutEveryClockMinuteFits(logger as Test.Logger) as Boolean {
-    var w = LayoutTestConst.VA5_W;
-    var h = LayoutTestConst.VA5_H;
+    var w = glassWidth();
+    var h = glassHeight();
 
     var ref = Graphics.createBufferedBitmap({:width => w, :height => h});
     var bmp = ref.get();
@@ -646,16 +719,23 @@ function layoutEveryClockMinuteFits(logger as Test.Logger) as Boolean {
         Layout.editorRowsTop(Rows.forScreen(Rows.SCREEN_MAIN).size(), h));
     var formats = [ true, false ];
 
+    var widest = "";
+    var widestPx = 0;
     for (var f = 0; f < formats.size(); f += 1) {
         var is24Hour = formats[f] as Boolean;
         for (var hour = 0; hour < 24; hour += 1) {
             for (var minute = 0; minute < 60; minute += 1) {
+                var line = ClockText.formatTime(hour, minute, is24Hour);
+                var px = dc.getTextWidthInPixels(line, clockFont);
+                if (px > widestPx) { widestPx = px; widest = line; }
                 assertLineFits(
-                    dc, y, ClockText.formatTime(hour, minute, is24Hour), clockFont,
+                    dc, y, line, clockFont,
                     "clock " + hour + ":" + minute + (is24Hour ? " 24h" : " 12h"));
             }
         }
     }
+    logger.debug("widest clock: \"" + widest + "\" at " + widestPx + "px, y=" + y +
+        ", chord there " + (Layout.halfChordAt(y, w, h) * 2) + "px");
     return true;
 }
 
@@ -673,8 +753,8 @@ function layoutEveryClockMinuteFits(logger as Test.Logger) as Boolean {
 // main screen's row 0 measures the wrong chord entirely.
 (:test)
 function layoutEveryReachableValueFits(logger as Test.Logger) as Boolean {
-    var w = LayoutTestConst.VA5_W;
-    var h = LayoutTestConst.VA5_H;
+    var w = glassWidth();
+    var h = glassHeight();
 
     var ref = Graphics.createBufferedBitmap({:width => w, :height => h});
     var bmp = ref.get();
@@ -721,8 +801,9 @@ function layoutEveryReachableValueFits(logger as Test.Logger) as Boolean {
 
 (:test)
 function editorLayoutMapsEveryControlOnEveryScreen(logger as Test.Logger) as Boolean {
-    var w = LayoutTestConst.VA5_W;
-    var h = LayoutTestConst.VA5_H;
+    var w = glassWidth();
+    var h = glassHeight();
+    var reach = Layout.controlHitEdge(w) / 2;
     var screens = everyScreen();
 
     for (var s = 0; s < screens.size(); s += 1) {
@@ -732,8 +813,8 @@ function editorLayoutMapsEveryControlOnEveryScreen(logger as Test.Logger) as Boo
 
         for (var i = 0; i < count; i += 1) {
             var y = Layout.editorRowCenter(i, count, h);
-            var down = Layout.editorHitAt(50, y, w, h, count);
-            var up = Layout.editorHitAt(w - 50, y, w, h, count);
+            var down = Layout.editorHitAt(reach, y, w, h, count);
+            var up = Layout.editorHitAt(w - reach, y, w, h, count);
             logger.debug(
                 "screen " + screen + " row " + i + " at y=" + y +
                 " -> down=" + down + " up=" + up);
@@ -781,11 +862,12 @@ function editorLayoutMapsEveryControlOnEveryScreen(logger as Test.Logger) as Boo
 // notices an off-by-one creeping into either comparison.
 (:test)
 function editorLayoutHitZoneEdgesAreInclusive(logger as Test.Logger) as Boolean {
-    var w = LayoutTestConst.VA5_W;
-    var h = LayoutTestConst.VA5_H;
+    var w = glassWidth();
+    var h = glassHeight();
     var count = Rows.forScreen(Rows.SCREEN_MAIN).size();
     var y = Layout.editorRowCenter(0, count, h);
-    var edge = Layout.CONTROL_HIT_EDGE;
+    var edge = Layout.controlHitEdge(w);
+    var inside = edge / 2;
 
     Test.assertNotEqualMessage(
         Layout.editorHitAt(edge, y, w, h, count), Layout.HIT_NONE,
@@ -803,18 +885,18 @@ function editorLayoutHitZoneEdgesAreInclusive(logger as Test.Logger) as Boolean 
     // The row block's own edges, top and bottom. A row that starts one pixel
     // late leaves a dead stripe under the clock that nothing on screen explains.
     var top = Layout.editorRowsTop(count, h);
-    var bottom = top + (count * Layout.EDITOR_ROW_HEIGHT);
+    var bottom = top + (count * Layout.editorRowHeight(h));
     Test.assertNotEqualMessage(
-        Layout.editorHitAt(50, top, w, h, count), Layout.HIT_NONE,
+        Layout.editorHitAt(inside, top, w, h, count), Layout.HIT_NONE,
         "the row block must include its top edge");
     Test.assertEqualMessage(
-        Layout.editorHitAt(50, top - 1, w, h, count), Layout.HIT_NONE,
+        Layout.editorHitAt(inside, top - 1, w, h, count), Layout.HIT_NONE,
         "one px above the row block must be inert");
     Test.assertNotEqualMessage(
-        Layout.editorHitAt(50, bottom - 1, w, h, count), Layout.HIT_NONE,
+        Layout.editorHitAt(inside, bottom - 1, w, h, count), Layout.HIT_NONE,
         "the row block must include its last row");
     Test.assertEqualMessage(
-        Layout.editorHitAt(50, bottom, w, h, count), Layout.HIT_NONE,
+        Layout.editorHitAt(inside, bottom, w, h, count), Layout.HIT_NONE,
         "the pixel past the row block must be inert");
     return true;
 }
@@ -823,16 +905,16 @@ function editorLayoutHitZoneEdgesAreInclusive(logger as Test.Logger) as Boolean 
 // ANY screen can show: the centre text is deliberately inert (reading a value
 // must never change it), so the zone edge has to stop short of where that text
 // begins. Measured with the device's own font metrics -- this is the test that
-// decides how wide CONTROL_HIT_EDGE may be, and its failure message says how
-// far back it has to go.
+// decides how wide the hit edge may be, and its failure message says how far
+// back it has to go.
 //
 // It used to measure the EVERY row alone, and that was not conservative, it was
-// wrong: BUZZ at its 250 ms ceiling is 3 px wider than EVERY at 14.95 s, so
-// the edge sat under the BUZZ line the whole time the test called it clear.
+// wrong: BUZZ at its ceiling was wider than EVERY at its ceiling, so the edge
+// sat under the BUZZ line the whole time the test called it clear.
 (:test)
 function layoutHitZonesClearRealisticText(logger as Test.Logger) as Boolean {
-    var w = LayoutTestConst.VA5_W;
-    var h = LayoutTestConst.VA5_H;
+    var w = glassWidth();
+    var h = glassHeight();
 
     var ref = Graphics.createBufferedBitmap({:width => w, :height => h});
     var bmp = ref.get();
@@ -860,13 +942,14 @@ function layoutHitZonesClearRealisticText(logger as Test.Logger) as Boolean {
     }
 
     var textLeft = (w / 2) - (widestPx / 2);
+    var edge = Layout.controlHitEdge(w);
     logger.debug(
         "widest row line anywhere: \"" + widest + "\" at " + widestPx +
-        "px, left edge x=" + textLeft);
+        "px, left edge x=" + textLeft + ", hit edge " + edge);
 
     Test.assertMessage(
-        Layout.CONTROL_HIT_EDGE < textLeft,
-        "the hit zone reaches under \"" + widest + "\": edge " + Layout.CONTROL_HIT_EDGE +
+        edge < textLeft,
+        "the hit zone reaches under \"" + widest + "\": edge " + edge +
             " against a text left edge of " + textLeft
     );
     return true;
@@ -874,17 +957,18 @@ function layoutHitZonesClearRealisticText(logger as Test.Logger) as Boolean {
 
 (:test)
 function editorLayoutRejectsLabelsAndOutsideRows(logger as Test.Logger) as Boolean {
-    var w = LayoutTestConst.VA5_W;
-    var h = LayoutTestConst.VA5_H;
+    var w = glassWidth();
+    var h = glassHeight();
     var count = Rows.forScreen(Rows.SCREEN_MAIN).size();
     var rowY = Layout.editorRowCenter(0, count, h);
+    var inside = Layout.controlHitEdge(w) / 2;
 
     Test.assertEqualMessage(
         Layout.editorHitAt(w / 2, rowY, w, h, count), Layout.HIT_NONE, "row label");
     Test.assertEqualMessage(
-        Layout.editorHitAt(50, 10, w, h, count), Layout.HIT_NONE, "above rows");
+        Layout.editorHitAt(inside, 10, w, h, count), Layout.HIT_NONE, "above rows");
     Test.assertEqualMessage(
-        Layout.editorHitAt(w - 50, h - 10, w, h, count), Layout.HIT_NONE, "below rows");
+        Layout.editorHitAt(w - inside, h - 10, w, h, count), Layout.HIT_NONE, "below rows");
     return true;
 }
 
@@ -899,59 +983,68 @@ function editorLayoutRejectsLabelsAndOutsideRows(logger as Test.Logger) as Boole
 //
 // Both were found by measuring white pixels in shots/screen-main.png, which is
 // the only instrument that could see them, and neither can come back while the
-// glyphs are rectangles out of Layout: this test measures those rectangles.
+// glyphs are rectangles out of Layout: this test measures those rectangles, at
+// the size this glass gets them.
 (:test)
 function layoutControlGlyphsAreSymmetricAndCentred(logger as Test.Logger) as Boolean {
+    var w = glassWidth();
+    var h = glassHeight();
+    var length = Layout.glyphLength(w);
+    var thickness = Layout.glyphThickness(w);
+    var radius = Layout.controlRadius(w);
+    var pen = Layout.controlPen(w);
+
     // A control centre on the real screen. The arithmetic does not depend on
     // which one -- glyphArmStart only ever sees one coordinate at a time.
-    var cx = Layout.editorControlX(LayoutTestConst.VA5_W, false);
-    var cy = LayoutTestConst.VA5_H / 2;
+    var cx = Layout.editorControlX(w, false);
+    var cy = h / 2;
 
-    var longStart = Layout.glyphArmStart(cx, Layout.GLYPH_LENGTH);
-    var shortStart = Layout.glyphArmStart(cy, Layout.GLYPH_THICKNESS);
+    var longStart = Layout.glyphArmStart(cx, length);
+    var shortStart = Layout.glyphArmStart(cy, thickness);
     logger.debug(
-        "glyph arm " + Layout.GLYPH_LENGTH + "x" + Layout.GLYPH_THICKNESS +
+        "glyph arm " + length + "x" + thickness +
         " at (" + longStart + "," + shortStart + ") for a control centred (" + cx + "," + cy + ")");
 
     // Odd extents, so a bar has a middle pixel to put on the centre. An even
     // one has its centre on a pixel boundary and cannot be centred at all --
     // which is exactly how the font's 4 px hyphen came to sit 3.5 px low.
     Test.assertMessage(
-        Layout.GLYPH_LENGTH % 2 == 1,
-        "GLYPH_LENGTH is " + Layout.GLYPH_LENGTH + ", and an even bar cannot be centred on a pixel");
+        length % 2 == 1,
+        "the glyph length is " + length + ", and an even bar cannot be centred on a pixel");
     Test.assertMessage(
-        Layout.GLYPH_THICKNESS % 2 == 1,
-        "GLYPH_THICKNESS is " + Layout.GLYPH_THICKNESS + ", and an even bar cannot be centred on a pixel");
+        thickness % 2 == 1,
+        "the glyph thickness is " + thickness + ", and an even bar cannot be centred on a pixel");
 
     // Centred: a bar reaches as far past the centre as it starts before it.
     Test.assertEqualMessage(
-        (longStart + Layout.GLYPH_LENGTH - 1) - cx, cx - longStart,
+        (longStart + length - 1) - cx, cx - longStart,
         "the long arm is not centred on the control: it starts " + (cx - longStart) +
-            "px before the centre and ends " + ((longStart + Layout.GLYPH_LENGTH - 1) - cx) + "px after it");
+            "px before the centre and ends " + ((longStart + length - 1) - cx) + "px after it");
     Test.assertEqualMessage(
-        (shortStart + Layout.GLYPH_THICKNESS - 1) - cy, cy - shortStart,
+        (shortStart + thickness - 1) - cy, cy - shortStart,
         "the short arm is not centred on the control: it starts " + (cy - shortStart) +
-            "px before the centre and ends " + ((shortStart + Layout.GLYPH_THICKNESS - 1) - cy) + "px after it");
+            "px before the centre and ends " + ((shortStart + thickness - 1) - cy) + "px after it");
 
     // Inside the ring, corner first -- the far corner of an arm is what
     // reaches, not its end, and the ring's inner edge is the radius less the
     // pen. Anything closer than a few pixels would read as a glyph touching
-    // its own border.
-    var halfLong = Layout.GLYPH_LENGTH / 2.0;
-    var halfShort = Layout.GLYPH_THICKNESS / 2.0;
+    // its own border; "a few" scales with the glass like the rest.
+    var halfLong = length / 2.0;
+    var halfShort = thickness / 2.0;
     var corner = Math.sqrt((halfLong * halfLong) + (halfShort * halfShort));
-    var inner = Layout.CONTROL_RADIUS - Layout.CONTROL_PEN;
+    var inner = radius - pen;
+    var clearance = Layout.scaled(4, w);
     logger.debug("glyph corner reaches " + corner + "px inside a " + inner + "px inner radius");
     Test.assertMessage(
-        corner + 4 <= inner,
+        corner + clearance <= inner,
         "the glyph reaches " + corner + "px against the ring's " + inner + "px inner edge");
 
     // And big enough to read. The font was chosen at LARGE because XTINY was a
-    // speck in a 76 px circle; the bars inherit that judgement as a number.
-    var diameter = 2 * Layout.CONTROL_RADIUS;
+    // speck in the circle; the bars inherit that judgement as a proportion.
+    var diameter = 2 * radius;
     Test.assertMessage(
-        Layout.GLYPH_LENGTH * 3 >= diameter,
-        "the glyph is " + Layout.GLYPH_LENGTH + "px across a " + diameter +
+        length * 3 >= diameter,
+        "the glyph is " + length + "px across a " + diameter +
             "px circle, which reads as a speck");
     return true;
 }
@@ -963,12 +1056,13 @@ function layoutControlGlyphsAreSymmetricAndCentred(logger as Test.Logger) as Boo
 // string goes through assertLineFits, which measures against the chord; the
 // logo is placed by arithmetic on its own dimensions and would simply be drawn
 // off the glass, or over the rows, if either changed. tools/make-icons.ps1
-// emits it at a fixed size, so this pins the two together: shrink the band or
-// grow the mark and this is what says so. ADR-0040
+// emits it per device at the launcher size that device declares (ADR-0046),
+// so this pins the two together: shrink the band or grow the mark and this is
+// what says so. ADR-0040
 (:test)
 function layoutSettingsLogoFitsItsBand(logger as Test.Logger) as Boolean {
-    var w = LayoutTestConst.VA5_W;
-    var h = LayoutTestConst.VA5_H;
+    var w = glassWidth();
+    var h = glassHeight();
 
     var logo = WatchUi.loadResource(Rez.Drawables.LauncherIcon) as WatchUi.BitmapResource;
     var lw = logo.getWidth();
@@ -1017,9 +1111,9 @@ function layoutSettingsLogoFitsItsBand(logger as Test.Logger) as Boolean {
 // day that stops being true and this is where it should fail.
 (:test)
 function layoutBottomSlotClearsTheRowControls(logger as Test.Logger) as Boolean {
-    var h = LayoutTestConst.VA5_H;
-    var ref = Graphics.createBufferedBitmap(
-        {:width => LayoutTestConst.VA5_W, :height => h});
+    var w = glassWidth();
+    var h = glassHeight();
+    var ref = Graphics.createBufferedBitmap({:width => w, :height => h});
     var bmp = ref.get();
     Test.assertMessage(bmp != null, "could not create a buffered bitmap to measure text with");
     var dc = (bmp as Graphics.BufferedBitmap).getDc();
@@ -1030,12 +1124,12 @@ function layoutBottomSlotClearsTheRowControls(logger as Test.Logger) as Boolean 
     for (var s = 0; s < screens.size(); s += 1) {
         var screen = screens[s] as Number;
         var count = Rows.forScreen(screen).size();
-        var rowsBottom = Layout.editorRowsTop(count, h) + (count * Layout.EDITOR_ROW_HEIGHT);
+        var rowsBottom = Layout.editorRowsTop(count, h) + (count * Layout.editorRowHeight(h));
 
         // The row block's nominal bottom has to contain the circles the bottom
         // row actually draws, which hang below its text.
         var lastRowBottom = Layout.editorRowCenter(count - 1, count, h) +
-            Layout.CONTROL_RADIUS + Layout.CONTROL_PEN;
+            Layout.controlRadius(w) + Layout.controlPen(w);
         logger.debug("screen " + screen + ": " + count + " rows ending at y=" +
             rowsBottom + ", controls reach " + lastRowBottom +
             ", bottom slot drawn at " + slotY);

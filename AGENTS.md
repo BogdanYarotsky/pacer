@@ -1,7 +1,8 @@
-# AGENTS.md — Candle (Garmin Connect IQ, vívoactive 5)
+# AGENTS.md — Candle (Garmin Connect IQ)
 
 Candle is a Monkey C **watch-app** that vibrates twice per breathing cycle to
-pace resonance-frequency breathing. Single target device.
+pace resonance-frequency breathing. Two target devices — the vívoactive 5 and
+the Forerunner 955 — and one rule for adding the next (ADR-0047).
 
 **This file is operational: how to build, what the hardware is, what the tools
 do. Every design decision lives in [`docs/adr/`](docs/adr/README.md), one file
@@ -35,12 +36,17 @@ tests passing, or the work is not finished.
 first and catch most of what breaks:
 
 ```
-just build                                          # no simulator
-pwsh -File tools/build.ps1 -Device vivoactive5 -Typecheck 3 -UnitTest
+just all-devices                                    # no simulator, every product
+pwsh -File tools/build.ps1 -Device all -Typecheck 3 -UnitTest
 ```
 
 The second one typechecks the **test** files, which a normal build does not
 (ADR-0035). Compile both ways, fix everything, *then* run the simulator once.
+
+**A change to `Layout`, a font, or a drawn string is not done until
+`just test-all` is green.** The suite measures the glass and the fonts of the
+device it runs on, so a green run on one watch says nothing about another
+(ADR-0045). `just test` alone is the per-edit loop; `test-all` is the gate.
 
 ---
 
@@ -118,28 +124,42 @@ retrieval strategy. Both junctions are gitignored.
 
 ## Device facts (read from the SDK, not guessed)
 
-Source: `%APPDATA%\Garmin\ConnectIQ\Devices\vivoactive5\compiler.json`
+Source: `%APPDATA%\Garmin\ConnectIQ\Devices\<id>\compiler.json` and
+`simulator.json`. `just check-devices` prints the live table; this one is the
+orientation.
 
-| Fact | Value |
-|---|---|
-| Device id | `vivoactive5` |
-| API level | **5.2.0** — do not use APIs above this |
-| Part number | `006-B4426-00` |
-| Resolution | **390 × 390**, round, AMOLED, 16 bpp |
-| Device family | `round-390x390` |
-| **watchApp memory budget** | **786,432 bytes (768 KB)** |
-| glance / background budget | 65,536 bytes (64 KB) each |
-| Code page size | 4096 |
+| Fact | vívoactive 5 | Forerunner 955 / Solar |
+|---|---|---|
+| Device id | `vivoactive5` | `fr955` |
+| API level | **5.2.0** — do not use APIs above this | **5.2.0** |
+| Resolution | **390 × 390**, round, AMOLED, 16 bpp | **260 × 260**, round, MIP, 8 bpp |
+| Device family | `round-390x390` | `round-260x260` |
+| Launcher icon | 56 × 56 | 40 × 40 |
+| **watchApp memory budget** | **786,432 bytes (768 KB)** | 786,432 bytes |
+| glance / background budget | 65,536 bytes (64 KB) each | same |
+| Buttons the app sees | Action (upper), Back (lower); Back held = menu | START (upper right), BACK (lower right), UP/DOWN (left); UP held = menu |
 
-Measured font heights: `FONT_XTINY` 32 px, `FONT_TINY` 41 px, `FONT_SMALL`
-48 px, `FONT_MEDIUM` 54 px, `FONT_LARGE` 63 px. These are large relative to the
-screen and are a common source of overlap bugs. The rows are `FONT_XTINY` and it
-is not a free choice — at `FONT_TINY` the widest row line would force the
-control radius down by roughly half (ADR-0012, ADR-0013).
+Measured font heights on the vívoactive 5: `FONT_XTINY` 32 px, `FONT_TINY`
+41 px, `FONT_SMALL` 48 px, `FONT_MEDIUM` 54 px, `FONT_LARGE` 63 px. These are
+large relative to the screen and are a common source of overlap bugs. The rows
+are `FONT_XTINY` and it is not a free choice — at `FONT_TINY` the widest row
+line would force the control radius down by roughly half (ADR-0012, ADR-0013).
+On the Forerunner 955 the same fonts measure roughly in proportion to its
+smaller glass — a measurement, not a rule the SDK makes — and `just test fr955`
+logs the heights it finds. **Geometry is a proportion of the glass**
+(ADR-0045): `Layout` carries one reference design, tuned on the vívoactive 5,
+and scales it to whatever the `Dc` reports. Nothing in `source/` names a
+resolution.
 
 `minApiLevel` in `manifest.xml` stays at `3.0.0`. It is a store-compatibility
 floor, not a feature gate; raising it grants no APIs. The number that governs
-your code is **5.2.0**.
+your code is the lowest API level among the products, **5.2.0** today.
+
+Adding a device: product in `manifest.xml` → `connect-iq-sdk-manager device
+download --manifest manifest.xml --include-fonts` → `just icons` →
+`just test <id>`, `just input-test <id>`, `just shot <id>`,
+`just shot-settings <id>`, and look at both. `just check-devices` refuses a
+watch the app cannot be used on (ADR-0047).
 
 ---
 
@@ -151,7 +171,8 @@ is. Every concern has exactly one home:
 | Concern | Home | Decisions |
 |---|---|---|
 | What is on each screen, in what order | `Rows` | ADR-0028 |
-| Geometry, round-screen chord maths | `Layout` | ADR-0011, ADR-0012, ADR-0013, ADR-0014 |
+| Geometry, round-screen chord maths, the scale to the glass | `Layout` | ADR-0011, ADR-0012, ADR-0013, ADR-0014, ADR-0045 |
+| Which devices, their icons, what a new one must pass | `manifest.xml`, `tools/check-devices.ps1`, `tools/make-icons.ps1` | ADR-0046, ADR-0047 |
 | Every drawn string | `Display` | ADR-0029 |
 | State, persistence, the cue timer | `candleApp` | ADR-0018, ADR-0022, ADR-0025 |
 | Cue arithmetic, ladders, formatting | `CandleMath` | ADR-0019, ADR-0021, ADR-0023 |
@@ -175,17 +196,27 @@ is. Every concern has exactly one home:
 ## What each button does, on each screen
 
 Two rules, and the table below is only their consequences: **a press of the
-upper button cycles the two screens, and a held lower button exits from either.**
-Nothing else navigates — no gesture, and nothing drawn on the glass. ADR-0036
+upper-right button cycles the two screens, and a held MENU button exits from
+either.** Nothing else navigates — no gesture, and nothing drawn on the glass.
+ADR-0036
+
+Which physical button carries each is the device's business (ADR-0047):
+
+| | vívoactive 5 | Forerunner 955 |
+|---|---|---|
+| upper-right button → `onSelect` | Action (upper) | START |
+| Back → `onBack` | the lower button, and a right swipe | BACK (lower right), and a right swipe |
+| menu hold → `onMenu` | the lower button, held | UP (left middle), held |
+| the watch's own controls menu (Lock lives there) | upper button, held | LIGHT, held |
+| page turns → swallowed | vertical swipes | vertical swipes, and UP / DOWN pressed |
 
 | | main screen | settings screen |
 |---|---|---|
-| upper button (press) | push the settings screen | pop back |
-| upper button (held) | the watch's controls menu — never reaches the app | same |
-| lower button (press → Back) | swallowed, shows `HOLD TO EXIT` | same |
-| right-swipe (arrives as Back) | swallowed, shows `HOLD TO EXIT` | same |
+| upper-right button (press) | push the settings screen | pop back |
+| the watch's controls menu | never reaches the app | same |
+| Back (button press, or right swipe) | swallowed, shows `HOLD TO EXIT` | same |
 | tap the bottom band | nothing — it holds the battery | nothing — it is inert |
-| **lower button (held → Menu)** | **exit the app** | **exit the app** |
+| **menu button (held → Menu)** | **exit the app** | **exit the app** |
 
 The two screens answer every input identically except the upper button, which is
 the one that tells them apart. That is newer than it looks: the settings screen
@@ -273,21 +304,28 @@ name). They have not caused a problem so far.
 
 ## Commands
 
+Every recipe that takes a device takes it as its first argument (`just test
+fr955`, `just shot fr955`); the default is `vivoactive5`.
+
 | Command | What it does |
 |---|---|
-| `just build` | Compile vivoactive5, `-w -l 3` (strict) |
+| `just build` | Compile the default device, `-w -l 3` (strict) |
 | `just all-devices` | Compile every product in `manifest.xml` |
-| `just test` | Check ADRs, build with `-t`, run in simulator, **non-zero exit on failure** |
+| `just test` | Check ADRs and devices, build with `-t`, run in simulator, **non-zero exit on failure** |
+| `just test-all` | `just test` on every product, one simulator run each — the gate for any `Layout` change |
 | `just check-adrs` | ADR reference integrity alone — no build, no simulator |
-| `just input-test` | Drive real taps/swipes/presses into both screens and assert which handler fires (steals the pointer) |
+| `just check-devices` | Every product against what the app needs from a watch, and its icon at its own size (ADR-0047) |
+| `just icons` | The store icon, and one launcher icon per product at the size its config declares (ADR-0046) |
+| `just input-test` | Drive real taps/swipes/presses into both screens and assert which handler fires (steals the pointer). Aims by the geometry the app prints, so it works on any device |
 | `just sim` | Launch simulator and load the app |
-| `just shot` | Run in sim, capture window → `shots/vivoactive5.png` |
+| `just shot` | Run in sim, capture window → `shots/<device>.png` |
 | `just shot-release` | Same, of the **release** build — the only way to see `(:release)` code (ADR-0031) |
 | `just shot-settings` | Release build's **settings** screen → `shots/<device>-settings.png`. Presses the upper button to get there, so it takes the pointer briefly |
 | `just deploy` | Bump the **iteration**, build, push to watch over MTP |
 | `just deploy-nobump` | Same without bumping — for verifying a finalised release, or after a failed deploy (ADR-0034) |
-| `just release` | Finalise the version for the store (`1.3.12` → `1.4`) and stop. Builds nothing, touches no watch |
-| `just package` | Signed `publish/Candle.iq`. **Refuses a three-segment dev version** |
+| `just release` | Finalise the version for the store (`1.3.12` → `1.4`) and stop, with `test-all` as the gate. Builds nothing, touches no watch |
+| `just package` | Signed `publish/Candle.iq`, every product in one bundle. **Refuses a three-segment dev version** |
+| `just store-shots [device]` | Crop that device's captures into the listing's square images — the store keeps one set per listing |
 | `just link-docs` | Re-point `sdk-docs`/`sdk-samples` after an SDK change |
 | `just clean` | Remove `bin/` and `shots/` |
 
@@ -310,9 +348,9 @@ than `1.1`.
 
 The rule nobody has to remember is the one `package` enforces: there is exactly
 one route to `publish/Candle.iq` and it refuses three segments. Ceilings are
-`9.9` for the public part and three digits of iteration — both are layout facts
-(`layoutRealLinesFitOnVivoactive5` measures all 700 strings), and both fail with
-a sentence rather than clipped pixels.
+`9.9` for the public part and three digits of iteration — the scheme's own
+ceilings, and `layoutRealLinesFitTheGlass` measures every string they allow on
+every device, so both fail with a sentence rather than clipped pixels.
 
 **`just release` deliberately stops before packaging.** The wrist pass sits in
 that gap and cannot be automated (ADR-0034), so it prints the next command
@@ -323,9 +361,9 @@ silently passes the whole string as the *device* and fails with "not in
 manifest.xml". Correct forms:
 
 ```
-just build vivoactive5 1                     # device, typecheck
+just build fr955 1                           # device, typecheck
 just test  vivoactive5 3 candleMathFormatsEvery
-pwsh -File tools/test.ps1 -TestName candleMathFormatsEvery    # clearer
+pwsh -File tools/test.ps1 -Device fr955 -TestName candleMathFormatsEvery    # clearer
 ```
 
 ### A live simulator blocks the calling shell
@@ -364,7 +402,9 @@ banner for anything else. `device_id` is required.
 The vívoactive 5 is a **Windows Portable Device (MTP)**: `Get-PnpDevice -Class
 WPD` → `USB\VID_091E&PID_514A`, and it **never gets a drive letter**.
 `Copy-Item` to `E:\GARMIN\APPS` cannot work; `tools/deploy.ps1` uses the
-`Shell.Application` COM namespace instead.
+`Shell.Application` COM namespace instead. It looks for a portable device named
+after any supported watch; only the vívoactive 5 has actually been deployed to
+from this machine.
 
 > **Never claim a deploy landed.** The only proof is the version on the watch's
 > settings screen — ADR-0034, ADR-0032.
@@ -386,8 +426,9 @@ failed deploy still burns a number. Use `just deploy-nobump` after one.
 4. Read the memory figure in the status bar against the 768 KB budget.
 
 `just shot` only captures the **main** screen — the settings screen is a button
-press away. To see it, drive the press in with
-`tools/input.ps1 -Action press -Target enter` between the launch and the capture.
+press away; `just shot-settings <device>` presses it for you. Review both
+screens on **every** device after a `Layout` change: the sweeps prove fit, and
+only a picture shows ink (ADR-0015) and proportion.
 
 A screenshot is confirmation, **not** the debugging loop. If a layout question
 can be answered by a pure function in `Layout`, write the test instead. The one
@@ -399,9 +440,9 @@ is not its ink, which is how a half-width glyph survived every test (ADR-0015).
 ## Testing
 
 One file per thing under test: `LayoutTest` (geometry, round-screen fit, tap hit
-mapping, which rows reach which screen), `CandleMathTest` (clamping, conversion,
-ladders, formatting), `ClockTextTest`, `MainInputGateTest`, `SettingsTest`, and
-`input-behaviour.ps1`.
+mapping, which rows reach which screen — all measured on the device the runner
+is on, ADR-0045), `CandleMathTest` (clamping, conversion, ladders, formatting),
+`ClockTextTest`, `MainInputGateTest`, `SettingsTest`, and `input-behaviour.ps1`.
 
 **Nothing that reaches `WatchUi.pushView` or `popView` can be unit tested here.**
 Both need a real view stack and the runner has none, so the paths that open and

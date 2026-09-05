@@ -7,6 +7,12 @@ file is the order to run it in.
 
 ## 1. Wrist verification (before packaging anything)
 
+One pass per watch you own. For a supported device you do not own, the pass is
+the simulator's: `just test <id>` green, `just input-test <id>` green, and
+`just shot <id>` / `just shot-settings <id>` looked at by a person (ADR-0047).
+The list below is written for the vívoactive 5; on the Forerunner 955 "the
+upper button" is START and "hold the lower button" is hold UP.
+
 `just deploy` a debug build and confirm, on the watch:
 
 - [ ] The launcher lists **Candle** with the candle icon.
@@ -82,15 +88,17 @@ The order matters, and §1 sits **inside** it: a dev version cannot be packaged
 worn before it is bundled.
 
 ```
-just release       # 1.3.12 -> 1.4, unit suite green. Builds nothing.
+just release       # 1.3.12 -> 1.4, the suite green on EVERY product. Builds nothing.
 just deploy-nobump # sideload THAT build -- a bump would verify a number nobody ships
                    # ... now walk section 1 on the watch ...
 just input-test    # the real-input checks, on a machine you are not also using
-just icons         # regenerates publish/store-icon-500.png + launcher icon
+just input-test fr955      # the same on the other device -- its wrist pass is the simulator's
+just icons         # regenerates publish/store-icon-500.png + every launcher icon
 just shot-release  # main screen, as a Store install draws it
 just shot-settings # settings screen -- takes the pointer for a moment
+just shot fr955; just shot-settings fr955   # look at both screens on the other glass
 just store-shots   # -> publish/store-shot-*.png, square 500x500 for the listing
-just package       # publish/Candle.iq -- signed release, and prints the form version
+just package       # publish/Candle.iq -- signed release, every device, prints the form version
 ```
 
 Both shots are RELEASE builds, which is the only way to see what a stranger
@@ -187,10 +195,9 @@ the sentence that turns a 72-hour review into a rejection.
       store install over the sideload upgrades in place instead).
 - [ ] Launcher name and icon are Candle's.
 - [ ] Main screen's bottom line is the battery (or `VIBE OFF`). The settings
-      screen shows the title **`Candle v1.0` at the top** — it is drawn in
-      release builds too (ADR-0037) — and NOTHING along the bottom, which is
-      the exit hint's band and only speaks for two seconds after a Back
-      (ADR-0036).
+      screen shows the candle mark at the top and **the version along the
+      bottom** — drawn in release builds too (ADR-0037, ADR-0040) — with the
+      exit hint taking that band for two seconds after a Back (ADR-0036).
 - [ ] **The version on the glass matches the store listing exactly.** They are
       the same string by construction: the number typed into the upload form is
       whatever `APP_VERSION` said at `just package` time. If they differ, the
@@ -198,3 +205,74 @@ the sentence that turns a 72-hour review into a rejection.
 - [ ] The Connect IQ phone app reports the same version.
 - [ ] Tag the repo with the released version and update the README's store
       link.
+
+## 5. Releasing an update
+
+An update is the **same listing with a new bundle**. Three things must not
+change, and each is a silent way to ship a second app instead of an update:
+
+- **The app id** — the `id` attribute in `manifest.xml`. Never regenerate it.
+- **The signing key** — the one at `GARMIN_DEVELOPER_KEY`. A bundle signed
+  with any other key is a different app to the store, and on a watch it will
+  not install over the existing one.
+- **The name** — the on-device `AppName` resource. The store title is edited on
+  the form, not here.
+
+What changes: the `.iq`, the version string, the What's new text, and — when
+the screens or the device list changed — the description and screenshots.
+
+### The build side
+
+1. Land the work. `just test-all` green, `just input-test` green on every
+   device, shots looked at on every device.
+2. `just release`. A version already in the store is left alone, so an update
+   needs either a `just deploy` first (iterates to `1.0.1`, then `release`
+   finalises to `1.1`) or `pwsh -File tools/release.ps1 -SetVersion 1.1`
+   directly. Either way the suite runs on every product before the version
+   moves.
+3. `just deploy-nobump`, walk §1 on the wrist; `just input-test <id>` and the
+   shots stand in for a device you do not own.
+4. `just icons`, `just shot-release`, `just shot-settings`, `just store-shots`,
+   `just package`. The screenshots only need regenerating if a screen changed;
+   the store keeps one set per listing, not one per device.
+
+### The store side
+
+1. <https://apps.garmin.com/developer/dashboard>, signed in as the account that
+   published 1.0. Open the app.
+2. Choose the update action for the app (the dashboard labels it as uploading a
+   new version; the page for the first submission was "Submit an App", and it
+   is not that one). Upload `publish/Candle.iq`.
+3. The form validates the bundle and lists **the devices it read from it**.
+   Both watches must be there. If only one is, the bundle was packaged from a
+   manifest with one product — stop and rebuild.
+4. **Version**: type exactly what `just package` printed. The form refuses a
+   version it has seen before ("The updated version should be different from
+   previous versions"), and nothing but this box keeps the listing and the
+   glass in agreement (ADR-0037, ADR-0039).
+5. **What's new**: paste the line for this version from `store-listing.md`.
+   Plain text only — a `<` or `>` in either box has been seen to fail the
+   upload with a media-type error.
+6. If the **description** changed, edit it now, from `store-listing.md`. For
+   1.1 it did: the Controls bullets name both watches' buttons.
+7. Submit. Garmin's own figure is up to 72 hours for review, longer over
+   holidays. While it is pending the old version stays live, and the new one
+   can be downloaded to your own watch from the dashboard.
+
+### What to expect afterwards
+
+- The dashboard and the public store page do not update in step: the new
+  version can take minutes to hours to show on the page and in the Connect IQ
+  phone app, and re-uploading in the meantime is refused as a duplicate
+  version. Wait; do not re-upload.
+- Wearers who left auto-update on (the default in the Connect IQ phone app)
+  get 1.1 on their next sync; the rest see an update offered. A watch that was
+  not supported before — the Forerunner 955 — sees Candle as a new app.
+- A **beta** is not the way to test an update: Garmin's beta uploads need a
+  separate app id and are only ever visible to your own account. To try an
+  update before the world gets it, sideload the release build with
+  `just deploy-nobump`, which is what §1 already is.
+- Then §4, on the watch that already has 1.0 from the store: installing the
+  update over it upgrades in place and keeps the stored settings, because the
+  id and the key are the same. `v1.1` along the bottom of the settings screen
+  is the proof, and it must match the listing.

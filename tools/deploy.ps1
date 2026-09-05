@@ -86,15 +86,17 @@ if ($null -eq $thisPC) { throw "deploy: could not open the This PC shell namespa
 
 $watch = $null
 foreach ($item in $thisPC.Items()) {
-    if ($item.Name -match 'v.?voactive' -or $item.Name -match 'Garmin') { $watch = $item; break }
+    if ($item.Name -match 'v.?voactive' -or $item.Name -match 'Forerunner' -or $item.Name -match 'Garmin') {
+        $watch = $item; break
+    }
 }
 
 if ($null -eq $watch) {
     Write-Host ""
     Write-Host "DEPLOY FAILED: the watch is not connected." -ForegroundColor Red
-    Write-Host "  Plug the vivoactive 5 in with a DATA-capable USB cable and unlock it." -ForegroundColor Red
-    Write-Host "  It appears under 'This PC' as a portable device named 'vivoactive 5'," -ForegroundColor Red
-    Write-Host "  NOT as a drive letter -- it speaks MTP." -ForegroundColor Red
+    Write-Host "  Plug the watch in with a DATA-capable USB cable and unlock it." -ForegroundColor Red
+    Write-Host "  It appears under 'This PC' as a portable device named after itself" -ForegroundColor Red
+    Write-Host "  ('vivoactive 5', 'Forerunner 955'), NOT as a drive letter -- it speaks MTP." -ForegroundColor Red
     Write-Host "  Built PRG is ready at: $prg" -ForegroundColor Yellow
     exit 1
 }

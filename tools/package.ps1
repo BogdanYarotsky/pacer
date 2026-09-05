@@ -1,9 +1,10 @@
 # Build the signed store bundle: publish/Candle.iq.
 #
-# -e packages every product in the manifest (one today: vivoactive5) as a
-# release build. The .iq goes to the gitignored publish/ directory -- it is a
-# submission artifact, not a source file. Regenerate the store icon first
-# (tools/make-icons.ps1); the full submission walk-through is docs/PUBLISHING.md.
+# -e packages EVERY product in the manifest as a release build, into one .iq --
+# the store reads the device list off the bundle. It goes to the gitignored
+# publish/ directory: a submission artifact, not a source file. Regenerate the
+# icons first (just icons); the full submission walk-through is
+# docs/PUBLISHING.md.
 #
 #   just package
 
@@ -13,6 +14,12 @@ param(
 
 . "$PSScriptRoot\env.ps1"
 . "$PSScriptRoot\version.ps1"
+
+# --- the devices, before anything is built ------------------------------------
+# A product with no launcher icon at its own size, or one the app cannot be used
+# on, must not reach the store. ADR-0047
+& "$PSScriptRoot\check-devices.ps1"
+if ($LASTEXITCODE -ne 0) { throw "package: device check failed, nothing was built" }
 
 # --- THE GUARD ----------------------------------------------------------------
 # The store never sees a three-segment version, and this is the one place that
@@ -53,7 +60,8 @@ Write-Host ("    ok  {0}  ({1:N1} KB)" -f $out, ($size / 1KB)) -ForegroundColor 
 # ADR-0037, ADR-0039
 Write-Host ""
 Write-Host "VERSION FOR THE STORE FORM:  $($version.Text)" -ForegroundColor Cyan
-Write-Host "The bundle draws 'Candle v$($version.Text)' on its settings screen. Type the" -ForegroundColor Yellow
-Write-Host "same string into the form's Version box -- nothing else checks they agree." -ForegroundColor Yellow
+Write-Host "The bundle draws 'v$($version.Text)' along the bottom of its settings screen. Type" -ForegroundColor Yellow
+Write-Host "the same number into the form's Version box -- nothing else checks they agree." -ForegroundColor Yellow
+Write-Host "Devices in this bundle: $($Products -join ', ')" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "Upload at https://apps.garmin.com/developer/dashboard -- see docs/PUBLISHING.md." -ForegroundColor Yellow

@@ -18,11 +18,12 @@
 
 $ErrorActionPreference = "Stop"
 
-# The iteration's ceiling is a LAYOUT fact, not a taste one. The title is drawn
-# in the settings screen's top band, which is the narrowest band the app draws
-# text in; "Candle v9.9.999" measures inside it and a fourth digit does not.
-# layoutRealLinesFitOnVivoactive5 is what actually pins this -- the number is
-# here so the failure arrives as a sentence rather than as clipped pixels.
+# The iteration's ceiling. It began as a LAYOUT fact -- "Candle v9.9.999" was
+# the widest string the settings screen's title band could take (ADR-0039) --
+# and outlived the band: the version is shorter and lower now (ADR-0040), and
+# layoutRealLinesFitTheGlass measures every shape the scheme allows, on every
+# device. Three digits stays as the scheme's own ceiling; the number is here so
+# the failure arrives as a sentence rather than as clipped pixels.
 $script:MaxIteration = 999
 
 function Get-AppVersionFile {

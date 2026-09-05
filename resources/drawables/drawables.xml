@@ -1,6 +1,0 @@
-<drawables>
-    <!-- Comes from tools/make-icons.ps1, never from hand editing.
-         Drawn in two places: the launcher, and the settings screen's top band
-         (ADR-0040). One mark, one size, one file. -->
-    <bitmap id="LauncherIcon" filename="launcher_icon.png" />
-</drawables>

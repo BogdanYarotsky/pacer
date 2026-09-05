@@ -24,6 +24,13 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
     private var _screen as Number;
     private var _rows as Array<Number>;
 
+    // The glass every tap is decoded against. A delegate has no Dc to ask, so
+    // it asks the device -- once -- and the view's dc.getWidth() is the same
+    // number by the platform's own guarantee. Never a constant: the same
+    // build runs on more than one size of glass. ADR-0045
+    private var _width as Number;
+    private var _height as Number;
+
     // onHold arms the repeat, onRelease disarms it -- the SDK guarantees an
     // onRelease only ever follows an onHold. Every other input handler disarms
     // it too, so a missed release can never leave a value running away. This is
@@ -36,6 +43,11 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
         _inputGate = new MainInputGate();
         _screen = screen;
         _rows = Rows.forScreen(screen);
+
+        var settings = System.getDeviceSettings();
+        _width = settings.screenWidth;
+        _height = settings.screenHeight;
+        traceMap();
     }
 
     // Arms the repeat only -- the immediate first step is onHold's job, so this
@@ -214,13 +226,13 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // Maps against Layout.DISPLAY_WIDTH while the view draws with
-    // dc.getWidth(); a test asserts those are the same number.
+    // Maps against the device's reported screen while the view draws with
+    // dc.getWidth(); a test pins that the glass is square, which is the
+    // assumption the chord maths and this call share. ADR-0045
     private function hitAt(clickEvent as WatchUi.ClickEvent) as Number {
         var coordinates = clickEvent.getCoordinates();
         return Layout.editorHitAt(
-            coordinates[0], coordinates[1],
-            Layout.DISPLAY_WIDTH, Layout.DISPLAY_WIDTH, _rows.size());
+            coordinates[0], coordinates[1], _width, _height, _rows.size());
     }
 
     // The one place a position on the glass meets the setting under it -- by
@@ -247,5 +259,29 @@ class candleDelegate extends WatchUi.BehaviorDelegate {
 
     (:release)
     private function trace(msg as String) as Void {
+    }
+
+    // The geometry this screen's taps are decoded against, printed once when
+    // the screen is created, so tests/input-behaviour.ps1 can aim at the
+    // controls on whatever glass the simulator is showing instead of carrying
+    // coordinates measured on one watch. The script parses this line; its
+    // shape is part of the contract. Debug only, like every trace. ADR-0045
+    (:debug)
+    private function traceMap() as Void {
+        var count = _rows.size();
+        var rows = "";
+        for (var i = 0; i < count; i += 1) {
+            if (i > 0) {
+                rows += ",";
+            }
+            rows += Layout.editorRowCenter(i, count, _height).toString();
+        }
+        var below = Layout.editorRowsTop(count, _height) + (count * Layout.editorRowHeight(_height));
+        trace("map screen " + _screen + " width " + _width + " height " + _height +
+            " rows " + rows + " edge " + Layout.controlHitEdge(_width) + " below " + below);
+    }
+
+    (:release)
+    private function traceMap() as Void {
     }
 }

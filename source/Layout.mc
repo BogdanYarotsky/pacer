@@ -4,44 +4,61 @@ import Toybox.Math;
 // Pure layout maths. Nothing here touches a Dc, so all of it runs under the
 // test runner and shots/*.png stay the last resort. ADR-0030
 //
-// The vivoactive 5 is a ROUND display: fitting the bounding box is not fitting
-// the screen, and halfChordAt is why these tests are worth having. ADR-0011
+// Every supported watch is a ROUND display: fitting the bounding box is not
+// fitting the screen, and halfChordAt is why these tests are worth having.
+// ADR-0011
+//
+// Nothing here knows which watch it is on. Every function takes the glass it
+// is laying out as an argument, and every size is a PROPORTION of that glass:
+// one reference design, tuned on the first device, scaled to whatever the Dc
+// reports. ADR-0045
 //
 // Both screens share every function here. What differs is one number -- how
 // many rows they carry -- so the row grid takes that as an argument. This
 // module never learns which setting is standing in a row. ADR-0028
 module Layout {
 
-    const DISPLAY_WIDTH = 390;
+    // The glass the reference values below were tuned on. On a screen this
+    // wide every function returns exactly its reference value, so the first
+    // device's shipped layout IS the reference rather than an approximation of
+    // it; on any other glass it is the same design at that size. ADR-0045
+    const REFERENCE_WIDTH = 390;
+
+    // The reference geometry, in pixels ON THE REFERENCE GLASS. Read each as
+    // "this many 390ths of the screen". They are not free to move on their
+    // own: the circle-in-circle bound (ADR-0012) and the two width budgets
+    // (ADR-0013) hold between them, and the sweeps check all of it on every
+    // device's own font metrics.
 
     // The row grid is CENTRED ON THE GLASS, and the controls are as large as
     // that allows. ADR-0012
-    const EDITOR_ROW_HEIGHT = 102;
-    const CONTROL_INSET = 54;
-    const CONTROL_RADIUS = 38;
+    const EDITOR_ROW_HEIGHT_REF = 102;
+    const CONTROL_INSET_REF = 54;
+    const CONTROL_RADIUS_REF = 38;
 
     // A ring, not a fill, and wide enough to read as a border rather than a
-    // hairline. It is a Layout constant and not a view detail because the
+    // hairline. It is a Layout value and not a view detail because the
     // circle-in-circle fit maths has to pay for it. ADR-0012
-    const CONTROL_PEN = 3;
+    const CONTROL_PEN_REF = 3;
 
     // The "-" and "+" are drawn bars, not font glyphs. **Both extents must stay
-    // ODD** -- an even one cannot centre on a pixel. ADR-0015
-    const GLYPH_LENGTH = 27;
-    const GLYPH_THICKNESS = 5;
+    // ODD** on every glass -- an even one cannot centre on a pixel -- which is
+    // why they scale through oddScaled and never through scaled. ADR-0015
+    const GLYPH_LENGTH_REF = 27;
+    const GLYPH_THICKNESS_REF = 5;
 
     // How far in the tap zones reach. Derived from a measurement of the widest
     // reachable row line; the guardrail's failure message says where it must
     // go, which is how this has been set every time it moved. ADR-0014
-    const CONTROL_HIT_EDGE = 104;
+    const CONTROL_HIT_EDGE_REF = 104;
 
     // Clearance either side of a row's centred text, between it and the
     // circles. See editorTextMaxWidth. ADR-0013
-    const EDITOR_TEXT_GUTTER = 10;
+    const EDITOR_TEXT_GUTTER_REF = 10;
 
     // Clearance from the bottom edge, applied to a MEASURED font height rather
     // than as a fixed offset. ADR-0011
-    const BOTTOM_SLOT_MARGIN = 34;
+    const BOTTOM_SLOT_MARGIN_REF = 34;
 
     // A POSITION and a side, and deliberately nothing about which setting is
     // standing there. ADR-0014
@@ -55,21 +72,84 @@ module Layout {
     // is inert on both screens now, which is what editorHitAt already returned
     // for it. ADR-0014
 
+    // --- the reference design at the size of the glass in hand --------------
+
+    // A reference value scaled to a glass of the given size, rounded to
+    // nearest. Number / Number is integer division, so the half-reference
+    // added first is what makes it round rather than truncate. It is the
+    // identity at REFERENCE_WIDTH. ADR-0045
+    function scaled(reference as Number, size as Number) as Number {
+        return ((reference * size) + (REFERENCE_WIDTH / 2)) / REFERENCE_WIDTH;
+    }
+
+    // scaled, then forced ODD: an even result goes up by one and an odd one
+    // passes unchanged, so the reference values come through as they are. For
+    // the glyph bars only. ADR-0015
+    function oddScaled(reference as Number, size as Number) as Number {
+        return ((scaled(reference, size) / 2) * 2) + 1;
+    }
+
+    // Vertical sizes follow the height and horizontal ones the width. The two
+    // are equal on every round glass (a test pins it), so today this is one
+    // rule spelled twice -- and it is spelled twice so that a glass where they
+    // differ gets a stretched reference rather than a wrong one. ADR-0045
+
+    function editorRowHeight(height as Number) as Number {
+        return scaled(EDITOR_ROW_HEIGHT_REF, height);
+    }
+
+    function controlInset(width as Number) as Number {
+        return scaled(CONTROL_INSET_REF, width);
+    }
+
+    function controlRadius(width as Number) as Number {
+        return scaled(CONTROL_RADIUS_REF, width);
+    }
+
+    // Never below a single pixel: a pen of 0 draws nothing, and a ring that
+    // vanished on a small glass would take the control's border with it.
+    function controlPen(width as Number) as Number {
+        var pen = scaled(CONTROL_PEN_REF, width);
+        return pen < 1 ? 1 : pen;
+    }
+
+    function glyphLength(width as Number) as Number {
+        return oddScaled(GLYPH_LENGTH_REF, width);
+    }
+
+    function glyphThickness(width as Number) as Number {
+        return oddScaled(GLYPH_THICKNESS_REF, width);
+    }
+
+    function controlHitEdge(width as Number) as Number {
+        return scaled(CONTROL_HIT_EDGE_REF, width);
+    }
+
+    function editorTextGutter(width as Number) as Number {
+        return scaled(EDITOR_TEXT_GUTTER_REF, width);
+    }
+
+    function bottomSlotMargin(height as Number) as Number {
+        return scaled(BOTTOM_SLOT_MARGIN_REF, height);
+    }
+
+    // --- the row grid ---------------------------------------------------------
+
     function centerX(width as Number) as Number {
         return width / 2;
     }
 
     function editorRowsTop(rowCount as Number, height as Number) as Number {
-        return (height / 2) - ((rowCount * EDITOR_ROW_HEIGHT) / 2);
+        return (height / 2) - ((rowCount * editorRowHeight(height)) / 2);
     }
 
     function editorRowTop(index as Number, rowCount as Number, height as Number) as Number {
-        return editorRowsTop(rowCount, height) + (index * EDITOR_ROW_HEIGHT);
+        return editorRowsTop(rowCount, height) + (index * editorRowHeight(height));
     }
 
     // A row is one line, and its "-" and "+" circles share the same centre.
     function editorRowCenter(index as Number, rowCount as Number, height as Number) as Number {
-        return editorRowTop(index, rowCount, height) + (EDITOR_ROW_HEIGHT / 2);
+        return editorRowTop(index, rowCount, height) + (editorRowHeight(height) / 2);
     }
 
     // The band above the rows, centred: the clock on the main screen, the
@@ -83,7 +163,7 @@ module Layout {
     }
 
     function editorControlX(width as Number, increase as Boolean) as Number {
-        return increase ? width - CONTROL_INSET : CONTROL_INSET;
+        return increase ? width - controlInset(width) : controlInset(width);
     }
 
     // The leading edge of one arm of a control's glyph. All three bars come out
@@ -96,7 +176,7 @@ module Layout {
     // The SECOND width budget: the chord is not the only thing a row runs out
     // of, and it is the more forgiving of the two. ADR-0013
     function editorTextMaxWidth(width as Number) as Number {
-        return width - (2 * (CONTROL_INSET + CONTROL_RADIUS + EDITOR_TEXT_GUTTER));
+        return width - (2 * (controlInset(width) + controlRadius(width) + editorTextGutter(width)));
     }
 
     // The band below the rows: the battery, warning or hint on the main screen,
@@ -104,7 +184,7 @@ module Layout {
     // both, whose one geometric duty is to clear the bottom row's controls --
     // a test pins that. ADR-0005, ADR-0036, ADR-0040
     function bottomSlotY(height as Number, fontHeight as Number) as Number {
-        return height - BOTTOM_SLOT_MARGIN - fontHeight;
+        return height - bottomSlotMargin(height) - fontHeight;
     }
 
     // Only the large edge zones map to a row; the centre stays inert so reading
@@ -116,15 +196,17 @@ module Layout {
         height as Number,
         rowCount as Number
     ) as Number {
+        var rowHeight = editorRowHeight(height);
         var top = editorRowsTop(rowCount, height);
-        if (y < top || y >= top + (rowCount * EDITOR_ROW_HEIGHT)) {
+        if (y < top || y >= top + (rowCount * rowHeight)) {
             return HIT_NONE;
         }
 
+        var edge = controlHitEdge(width);
         var direction;
-        if (x <= CONTROL_HIT_EDGE) {
+        if (x <= edge) {
             direction = DIRECTION_DECREASE;
-        } else if (x >= width - CONTROL_HIT_EDGE) {
+        } else if (x >= width - edge) {
             direction = DIRECTION_INCREASE;
         } else {
             return HIT_NONE;
@@ -132,7 +214,7 @@ module Layout {
 
         // Number / Number is integer division in Monkey C, so this is the row
         // index directly.
-        var row = (y - top) / EDITOR_ROW_HEIGHT;
+        var row = (y - top) / rowHeight;
         return (row * 2) + direction;
     }
 
@@ -148,6 +230,10 @@ module Layout {
     // Half the usable width at vertical position y, from the centre line. For a
     // circle of radius r the half-chord at distance dy is sqrt(r^2 - dy^2).
     // Returns 0 outside the circle. ADR-0011
+    //
+    // A circle, and only a circle. A semi-round or rectangular glass would need
+    // this taught the shape before anything drawn on it could be trusted; the
+    // test that pins System.SCREEN_SHAPE_ROUND is the tripwire. ADR-0045
     function halfChordAt(y as Number, width as Number, height as Number) as Number {
         var r = width / 2.0;
         var dy = (y - (height / 2.0)).abs();

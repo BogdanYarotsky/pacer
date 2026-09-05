@@ -22,7 +22,9 @@ Two more that bite this app specifically:
 - **§1(f) no apps for children under 13.** The repo justifies the 10 bpm ceiling
   partly by citing children's resonance bands. That reasoning stays in the
   README. It must not appear here, because it reads as designing for children.
-- **§4(a) describe accurately.** Name the device. One product is supported.
+- **§4(a) describe accurately.** Name every device, and name each one's
+  buttons by what its own manual calls them: the two gestures are the same on
+  every watch, the buttons that carry them are not (ADR-0047).
 
 ---
 
@@ -33,11 +35,24 @@ Two more that bite this app specifically:
 | App name | `Candle: Resonance Breathing Pacer` (33 chars) |
 | Type | Watch App |
 | Category | Health & Fitness |
-| Devices | vívoactive 5 |
+| Devices | vívoactive 5, Forerunner 955 / 955 Solar — the store reads the list off the `.iq`; it is `manifest.xml` that decides |
 | Version | whatever `just package` printed |
 | Price | Free |
 | Permissions | none — `<iq:permissions/>` is empty |
 | Source | https://github.com/BogdanYarotsky/candle-rfb |
+
+---
+
+## What's new — the update form's changelog box
+
+One line per public version, newest first. The form takes plain text: no
+markdown, no `<` or `>`, which the upload has been seen to reject.
+
+```
+1.1  Adds the Forerunner 955 (and 955 Solar). The layout now scales to the
+     watch; nothing about the cue or the settings changed.
+1.0  First release. vivoactive 5.
+```
 
 ---
 
@@ -73,13 +88,16 @@ Two more that bite this app specifically:
 > **Controls**
 > - Vibration strength (`POWER`) and buzz length (`BUZZ`) are on the main
 >   screen. Both adjust down to the hardware's own floor.
-> - **Press the upper button** for the interval screen. The same press brings
->   you back. It is the only way between the two screens.
-> - **Hold the lower button to quit**, from either screen. Back does not exit —
->   this watch's firmware raises a real button press for a right swipe, so a
+> - **Press the upper-right button** for the interval screen — the Action
+>   button on the vívoactive 5, START on the Forerunner 955. The same press
+>   brings you back. It is the only way between the two screens.
+> - **Hold the menu button to quit**, from either screen: the lower button on
+>   the vívoactive 5, UP on the Forerunner 955. Back does not exit — the
+>   vívoactive 5's firmware raises a real button press for a right swipe, so a
 >   sleeve across the glass would otherwise end your session.
-> - To lock the screen during a session, **hold** the upper button and choose
->   Lock Screen — the watch's own, not a copy of it.
+> - To lock the screen during a session, open the watch's controls menu (hold
+>   the upper button on the vívoactive 5, hold LIGHT on the Forerunner 955)
+>   and choose Lock — the watch's own lock, not a copy of it.
 >
 > The main screen shows the time and the battery. Nothing else moves.
 >
@@ -105,6 +123,11 @@ survives it.
 Quitting by holding a button is genuinely unguessable, and a wearer who cannot
 work out how to leave an app writes a one-star review rather than a support
 email. Explaining it here is cheaper than a rating.
+
+**Buttons are named per device**, because the app's two gestures land on
+different physical buttons on each watch (ADR-0047). Adding a device means
+adding its button names to those three bullets — and only there; the app's own
+`HOLD TO EXIT` hint names no button on purpose.
 
 **No screenshots of the settings screen with fiddled values.** The simulator
 keeps whatever the previous run left it holding — see `PUBLISHING.md` §2.

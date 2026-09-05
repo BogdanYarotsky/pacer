@@ -63,11 +63,14 @@ if ($next -notmatch '^\d\.\d$') {
 }
 
 # --- the gate -----------------------------------------------------------------
+# Every product in the manifest, one simulator run each: the suite measures the
+# glass and fonts of the device it runs on, so one device's green run is not
+# another's (ADR-0045).
 if ($SkipTests) {
     Write-Host "    SKIPPING the unit suite (-SkipTests)" -ForegroundColor Yellow
 } else {
     Write-Host ""
-    & "$PSScriptRoot\test.ps1" -Device "vivoactive5" -Typecheck 3
+    & "$PSScriptRoot\test.ps1" -Device all -Typecheck 3
     if ($LASTEXITCODE -ne 0) {
         throw "release: tests failed. The version is untouched -- fix them and run again."
     }
@@ -91,9 +94,9 @@ Write-Host "  1. Sideload THIS EXACT BUILD. No bump -- 'just deploy' would itera
 Write-Host "     to $next.1 and you would be verifying a number nobody will ship:" -ForegroundColor Yellow
 Write-Host "         just deploy-nobump" -ForegroundColor White
 Write-Host ""
-Write-Host "  2. Walk docs/PUBLISHING.md section 1 on the watch. The settings" -ForegroundColor Yellow
-Write-Host "     screen's title must read:" -ForegroundColor Yellow
-Write-Host "         Candle v$next" -ForegroundColor White
+Write-Host "  2. Walk docs/PUBLISHING.md section 1 on the watch. The version on" -ForegroundColor Yellow
+Write-Host "     the settings screen (deploy-nobump prints exactly where) must read:" -ForegroundColor Yellow
+Write-Host "         v$next" -ForegroundColor White
 Write-Host ""
 Write-Host "  3. The real-input checks, on a machine you are not also using:" -ForegroundColor Yellow
 Write-Host "         just input-test" -ForegroundColor White

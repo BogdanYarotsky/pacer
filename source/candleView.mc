@@ -40,6 +40,13 @@ class candleView extends WatchUi.View {
     private var _clockY as Number = 0;
     private var _bottomSlotY as Number = 0;
 
+    // The control's own dimensions, which are proportions of the glass and so
+    // are only known once a Dc has said how wide the glass is. ADR-0045
+    private var _controlRadius as Number = 0;
+    private var _controlPen as Number = 1;
+    private var _glyphLength as Number = 1;
+    private var _glyphThickness as Number = 1;
+
     // The settings screen's logo, and where it goes. Loaded once in onLayout
     // rather than per draw: loadResource decodes the PNG, and the cue timer
     // repaints this view every minute. ADR-0040
@@ -55,12 +62,20 @@ class candleView extends WatchUi.View {
 
     // The anchors depend on measured font heights, which need a Dc. ADR-0011
     function onLayout(dc as Dc) as Void {
+        // The glass is whatever the Dc says it is -- never a number written
+        // here -- and every size below is Layout's reference design at that
+        // width. The delegate reads the same size from the device settings,
+        // which is the one place the two could disagree and do not. ADR-0045
         var width = dc.getWidth();
         var height = dc.getHeight();
         _centerX = Layout.centerX(width);
         _screenHeight = height;
         _controlLeftX = Layout.editorControlX(width, false);
         _controlRightX = Layout.editorControlX(width, true);
+        _controlRadius = Layout.controlRadius(width);
+        _controlPen = Layout.controlPen(width);
+        _glyphLength = Layout.glyphLength(width);
+        _glyphThickness = Layout.glyphThickness(width);
 
         // The top band holds the clock on the main screen and the logo on the
         // settings screen -- so it is anchored twice, once per screen, and both
@@ -194,11 +209,11 @@ class candleView extends WatchUi.View {
     // code and not a coincidence of what happens to be behind it. ADR-0012
     private function drawControl(dc as Dc, x as Number, y as Number, increase as Boolean) as Void {
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(x, y, Layout.CONTROL_RADIUS);
+        dc.fillCircle(x, y, _controlRadius);
 
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(Layout.CONTROL_PEN);
-        dc.drawCircle(x, y, Layout.CONTROL_RADIUS);
+        dc.setPenWidth(_controlPen);
+        dc.drawCircle(x, y, _controlRadius);
 
         // The pen goes back to 1: it is state on the Dc, and the next thing
         // drawn is not a border.
@@ -212,15 +227,15 @@ class candleView extends WatchUi.View {
     // wears and what a tap on it does are one fact spelled one way. ADR-0015
     private function drawGlyph(dc as Dc, x as Number, y as Number, increase as Boolean) as Void {
         dc.fillRectangle(
-            Layout.glyphArmStart(x, Layout.GLYPH_LENGTH),
-            Layout.glyphArmStart(y, Layout.GLYPH_THICKNESS),
-            Layout.GLYPH_LENGTH, Layout.GLYPH_THICKNESS);
+            Layout.glyphArmStart(x, _glyphLength),
+            Layout.glyphArmStart(y, _glyphThickness),
+            _glyphLength, _glyphThickness);
 
         if (increase) {
             dc.fillRectangle(
-                Layout.glyphArmStart(x, Layout.GLYPH_THICKNESS),
-                Layout.glyphArmStart(y, Layout.GLYPH_LENGTH),
-                Layout.GLYPH_THICKNESS, Layout.GLYPH_LENGTH);
+                Layout.glyphArmStart(x, _glyphThickness),
+                Layout.glyphArmStart(y, _glyphLength),
+                _glyphThickness, _glyphLength);
         }
     }
 

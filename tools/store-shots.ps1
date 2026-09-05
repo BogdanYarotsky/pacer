@@ -21,6 +21,9 @@
 # evidence than this comment -- update it here rather than working around it.
 
 param(
+    # Whose captures to crop. The store keeps ONE set of screenshots per
+    # listing, not one per device, so the listing shows the watch named here.
+    [string]$Device = "vivoactive5",
     [int]$Size = 500,
     [int]$WarnKB = 150
 )
@@ -122,9 +125,9 @@ function Convert-One([string]$inPath, [string]$outPath, [string]$label) {
     }
 }
 
-Write-Host "==> store listing images ($Size x $Size, square)" -ForegroundColor Cyan
-Convert-One (Join-Path $shots "vivoactive5.png") (Join-Path $outDir "store-shot-1-main.png") "main"
-Convert-One (Join-Path $shots "vivoactive5-settings.png") (Join-Path $outDir "store-shot-2-settings.png") "settings"
+Write-Host "==> store listing images ($Size x $Size, square) from the $Device captures" -ForegroundColor Cyan
+Convert-One (Join-Path $shots "$Device.png") (Join-Path $outDir "store-shot-1-main.png") "main"
+Convert-One (Join-Path $shots "$Device-settings.png") (Join-Path $outDir "store-shot-2-settings.png") "settings"
 
 Write-Host ""
 Write-Host "Upload in filename order. The main screen goes first -- it is the one" -ForegroundColor Yellow

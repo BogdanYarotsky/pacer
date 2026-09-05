@@ -1,6 +1,8 @@
 # Candle
 
-A haptic resonance-breathing pacer for the Garmin vívoactive 5. Free and open
+A haptic resonance-breathing pacer for Garmin watches — the vívoactive 5 and
+the Forerunner 955 today, with the rule for adding the next one in
+[ADR-0047](docs/adr/0047-which-watches-candle-supports.md). Free and open
 source under the [MIT license](LICENSE).
 
 <!-- Deliberately NOT the store title. That string lives in
@@ -177,10 +179,11 @@ range hides:
 None of that is verifiable from a computer: `Attention.vibrate` does nothing
 observable in the simulator. Sweep it on your own wrist.
 
-**Locking the screen is the watch's job, not Candle's.** Hold the upper button →
-controls → **Lock Screen**. It works inside a running app, and it locks the
-buttons as well as the touchscreen, so nothing — a sleeve, a palm, a knock
-against a doorframe — can reach Candle while you breathe. Unlock the same way.
+**Locking the screen is the watch's job, not Candle's.** Open the controls menu
+(hold the upper button on the vívoactive 5, hold LIGHT on the Forerunner 955)
+→ **Lock**. It works inside a running app, and it locks the buttons as well as
+the touchscreen, so nothing — a sleeve, a palm, a knock against a doorframe —
+can reach Candle while you breathe. Unlock the same way.
 
 Do that before a session. Without it, a palm across the screen can trigger a
 platform-level exit that Candle never sees and cannot prevent.
@@ -192,23 +195,27 @@ was left without touch until it was rebooted — and Candle could not repair it,
 because relaunching Candle needs touch to reach the app list. The watch's own lock
 has none of that failure mode, because the OS owns the state and restores it.
 
-**Upper button — the interval, and the only way between the screens.** Press it
-to open the `EVERY` screen and press it again to close. Held, it opens the
-watch's controls menu, which is where Lock Screen lives — a hold, not a press,
-so the two do not collide.
+**Upper-right button — the interval, and the only way between the screens.**
+Press it to open the `EVERY` screen and press it again to close. It is the
+Action button on the vívoactive 5 and START on the Forerunner 955.
 
-**Lower button — Back, and it never does anything.** On either screen it shows
-`HOLD TO EXIT` for two seconds and nothing else. Same for a right swipe, which
-arrives as the identical event.
+**Back — and it never does anything.** On either screen the lower-right button
+shows `HOLD TO EXIT` for two seconds and nothing else. Same for a right swipe,
+which arrives as the identical event.
 
-**To quit, hold the lower button.** From either screen.
+**To quit, hold the menu button.** From either screen. On the vívoactive 5 that
+is the lower button; on the Forerunner 955 it is UP, on the left. The hint
+deliberately names no button, because each watch's own manual does
+(ADR-0047).
 
-That looks like an odd choice and it is not one — it is forced. On this watch the
-firmware **synthesises a real button press for a right swipe**, so nothing in the
-app can tell your thumb from a sleeve brushing the glass, and Candle used to end
-sessions because of it. Six exit traces off a wrist say so; the full working is
-in `AGENTS.md`. A *held* button is the one gesture the firmware does not forge,
-so that is where the exit went.
+That looks like an odd choice and it is not one — it is forced. On the
+vívoactive 5 the firmware **synthesises a real button press for a right
+swipe**, so nothing in the app can tell your thumb from a sleeve brushing the
+glass, and Candle used to end sessions because of it. Six exit traces off a
+wrist say so; the full working is in `AGENTS.md`. A *held* button is the one
+gesture the firmware does not forge, so that is where the exit went — on every
+watch, because Back being harmless is a property of the app rather than a bet
+on one firmware.
 
 Lock the screen during a session (below) and nothing can reach Candle anyway.
 
@@ -224,24 +231,25 @@ to tell that apart from a dead app. It is the only warning in the app, and it
 takes the whole line: the two do not fit side by side down there, and a warning
 clipped at both ends would be worse than no warning at all.
 
-**The version is the settings screen's title, in every build.** `Candle v1.0`
-sits at the **top** of that screen, one button press away — you read it after a
-deploy, or when you are writing a bug report, and never while breathing.
+**The version is along the bottom of the settings screen, in every build.**
+`v1.0` sits under the two rows there, one button press away — you read it
+after a deploy, or when you are writing a bug report, and never while breathing
+(ADR-0040).
 
 It is one number doing two jobs. A sideload to this watch goes over MTP and
 *cannot* be verified from the host (see the deploy section of `AGENTS.md`), so
 reading the version off the glass is the only proof of which build is running —
 which is why `just deploy` bumps it before every build. And it is the number to
-quote in a bug report, matching the store listing exactly, because the minor is
-that same sideload counter and whatever it says on submission day is what gets
-typed into the store form. Store versions therefore skip: 1.0, then 1.7. That is
-the deal, and the alternative is a tidy number that traces to nothing.
+quote in a bug report, matching the store listing exactly, because whatever it
+says at `just package` time is what gets typed into the store form. Two
+segments is a public version and three is a sideload (ADR-0039); the store only
+ever sees two.
 
-The minor is a plain integer, so it counts 1.9 → 1.10 and never grows a trailing
-zero. Release builds once drew a small candle mark at the bottom of the main
-screen; it is gone, because the screen you breathe on is not a place to
-advertise, and the battery has that slot now. The mark still identifies the app on
-the launcher and in the store listing, which is where identifying it is the job.
+Release builds once drew a small candle mark at the bottom of the main screen;
+it is gone, because the screen you breathe on is not a place to advertise, and
+the battery has that slot now. The mark identifies the app on the launcher, at
+the top of the settings screen, and in the store listing — at each device's own
+launcher size (ADR-0046).
 
 ## Build and run
 
@@ -251,16 +259,23 @@ the toolchain versions this is pinned to.
 ```
 just build      # compile for vivoactive5 at strict typecheck (-w -l 3)
 just test       # build with -t, run the unit tests in the simulator, fail loudly
+just test-all   # the same suite on every product in the manifest, one run each
 just sim        # launch the simulator and load the app
-just shot       # capture the simulator window to shots/vivoactive5.png
+just shot       # capture the simulator window to shots/<device>.png
 just shot-release # same, of the release build -- the only way to see (:release) code
 just deploy     # bump the iteration, build, push to the watch over MTP
 just input-test # drive real taps and button presses into the simulator (~40s)
 just release    # finalise the version for the store (1.3.12 -> 1.4) and stop
-just package    # signed publish/Candle.iq -- refuses a dev version
+just package    # signed publish/Candle.iq, every device -- refuses a dev version
 ```
 
-`just build` and `just test` are the loop. Nothing is finished until both pass.
+Every recipe that takes a device takes it first: `just test fr955`,
+`just shot fr955`, `just input-test fr955`. The default is the vívoactive 5.
+
+`just build` and `just test` are the loop. Nothing is finished until both pass —
+and a change to `Layout` is not finished until `just test-all` passes, because
+the suite measures the glass and the fonts of the watch it runs on, so one
+device's green run says nothing about another (ADR-0045).
 
 **Two version shapes, and the shape is the meaning.** `1.4` is public — one
 digit each side of the dot, the minor rolling `1.9` → `2.0` — and it is the only
@@ -272,9 +287,12 @@ enforced rather than remembered.
 ### First-time setup
 
 1. A 64-bit JDK 21 (Temurin) with `JAVA_HOME` set.
-2. `connect-iq-sdk-manager`, with SDK 9.2.0 selected and the vívoactive 5 device
-   package downloaded **with `--include-fonts`** — without the fonts the
-   simulator dies the moment it draws text.
+2. `connect-iq-sdk-manager`, with SDK 9.2.0 selected and every device in the
+   manifest downloaded **with `--include-fonts`** — without the fonts the
+   simulator dies the moment it draws text:
+   `connect-iq-sdk-manager device download --manifest manifest.xml --include-fonts`.
+   Then `just icons`, which draws each device's launcher icon at the size its
+   config declares (ADR-0046); `just check-devices` says what is missing.
 3. A 4096-bit RSA developer key at `%USERPROFILE%\.garmin-keys\developer_key.der`,
    pointed to by `$env:GARMIN_DEVELOPER_KEY`. The key is machine-level and shared
    by every Connect IQ app; it never lives in this repo.

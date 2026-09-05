@@ -28,6 +28,12 @@ sim device=device typecheck=typecheck:
 test device=device typecheck=typecheck test_name="":
     pwsh -NoProfile -File tools/test.ps1 -Device {{device}} -Typecheck {{typecheck}} -TestName "{{test_name}}"
 
+# The unit suite on EVERY product in manifest.xml, one simulator run each. The
+# suite measures the glass and fonts of the device it runs on, so a green run
+# on one watch is not a verdict on another (ADR-0045).
+test-all typecheck=typecheck:
+    pwsh -NoProfile -File tools/test.ps1 -Device all -Typecheck {{typecheck}}
+
 # Drive real taps/swipes/button presses into the simulator and assert which
 # handler fires. Steals the mouse pointer while it runs. Kept out of `test`
 # because it needs a simulator window and synthesises system-wide input.
@@ -84,19 +90,29 @@ release:
 
 # Crop the raw simulator captures in shots/ into square 500x500 listing images.
 # The store stretches non-square images into square slots, which is why so many
-# listings show oval watches. Run after the shot recipes, before uploading.
-store-shots:
-    pwsh -NoProfile -File tools/store-shots.ps1
+# listings show oval watches. Run after the shot recipes, before uploading. The
+# store keeps one set of screenshots per listing, so pick the device to show.
+store-shots device=device:
+    pwsh -NoProfile -File tools/store-shots.ps1 -Device {{device}}
 
-# Build the signed store bundle: publish/Candle.iq (release, all products).
-# REFUSES a three-segment dev version -- run `just release` first. The
-# submission walk-through is docs/PUBLISHING.md.
+# Build the signed store bundle: publish/Candle.iq (release, EVERY product in
+# manifest.xml -- the store reads the device list off the bundle). REFUSES a
+# three-segment dev version -- run `just release` first. The submission
+# walk-through is docs/PUBLISHING.md.
 package:
     pwsh -NoProfile -File tools/package.ps1
 
-# Regenerate the candle mark at every size it is still needed (store, launcher)
+# Regenerate the candle mark at every size it is needed: the store icon, and one
+# launcher icon per product in manifest.xml at the size that device declares
+# (ADR-0046). Run after adding a device to the manifest.
 icons:
     pwsh -NoProfile -File tools/make-icons.ps1
+
+# Every product in manifest.xml against what the app needs from a watch: round,
+# touch, Connect IQ level, a launcher icon at its own size (ADR-0047). Also runs
+# at the start of `just test` and `just package`.
+check-devices:
+    pwsh -NoProfile -File tools/check-devices.ps1
 
 # Re-point ./sdk-docs and ./sdk-samples at the currently active SDK
 link-docs:

@@ -17,6 +17,27 @@ param(
 
 . "$PSScriptRoot\env.ps1"
 
+# --- every product, one simulator run each -----------------------------------
+# The suite measures the glass and the fonts of the device it runs on, so a
+# green run on one watch says nothing about another (ADR-0045). "all" walks the
+# manifest, one child run per product, and fails if any of them does.
+if ($Device -eq "all") {
+    $failed = @()
+    foreach ($product in $Products) {
+        Write-Host ""
+        Write-Host "==================== $product ====================" -ForegroundColor Cyan
+        & $PSCommandPath -Device $product -Typecheck $Typecheck -TestName $TestName -TimeoutSec $TimeoutSec
+        if ($LASTEXITCODE -ne 0) { $failed += $product }
+    }
+    Write-Host ""
+    if ($failed.Count -gt 0) {
+        Write-Host "TESTS FAILED on: $($failed -join ', ')" -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "TESTS PASSED on every product  ($($Products -join ', '))" -ForegroundColor Green
+    exit 0
+}
+
 # --- prose first --------------------------------------------------------------
 # The cheapest possible failure: no build, no simulator. A dangling ADR
 # reference or an ADR nothing points at is caught before anything expensive
@@ -24,6 +45,15 @@ param(
 & "$PSScriptRoot\check-adrs.ps1"
 if ($LASTEXITCODE -ne 0) {
     Write-Host "test: ADR check failed, not building" -ForegroundColor Red
+    exit 1
+}
+
+# --- then the devices ---------------------------------------------------------
+# Equally cheap: every product in the manifest against what the app needs from
+# a watch, and its launcher icon at the size it declares. ADR-0047
+& "$PSScriptRoot\check-devices.ps1"
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "test: device check failed, not building" -ForegroundColor Red
     exit 1
 }
 

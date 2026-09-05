@@ -1,4 +1,5 @@
 import Toybox.Lang;
+import Toybox.System;
 import Toybox.Test;
 import Toybox.WatchUi;
 
@@ -6,11 +7,19 @@ import Toybox.WatchUi;
 // candleDelegate uses rather than spelled out. The encoding is Layout's
 // business; what these tests need is a value the repeat machinery would
 // actually be armed with.
+//
+// On the device's own glass, read the way the delegate reads it, and the tap
+// lands inside a zone by half the zone's reach -- so this is the same tap on
+// every watch rather than a coordinate that only means something on one.
+// ADR-0045
 function mainScreenHit(index as Number, increase as Boolean) as Number {
     var count = Rows.forScreen(Rows.SCREEN_MAIN).size();
-    var w = Layout.DISPLAY_WIDTH;
-    var x = increase ? w - 50 : 50;
-    return Layout.editorHitAt(x, Layout.editorRowCenter(index, count, w), w, w, count);
+    var settings = System.getDeviceSettings();
+    var w = settings.screenWidth;
+    var h = settings.screenHeight;
+    var reach = Layout.controlHitEdge(w) / 2;
+    var x = increase ? w - reach : reach;
+    return Layout.editorHitAt(x, Layout.editorRowCenter(index, count, h), w, h, count);
 }
 
 // This is the right-swipe case without simulator or mouse synthesis: no

@@ -8,7 +8,19 @@
 # It is deliberately separate from `just test`: it needs a simulator window and
 # synthesises system-wide mouse events, so it steals the pointer while it runs.
 #
-#   just input-test
+#   just input-test              # the default device
+#   just input-test fr955        # any product in manifest.xml
+#
+# NO COORDINATES ARE WRITTEN IN THIS FILE. The delegate prints the geometry it
+# decodes taps against, once per screen, as a debug trace:
+#
+#   [input] map screen 0 width 390 height 390 rows 144,246 edge 104 below 297
+#
+# and every tap below is aimed by that line -- inside a zone by half its reach,
+# on a row's centre line, in the band below the rows. That is what lets one
+# script test every glass the app runs on: the numbers used to be typed in here
+# for one watch, and a second watch would have needed a second copy of every
+# check. ADR-0045
 
 param(
     [string]$Device = "vivoactive5",
@@ -31,7 +43,7 @@ Start-SimulatorIfNeeded | Out-Null
 
 $prg = Join-Path $RepoRoot "bin\candle-$Device.prg"
 
-# A HELD lower button is the only thing that closes the app, so that check runs
+# A HELD menu button is the only thing that closes the app, so that check runs
 # last and nothing may follow it but the process check. A pressed lower button
 # and a right swipe are both swallowed now -- they are indistinguishable on real
 # hardware, so the delegate stopped pretending otherwise.
@@ -54,6 +66,40 @@ $script:failures = 0
 $script:checks = 0
 
 function Lines { @(Get-Content $trace -ErrorAction SilentlyContinue | Select-String '\[input\]') }
+
+# The geometry of one screen, read back from the delegate's own trace. The
+# points derived here are the only coordinates any check uses:
+#
+#   Left / Right  inside the "-" / "+" zone by half the zone's reach
+#   Mid           the centre line, where every row is inert
+#   Column        inside the "+" column, just past the zone's inner edge -- the
+#                 x for a tap that is out of the rows only because of its y
+#   Band          a quarter of the way from the bottom of the row block to the
+#                 bottom edge: below the rows, and inside the round glass at
+#                 the Column x on every glass the design fits
+function Get-InputMap([int]$Screen) {
+    $line = (Lines) | Where-Object { "$_" -match "\[input\] map screen $Screen " } | Select-Object -Last 1
+    if (-not $line) {
+        throw "input-test: the app printed no '[input] map screen $Screen' line -- is this a debug build?"
+    }
+    if ("$line" -notmatch 'width (\d+) height (\d+) rows ([\d,]+) edge (\d+) below (\d+)') {
+        throw "input-test: could not parse the map line: $line"
+    }
+    $w = [int]$Matches[1]
+    $h = [int]$Matches[2]
+    $edge = [int]$Matches[4]
+    $below = [int]$Matches[5]
+    return @{
+        Width  = $w
+        Height = $h
+        Rows   = @($Matches[3] -split ',' | ForEach-Object { [int]$_ })
+        Left   = [int]($edge / 2)
+        Right  = $w - [int]($edge / 2)
+        Mid    = [int]($w / 2)
+        Column = $w - $edge + 2
+        Band   = $below + [int](($h - $below) / 4)
+    }
+}
 
 function Check {
     param(
@@ -120,7 +166,7 @@ function Check-AppRunning {
 
 Write-Host ""
 Write-Host "input behaviour on $Device" -ForegroundColor Cyan
-Write-Host "two screens; Back never exits; a HELD lower button is the only way out" -ForegroundColor Cyan
+Write-Host "two screens; Back never exits; a HELD menu button is the only way out" -ForegroundColor Cyan
 
 # Teardown must run even when a check throws, or the surviving simulator blocks
 # the calling shell and the run looks like a hang.
@@ -131,23 +177,26 @@ try {
     # Every setting is changed directly through its edge controls; tapping the
     # centre text is intentionally inert.
     #
-    # MAIN carries two rows, POWER over BUZZ, centred on the glass: y=144 and
-    # y=246, with the edge zones out past x=108 / x=282. The traces name the row
-    # through its own caption, so these checks read exactly as the screen does --
-    # a re-ordered screen that still passes them is editing the setting a thumb
-    # is actually on. Re-ordering Rows.forScreen without swapping the captions
-    # here is what these lines exist to catch.
-    Check "power plus"      { Inject @{ Action='tap'; X=340; Y=144 } }              'onSelect from tap -> awaiting coordinates.*tap POWER \+'
-    Check "power minus"     { Inject @{ Action='tap'; X=50;  Y=144 } }              'onSelect from tap -> awaiting coordinates.*tap POWER -'
-    Check "buzz plus"       { Inject @{ Action='tap'; X=340; Y=246 } }              'onSelect from tap -> awaiting coordinates.*tap BUZZ \+'
-    Check "buzz minus"      { Inject @{ Action='tap'; X=50;  Y=246 } }              'onSelect from tap -> awaiting coordinates.*tap BUZZ -'
-    Check "tap value"       { Inject @{ Action='tap'; X=195; Y=246 } }              'onSelect from tap -> awaiting coordinates.*tap outside controls -> ignored'
+    # MAIN carries two rows, POWER over BUZZ, centred on the glass. The traces
+    # name the row through its own caption, so these checks read exactly as the
+    # screen does -- a re-ordered screen that still passes them is editing the
+    # setting a thumb is actually on. Re-ordering Rows.forScreen without
+    # swapping the captions here is what these lines exist to catch.
+    $main = Get-InputMap 0
+    Write-Host ("map: {0}x{1}, rows at y={2}, zones reach x<={3} / x>={4}" -f
+        $main.Width, $main.Height, ($main.Rows -join ','), ($main.Left * 2), ($main.Width - ($main.Left * 2))) -ForegroundColor DarkGray
+
+    Check "power plus"      { Inject @{ Action='tap'; X=$main.Right; Y=$main.Rows[0] } }   'onSelect from tap -> awaiting coordinates.*tap POWER \+'
+    Check "power minus"     { Inject @{ Action='tap'; X=$main.Left;  Y=$main.Rows[0] } }   'onSelect from tap -> awaiting coordinates.*tap POWER -'
+    Check "buzz plus"       { Inject @{ Action='tap'; X=$main.Right; Y=$main.Rows[1] } }   'onSelect from tap -> awaiting coordinates.*tap BUZZ \+'
+    Check "buzz minus"      { Inject @{ Action='tap'; X=$main.Left;  Y=$main.Rows[1] } }   'onSelect from tap -> awaiting coordinates.*tap BUZZ -'
+    Check "tap value"       { Inject @{ Action='tap'; X=$main.Mid;   Y=$main.Rows[1] } }   'onSelect from tap -> awaiting coordinates.*tap outside controls -> ignored'
 
     # Hold-to-repeat: a held control steps immediately, keeps stepping while
     # held (an 1800ms hold at 200ms per step must show at least two), and the
     # release disarms it. A hold on the inert centre arms nothing.
-    Check "hold repeats"    { Inject @{ Action='touchhold'; X=340; Y=144 } }        'onHold -> step and repeat.*tap POWER \+.*tap POWER \+.*onRelease -> repeat stopped'
-    Check "hold on value"   { Inject @{ Action='touchhold'; X=195; Y=246 } }        'onHold outside controls -> ignored'
+    Check "hold repeats"    { Inject @{ Action='touchhold'; X=$main.Right; Y=$main.Rows[0] } }   'onHold -> step and repeat.*tap POWER \+.*tap POWER \+.*onRelease -> repeat stopped'
+    Check "hold on value"   { Inject @{ Action='touchhold'; X=$main.Mid;   Y=$main.Rows[1] } }   'onHold outside controls -> ignored'
 
     # A right-swipe reaches onBack exactly as the lower button does, and on real
     # hardware the firmware synthesizes a KEY_ESC for it -- so the delegate stopped
@@ -171,26 +220,27 @@ try {
     # closes it. ADR-0036 retired the BACK button that used to sit in the bottom
     # band, so nothing on the glass and no gesture pops this screen any more.
     #
-    # SETTINGS carries two rows, EVERY over PACE, at the same two heights the
-    # main screen's rows sit at -- both screens hold two rows, so the row
-    # geometry is shared. It is spelled out again rather than reused because a
-    # screen that grows a third row moves its own rows and nothing else's.
+    # SETTINGS carries two rows, EVERY over PACE. Its map is read separately
+    # rather than reused from the main screen's: both hold two rows today, so
+    # the two maps agree, but a screen that grows a third row moves its own
+    # rows and nothing else's.
     Check "enter opens"     { Inject @{ Action='press'; Target='enter' } }           'upper button -> settings'
-    Check "every plus"      { Inject @{ Action='tap'; X=340; Y=144 } }               'onSelect from tap -> awaiting coordinates.*tap EVERY \+'
-    Check "every minus"     { Inject @{ Action='tap'; X=50;  Y=144 } }               'onSelect from tap -> awaiting coordinates.*tap EVERY -'
-    Check "pace plus"       { Inject @{ Action='tap'; X=340; Y=246 } }               'onSelect from tap -> awaiting coordinates.*tap PACE \+'
-    Check "pace minus"      { Inject @{ Action='tap'; X=50;  Y=246 } }               'onSelect from tap -> awaiting coordinates.*tap PACE -'
-    Check "settings inert"  { Inject @{ Action='tap'; X=195; Y=195 } }               'onSelect from tap -> awaiting coordinates.*tap outside controls -> ignored'
+    $settings = Get-InputMap 1
+
+    Check "every plus"      { Inject @{ Action='tap'; X=$settings.Right; Y=$settings.Rows[0] } }   'onSelect from tap -> awaiting coordinates.*tap EVERY \+'
+    Check "every minus"     { Inject @{ Action='tap'; X=$settings.Left;  Y=$settings.Rows[0] } }   'onSelect from tap -> awaiting coordinates.*tap EVERY -'
+    Check "pace plus"       { Inject @{ Action='tap'; X=$settings.Right; Y=$settings.Rows[1] } }   'onSelect from tap -> awaiting coordinates.*tap PACE \+'
+    Check "pace minus"      { Inject @{ Action='tap'; X=$settings.Left;  Y=$settings.Rows[1] } }   'onSelect from tap -> awaiting coordinates.*tap PACE -'
+    Check "settings inert"  { Inject @{ Action='tap'; X=$settings.Mid;   Y=[int]($settings.Height / 2) } }   'onSelect from tap -> awaiting coordinates.*tap outside controls -> ignored'
 
     # The band below the rows was the BACK button until ADR-0036. It is inert
     # now, and a tap there must be ignored rather than pop the screen -- this is
     # the check that would catch the control coming back by accident.
     #
-    # x=320 is deliberately inside the "+" column and not on the centre line:
-    # only the y puts this tap outside a row, so the check fails if the row
-    # block ever grows downward into the band. It is also inside the round
-    # glass at that height -- the half-chord at y=320 stops around x=345.
-    Check "bottom band inert" { Inject @{ Action='tap'; X=320; Y=320 } }             'onSelect from tap -> awaiting coordinates.*tap outside controls -> ignored'
+    # The x is inside the "+" column and not on the centre line: only the y
+    # puts this tap outside a row, so the check fails if the row block ever
+    # grows downward into the band.
+    Check "bottom band inert" { Inject @{ Action='tap'; X=$settings.Column; Y=$settings.Band } }   'onSelect from tap -> awaiting coordinates.*tap outside controls -> ignored'
 
     # A swipe and a pressed lower button both arrive as Back, and this screen
     # swallows both exactly as the main screen does -- same trace, same hint.
@@ -208,16 +258,19 @@ try {
 
     # --- the exit ---------------------------------------------------------------
     #
-    # THE PHYSICAL LOWER BUTTON NO LONGER EXITS. Pressed, it is swallowed exactly
+    # THE PHYSICAL BACK BUTTON NO LONGER EXITS. Pressed, it is swallowed exactly
     # like the swipe it cannot be told apart from -- and the app must still be
     # running afterwards, which is the assertion the whole fix rests on.
     Check "back swallowed" { Inject @{ Action='press'; Target='esc' } }              'onBack -> swallowed, hold to exit'
     Check-AppRunning "back kept it alive" "the lower button must not close the app any more"
 
-    # HOLDING it does. onMenu is the one gesture in this whole investigation the
-    # firmware has never been caught synthesizing, which is why the only exit
-    # hangs on it -- so it has to be last, and nothing may follow it but the
-    # process check.
+    # HOLDING the menu button does. onMenu is the one gesture in this whole
+    # investigation the firmware has never been caught synthesizing, which is
+    # why the only exit hangs on it -- so it has to be last, and nothing may
+    # follow it but the process check. Which physical button carries the hold
+    # is the device's business (the vívoactive 5's lower button, the Forerunner
+    # 955's UP); input.ps1 reads it off the device config as the key named
+    # "menu". ADR-0047
     Check "hold exits"     { Inject @{ Action='hold'; Target='menu' } }              'onMenu -> app exits'
 
     $script:checks++

@@ -3,6 +3,12 @@
 # inferred -- the simulator only accepts these through its GUI, so they are
 # synthesised as actual mouse events.
 #
+# THE REAL POINTER IS THE ONLY WAY IN. Posting WM_LBUTTONDOWN/UP straight to
+# the simulator window (PostMessage, at the key's client coordinates) was tried
+# on 2026-09-05 so that this could stop stealing the mouse: the simulator drew
+# nothing and the app traced nothing. It reads the actual cursor. So every
+# action here moves the pointer, and every recipe built on this says so.
+#
 # Geometry is read from the device's own simulator.json, so this works for any
 # installed device, not just the vivoactive 5:
 #   display.location  where the round screen sits inside the device bitmap
